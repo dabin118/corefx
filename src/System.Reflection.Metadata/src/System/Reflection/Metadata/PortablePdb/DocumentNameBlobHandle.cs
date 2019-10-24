@@ -9,14 +9,14 @@ using System.Reflection.Metadata.Ecma335;
 namespace System.Reflection.Metadata
 {
     /// <summary>
-    /// <see cref="BlobHandle"/> representing a blob on #Blob heap in Portable PDB 
-    /// structured as Document Name. 
+    /// <see cref="BlobHandle"/> representing a blob on #Blob heap in Portable PDB
+    /// structured as Document Name.
     /// </summary>
     /// <remarks>
-    /// The kind of the handle is <see cref="HandleKind.Blob"/>. 
-    /// The handle is a specialization of <see cref="BlobHandle"/> and doesn't have a distinct kind. 
+    /// The kind of the handle is <see cref="HandleKind.Blob"/>.
+    /// The handle is a specialization of <see cref="BlobHandle"/> and doesn't have a distinct kind.
     /// </remarks>
-    public struct DocumentNameBlobHandle : IEquatable<DocumentNameBlobHandle>
+    public readonly struct DocumentNameBlobHandle : IEquatable<DocumentNameBlobHandle>
     {
         // bits:
         // 29..31: 0

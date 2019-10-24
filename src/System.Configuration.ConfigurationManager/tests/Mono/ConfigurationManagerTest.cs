@@ -5,8 +5,8 @@
 // for System.Configuration.ConfigurationManager.
 //
 // Author:
-//	Chris Toshok  <toshok@ximian.com>
-//	Atsushi Enomoto  <atsushi@ximian.com>
+//  Chris Toshok  <toshok@ximian.com>
+//  Atsushi Enomoto  <atsushi@ximian.com>
 //
 // Copyright (C) 2005-2006 Novell, Inc (http://www.novell.com)
 //
@@ -17,10 +17,10 @@
 // distribute, sublicense, and/or sell copies of the Software, and to
 // permit persons to whom the Software is furnished to do so, subject to
 // the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be
 // included in all copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
 // EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
 // MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
@@ -66,7 +66,7 @@ namespace MonoTests.System.Configuration
             Assert.Equal("user.config", fi.Name);
         }
 
-        [Fact]
+        [ConditionalFact(typeof(PlatformDetection), nameof(PlatformDetection.IsNotWindowsNanoServer))] // ActiveIssue: https://github.com/dotnet/corefx/issues/29752
         [ActiveIssue(15065, TestPlatforms.AnyUnix)]
         public void OpenExeConfiguration1_UserLevel_PerUserRoamingAndLocal()
         {
@@ -155,7 +155,7 @@ namespace MonoTests.System.Configuration
             Assert.Equal("user.config", Path.GetFileName(filePath));
         }
 
-        [Fact]
+        [ConditionalFact(typeof(PlatformDetection), nameof(PlatformDetection.IsNotWindowsNanoServer))] // ActiveIssue: https://github.com/dotnet/corefx/issues/29752
         [ActiveIssue(15066, TestPlatforms.AnyUnix)]
         public void exePath_UserLevelPerRoamingAndLocal()
         {
@@ -287,7 +287,7 @@ namespace MonoTests.System.Configuration
             Assert.True(ConfigurationManager.GetSection("appSettings") is NameValueCollection);
         }
 
-        [Fact]  // Test for bug #3412
+        [Fact] // Test for bug #3412
         // Doesn't pass on Mono
         // [Category("NotWorking")]
         public void TestAddRemoveSection()

@@ -132,7 +132,6 @@ namespace System.Runtime.Serialization
 
             childElementIndex += memberCount;
 
-            Type classType = classContract.UnadaptedClassType;
             XmlDictionaryString[] memberNames = classContract.MemberNames;
             XmlDictionaryString ns = classContract.Namespace;
             context.IncrementItemCount(classContract.Members.Count);
@@ -143,6 +142,10 @@ namespace System.Runtime.Serialization
                 if (member.IsGetOnlyCollection)
                 {
                     context.StoreIsGetOnlyCollection();
+                }
+                else
+                {
+                    context.ResetIsGetOnlyCollection();
                 }
 
                 bool shouldWriteValue = true;
@@ -184,7 +187,7 @@ namespace System.Runtime.Serialization
                         ReflectionWriteEndElement(xmlWriter);
                     }
 
-                    if(classContract.HasExtensionData)
+                    if (classContract.HasExtensionData)
                     {
                         context.WriteExtensionData(xmlWriter, ((IExtensibleDataObject)obj).ExtensionData, memberCount);
                     }

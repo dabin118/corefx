@@ -63,7 +63,6 @@ public partial class ThreadPoolBoundHandleTests
     }
 
     [Fact]
-    [ActiveIssue(21066, TargetFrameworkMonikers.Uap)]
     [PlatformSpecific(TestPlatforms.Windows)] // ThreadPoolBoundHandle.BindHandle is not supported on Unix
     public void BindHandle_ClosedSyncHandleAsHandle_ThrowsArgumentException()
     {
@@ -79,7 +78,6 @@ public partial class ThreadPoolBoundHandleTests
     }
 
     [Fact]
-    [ActiveIssue(21066, TargetFrameworkMonikers.Uap)]
     [PlatformSpecific(TestPlatforms.Windows)] // ThreadPoolBoundHandle.BindHandle is not supported on Unix
     public void BindHandle_ClosedAsyncHandleAsHandle_ThrowsArgumentException()
     {
@@ -98,7 +96,7 @@ public partial class ThreadPoolBoundHandleTests
     [PlatformSpecific(TestPlatforms.Windows)] // ThreadPoolBoundHandle.BindHandle is not supported on Unix
     public void BindHandle_DisposedSyncHandleAsHandle_ThrowsArgumentException()
     {
-        Win32Handle handle = HandleFactory.CreateSyncFileHandleForWrite();
+        Win32Handle handle = HandleFactory.CreateSyncFileHandleForWrite(GetTestFilePath());
         handle.Dispose();
 
         AssertExtensions.Throws<ArgumentException>("handle", () =>

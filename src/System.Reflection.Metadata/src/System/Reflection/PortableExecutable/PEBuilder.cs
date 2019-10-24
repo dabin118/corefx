@@ -19,7 +19,7 @@ namespace System.Reflection.PortableExecutable
         private readonly Lazy<ImmutableArray<Section>> _lazySections;
         private Blob _lazyChecksum;
 
-        protected struct Section
+        protected readonly struct Section
         {
             public readonly string Name;
             public readonly SectionCharacteristics Characteristics;
@@ -36,7 +36,7 @@ namespace System.Reflection.PortableExecutable
             }
         }
 
-        private struct SerializedSection
+        private readonly struct SerializedSection
         {
             public readonly BlobBuilder Builder;
 
@@ -156,7 +156,7 @@ namespace System.Reflection.PortableExecutable
             // MS-DOS stub (128 bytes)
             builder.WriteBytes(s_dosHeader);
 
-            // PE Signature "PE\0\0" 
+            // PE Signature "PE\0\0"
             builder.WriteUInt32(PEHeaders.PESignature);
         }
 
@@ -197,17 +197,17 @@ namespace System.Reflection.PortableExecutable
             stampFixup = builder.ReserveBytes(sizeof(uint));
 
             // PointerToSymbolTable (TODO: not supported):
-            // The file pointer to the COFF symbol table, or zero if no COFF symbol table is present. 
+            // The file pointer to the COFF symbol table, or zero if no COFF symbol table is present.
             // This value should be zero for a PE image.
             builder.WriteUInt32(0);
 
             // NumberOfSymbols (TODO: not supported):
-            // The number of entries in the symbol table. This data can be used to locate the string table, 
+            // The number of entries in the symbol table. This data can be used to locate the string table,
             // which immediately follows the symbol table. This value should be zero for a PE image.
             builder.WriteUInt32(0);
 
             // SizeOfOptionalHeader:
-            // The size of the optional header, which is required for executable files but not for object files. 
+            // The size of the optional header, which is required for executable files but not for object files.
             // This value should be zero for an object file (TODO).
             builder.WriteUInt16((ushort)PEHeader.Size(Header.Is32Bit));
 
@@ -259,7 +259,7 @@ namespace System.Reflection.PortableExecutable
             builder.WriteUInt16(Header.MinorImageVersion);
             builder.WriteUInt16(Header.MajorSubsystemVersion);
             builder.WriteUInt16(Header.MinorSubsystemVersion);
-                                
+
             // Win32VersionValue (reserved, should be 0)
             builder.WriteUInt32(0);
 
@@ -271,7 +271,7 @@ namespace System.Reflection.PortableExecutable
             builder.WriteUInt32((uint)BitArithmetic.Align(Header.ComputeSizeOfPEHeaders(sections.Length), Header.FileAlignment));
 
             // Checksum:
-            // Shall be zero for strong name signing. 
+            // Shall be zero for strong name signing.
             _lazyChecksum = builder.ReserveBytes(sizeof(uint));
             new BlobWriter(_lazyChecksum).WriteUInt32(0);
 
@@ -398,7 +398,7 @@ namespace System.Reflection.PortableExecutable
             return -1;
         }
 
-        private static int SumRawDataSizes(ImmutableArray<SerializedSection> sections,SectionCharacteristics characteristics)
+        private static int SumRawDataSizes(ImmutableArray<SerializedSection> sections, SectionCharacteristics characteristics)
         {
             int result = 0;
             for (int i = 0; i < sections.Length; i++)
@@ -415,14 +415,14 @@ namespace System.Reflection.PortableExecutable
         // internal for testing
         internal static IEnumerable<Blob> GetContentToSign(BlobBuilder peImage, int peHeadersSize, int peHeaderAlignment, Blob strongNameSignatureFixup)
         {
-            // Signed content includes 
+            // Signed content includes
             // - PE header without its alignment padding
             // - all sections including their alignment padding and excluding strong name signature blob
 
-            // PE specification: 
-            //   To calculate the PE image hash, Authenticode orders the sections that are specified in the section table 
+            // PE specification:
+            //   To calculate the PE image hash, Authenticode orders the sections that are specified in the section table
             //   by address range, then hashes the resulting sequence of bytes, passing over the exclusion ranges.
-            // 
+            //
             // Note that sections are by construction ordered by their address, so there is no need to reorder.
 
             int remainingHeaderToSign = peHeadersSize;
@@ -502,11 +502,12 @@ namespace System.Reflection.PortableExecutable
                 throw new InvalidOperationException(SR.SignatureProviderReturnedInvalidSignature);
             }
 
-            uint checksum = CalculateChecksum(peImage, _lazyChecksum);
-            new BlobWriter(_lazyChecksum).WriteUInt32(checksum);
-
             var writer = new BlobWriter(strongNameSignatureFixup);
             writer.WriteBytes(signature);
+
+            // Calculate the checksum after the strong name signature has been written.
+            uint checksum = CalculateChecksum(peImage, _lazyChecksum);
+            new BlobWriter(_lazyChecksum).WriteUInt32(checksum);
         }
 
         // internal for testing
@@ -546,7 +547,7 @@ namespace System.Reflection.PortableExecutable
                     {
                         pendingByte = -1;
                     }
-                    
+
                     while (ptr < end)
                     {
                         checksum = AggregateChecksum(checksum, *(ushort*)ptr);

@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using System;
 using System.Collections;
 using System.Xml;
 
@@ -16,7 +15,7 @@ namespace System.Security.Cryptography.Xml
         private string _signatureValueId;
         private KeyInfo _keyInfo;
         private IList _embeddedObjects;
-        private CanonicalXmlNodeList _referencedItems;
+        private readonly CanonicalXmlNodeList _referencedItems;
         private SignedXml _signedXml = null;
 
         internal SignedXml SignedXml
@@ -148,37 +147,53 @@ namespace System.Security.Cryptography.Xml
 
             // Id attribute -- optional
             _id = Utils.GetAttribute(signatureElement, "Id", SignedXml.XmlDsigNamespaceUrl);
+            if (!Utils.VerifyAttributes(signatureElement, "Id"))
+                throw new CryptographicException(SR.Cryptography_Xml_InvalidElement, "Signature");
 
             XmlNamespaceManager nsm = new XmlNamespaceManager(value.OwnerDocument.NameTable);
             nsm.AddNamespace("ds", SignedXml.XmlDsigNamespaceUrl);
+            int expectedChildNodes = 0;
 
             // SignedInfo
-            XmlElement signedInfoElement = signatureElement.SelectSingleNode("ds:SignedInfo", nsm) as XmlElement;
-            if (signedInfoElement == null)
+            XmlNodeList signedInfoNodes = signatureElement.SelectNodes("ds:SignedInfo", nsm);
+            if (signedInfoNodes == null || signedInfoNodes.Count == 0 || signedInfoNodes.Count > 1)
                 throw new CryptographicException(SR.Cryptography_Xml_InvalidElement, "SignedInfo");
+            XmlElement signedInfoElement = signedInfoNodes[0] as XmlElement;
+            expectedChildNodes += signedInfoNodes.Count;
 
             SignedInfo = new SignedInfo();
             SignedInfo.LoadXml(signedInfoElement);
 
             // SignatureValue
-            XmlElement signatureValueElement = signatureElement.SelectSingleNode("ds:SignatureValue", nsm) as XmlElement;
-            if (signatureValueElement == null)
-                throw new CryptographicException(SR.Cryptography_Xml_InvalidElement, "SignedInfo/SignatureValue");
+            XmlNodeList signatureValueNodes = signatureElement.SelectNodes("ds:SignatureValue", nsm);
+            if (signatureValueNodes == null || signatureValueNodes.Count == 0 || signatureValueNodes.Count > 1)
+                throw new CryptographicException(SR.Cryptography_Xml_InvalidElement, "SignatureValue");
+            XmlElement signatureValueElement = signatureValueNodes[0] as XmlElement;
+            expectedChildNodes += signatureValueNodes.Count;
             _signatureValue = Convert.FromBase64String(Utils.DiscardWhiteSpaces(signatureValueElement.InnerText));
             _signatureValueId = Utils.GetAttribute(signatureValueElement, "Id", SignedXml.XmlDsigNamespaceUrl);
+            if (!Utils.VerifyAttributes(signatureValueElement, "Id"))
+                throw new CryptographicException(SR.Cryptography_Xml_InvalidElement, "SignatureValue");
 
+            // KeyInfo - optional single element
             XmlNodeList keyInfoNodes = signatureElement.SelectNodes("ds:KeyInfo", nsm);
             _keyInfo = new KeyInfo();
             if (keyInfoNodes != null)
             {
+                if (keyInfoNodes.Count > 1)
+                {
+                    throw new CryptographicException(SR.Cryptography_Xml_InvalidElement, "KeyInfo");
+                }
                 foreach (XmlNode node in keyInfoNodes)
                 {
                     XmlElement keyInfoElement = node as XmlElement;
                     if (keyInfoElement != null)
                         _keyInfo.LoadXml(keyInfoElement);
                 }
+                expectedChildNodes += keyInfoNodes.Count;
             }
 
+            // Object - zero or more elements allowed
             XmlNodeList objectNodes = signatureElement.SelectNodes("ds:Object", nsm);
             _embeddedObjects.Clear();
             if (objectNodes != null)
@@ -193,6 +208,7 @@ namespace System.Security.Cryptography.Xml
                         _embeddedObjects.Add(dataObj);
                     }
                 }
+                expectedChildNodes += objectNodes.Count;
             }
 
             // Select all elements that have Id attributes
@@ -204,6 +220,11 @@ namespace System.Security.Cryptography.Xml
                     _referencedItems.Add(node);
                 }
             }
+            // Verify that there aren't any extra nodes that aren't allowed
+            if (signatureElement.SelectNodes("*").Count != expectedChildNodes)
+            {
+                throw new CryptographicException(SR.Cryptography_Xml_InvalidElement, "Signature");
+            }
         }
 
         public void AddObject(DataObject dataObject)
@@ -212,4 +233,3 @@ namespace System.Security.Cryptography.Xml
         }
     }
 }
-

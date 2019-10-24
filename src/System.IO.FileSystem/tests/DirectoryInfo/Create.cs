@@ -17,6 +17,8 @@ namespace System.IO.Tests
             return result;
         }
 
+        public override bool IsDirectoryCreate => false;
+
         #endregion
 
         [Fact]
@@ -71,6 +73,15 @@ namespace System.IO.Tests
             string testDir = GetTestFilePath();
             DirectoryInfo testInfo = new DirectoryInfo(testDir + extension + trailing);
             Assert.Equal(trailing, testInfo.Extension);
+        }
+
+        [Fact]
+        public void CreateDirectoryWithAttributes()
+        {
+            string testDir = Path.Combine(GetTestFilePath(), "CreateDirectoryWithAttributes");
+            DirectoryInfo testInfo = new DirectoryInfo(testDir);
+            testInfo.Create();
+            testInfo.Attributes = FileAttributes.Directory | FileAttributes.Normal;
         }
     }
 }

@@ -59,7 +59,7 @@ namespace System.Xml.Xsl.XPath
 
     internal sealed class XPathScanner
     {
-        private string _xpathExpr;
+        private readonly string _xpathExpr;
         private int _curIndex;
         private char _curChar;
         private LexKind _kind;
@@ -554,7 +554,7 @@ namespace System.Xml.Xsl.XPath
 #endif
                 );
             int start = _curIndex;
-            for (;;)
+            while (true)
             {
                 if (_xmlCharType.IsNCNameSingleChar(_curChar))
                 {
@@ -604,7 +604,7 @@ namespace System.Xml.Xsl.XPath
             if (LexKind.LastNonChar < t)
             {
                 Debug.Assert("()[].@,*/$}".IndexOf((char)t) >= 0);
-                return new String((char)t, 1);
+                return char.ToString((char)t);
             }
 
             switch (t)

@@ -3,11 +3,12 @@
 // See the LICENSE file in the project root for more information.
 
 using System.Diagnostics;
+using Microsoft.DotNet.RemoteExecutor;
 using Xunit;
 
 namespace System.IO.MemoryMappedFiles.Tests
 {
-    public class CrossProcessTests : RemoteExecutorTestBase
+    public class CrossProcessTests : FileCleanupTestBase
     {
         [Fact]
         public void DataShared()
@@ -27,7 +28,7 @@ namespace System.IO.MemoryMappedFiles.Tests
                 acc.Flush();
 
                 // Spawn and then wait for the other process, which will verify the data and write its own known pattern
-                RemoteInvoke(DataShared_OtherProcess, file.Path).Dispose();
+                RemoteExecutor.Invoke(new Action<string>(DataShared_OtherProcess), file.Path).Dispose();
 
                 // Now verify we're seeing the data from the other process
                 for (int i = 0; i < capacity; i++)
@@ -37,7 +38,7 @@ namespace System.IO.MemoryMappedFiles.Tests
             }
         }
 
-        private static int DataShared_OtherProcess(string path)
+        private static void DataShared_OtherProcess(string path)
         {
             // Open the specified file and load it into a map
             using (FileStream fs = new FileStream(path, FileMode.Open, FileAccess.ReadWrite, FileShare.ReadWrite))
@@ -55,7 +56,6 @@ namespace System.IO.MemoryMappedFiles.Tests
                     acc.Write(i, unchecked((byte)(capacity - i - 1)));
                 }
                 acc.Flush();
-                return SuccessExitCode;
             }
         }
 

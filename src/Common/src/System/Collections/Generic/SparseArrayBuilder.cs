@@ -10,7 +10,7 @@ namespace System.Collections.Generic
     /// Represents a reserved region within a <see cref="SparseArrayBuilder{T}"/>.
     /// </summary>
     [DebuggerDisplay("{DebuggerDisplay,nq}")]
-    internal struct Marker
+    internal readonly struct Marker
     {
         /// <summary>
         /// Constructs a new marker.
@@ -87,7 +87,7 @@ namespace System.Collections.Generic
         /// The total number of items in this builder, including reserved regions.
         /// </summary>
         public int Count => checked(_builder.Count + _reservedCount);
-        
+
         /// <summary>
         /// The list of reserved regions in this builder.
         /// </summary>
@@ -109,13 +109,14 @@ namespace System.Collections.Generic
         /// Copies the contents of this builder to the specified array.
         /// </summary>
         /// <param name="array">The destination array.</param>
-        /// <param name="arrayIndex">The index in <see cref="array"/> to start copying to.</param>
+        /// <param name="arrayIndex">The index in <paramref name="array"/> to start copying to.</param>
         /// <param name="count">The number of items to copy.</param>
         public void CopyTo(T[] array, int arrayIndex, int count)
         {
+            Debug.Assert(array != null);
             Debug.Assert(arrayIndex >= 0);
             Debug.Assert(count >= 0 && count <= Count);
-            Debug.Assert(array?.Length - arrayIndex >= count);
+            Debug.Assert(array.Length - arrayIndex >= count);
 
             int copied = 0;
             var position = CopyPosition.Start;
@@ -135,7 +136,7 @@ namespace System.Collections.Generic
                     copied += toCopy;
                     count -= toCopy;
                 }
-                
+
                 if (count == 0)
                 {
                     return;
@@ -149,8 +150,11 @@ namespace System.Collections.Generic
                 count -= reservedCount;
             }
 
-            // Finish copying after the final marker.
-            _builder.CopyTo(position, array, arrayIndex, count);
+            if (count > 0)
+            {
+                // Finish copying after the final marker.
+                _builder.CopyTo(position, array, arrayIndex, count);
+            }
         }
 
         /// <summary>

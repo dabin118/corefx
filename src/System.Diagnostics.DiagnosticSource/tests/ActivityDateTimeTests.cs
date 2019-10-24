@@ -1,3 +1,7 @@
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
+
 using System.Threading;
 using Xunit;
 
@@ -16,7 +20,7 @@ namespace System.Diagnostics.Tests
             activity.Start();
             SpinWait.SpinUntil(() => sw.ElapsedMilliseconds > 1, 2);
             activity.Stop();
-            
+
             sw.Stop();
 
             Assert.True(activity.Duration.TotalMilliseconds > 1 && activity.Duration <= sw.Elapsed);

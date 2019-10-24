@@ -4,7 +4,7 @@
 // ConfigurationErrorsExceptionTest.cs
 //
 // Author:
-//	Gert Driesen  <drieseng@users.sourceforge.net>
+//  Gert Driesen  <drieseng@users.sourceforge.net>
 //
 // Copyright (C) 2008 Gert Driesen
 //
@@ -15,10 +15,10 @@
 // distribute, sublicense, and/or sell copies of the Software, and to
 // permit persons to whom the Software is furnished to do so, subject to
 // the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be
 // included in all copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
 // EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
 // MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
@@ -31,6 +31,7 @@ using System;
 using System.Configuration;
 using System.Configuration.Internal;
 using System.IO;
+using System.Text.RegularExpressions;
 using System.Xml;
 
 using Xunit;
@@ -44,7 +45,12 @@ namespace MonoTests.System.Configuration
         {
             ConfigurationErrorsException cee = new ConfigurationErrorsException();
             Assert.NotNull(cee.BareMessage);
-            Assert.True(cee.BareMessage.IndexOf("'" + typeof(ConfigurationErrorsException).FullName + "'") != -1, "#2:" + cee.BareMessage);
+
+            // \p{Pi} any kind of opening quote https://www.compart.com/en/unicode/category/Pi
+            // \p{Pf} any kind of closing quote https://www.compart.com/en/unicode/category/Pf
+            // \p{Po} any kind of punctuation character that is not a dash, bracket, quote or connector https://www.compart.com/en/unicode/category/Po
+            Assert.True(Regex.IsMatch(cee.BareMessage, @"[\p{Pi}\p{Po}]" + Regex.Escape(typeof(ConfigurationErrorsException).FullName) + @"[\p{Pf}\p{Po}]"), "#2:" + cee.BareMessage);
+
             Assert.NotNull(cee.Data);
             Assert.Equal(0, cee.Data.Count);
             Assert.Null(cee.Filename);
@@ -637,4 +643,3 @@ namespace MonoTests.System.Configuration
         }
     }
 }
-

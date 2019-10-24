@@ -8,6 +8,8 @@ namespace System.Net.Test.Common
     {
         public static partial class WebSockets
         {
+            public static string ProxyServerUri => GetValue("COREFX_WEBSOCKETPROXYSERVERURI");
+
             public static string Host => GetValue("COREFX_WEBSOCKETHOST", DefaultAzureServer);
 
             public static string SecureHost => GetValue("COREFX_SECUREWEBSOCKETHOST", DefaultAzureServer);
@@ -20,7 +22,7 @@ namespace System.Net.Test.Common
 
             public static readonly Uri RemoteEchoHeadersServer = new Uri("ws://" + Host + "/" + EchoHeadersHandler);
             public static readonly Uri SecureRemoteEchoHeadersServer = new Uri("wss://" + SecureHost + "/" + EchoHeadersHandler);
-            
+
             public static readonly object[][] EchoServers = { new object[] { RemoteEchoServer }, new object[] { SecureRemoteEchoServer } };
             public static readonly object[][] EchoHeadersServers = { new object[] { RemoteEchoHeadersServer }, new object[] { SecureRemoteEchoHeadersServer } };
         }

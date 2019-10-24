@@ -31,7 +31,7 @@ namespace System.Collections.Immutable
         /// <summary>
         /// Contains all the keys in the collection that hash to the same value.
         /// </summary>
-        internal struct HashBucket
+        internal readonly struct HashBucket
         {
             /// <summary>
             /// One of the values in this bucket.
@@ -42,7 +42,7 @@ namespace System.Collections.Immutable
             /// Any other elements that hash to the same value.
             /// </summary>
             /// <value>
-            /// This is null if and only if the entire bucket is empty (including <see cref="_firstValue"/>).  
+            /// This is null if and only if the entire bucket is empty (including <see cref="_firstValue"/>).
             /// It's empty if <see cref="_firstValue"/> has an element but no additional elements.
             /// </value>
             private readonly ImmutableList<T>.Node _additionalElements;
@@ -182,7 +182,11 @@ namespace System.Collections.Immutable
                     int index = _additionalElements.IndexOf(value, valueComparer);
                     if (index >= 0)
                     {
+#if !NETSTANDARD1_0
+                        existingValue = _additionalElements.ItemRef(index);
+#else
                         existingValue = _additionalElements[index];
+#endif
                         return true;
                     }
                 }
@@ -326,15 +330,12 @@ namespace System.Collections.Immutable
                     get
                     {
                         this.ThrowIfDisposed();
-                        switch (_currentPosition)
+                        return _currentPosition switch
                         {
-                            case Position.First:
-                                return _bucket._firstValue;
-                            case Position.Additional:
-                                return _additionalEnumerator.Current;
-                            default:
-                                throw new InvalidOperationException();
-                        }
+                            Position.First => _bucket._firstValue,
+                            Position.Additional => _additionalEnumerator.Current,
+                            _ => throw new InvalidOperationException(),
+                        };
                     }
                 }
 

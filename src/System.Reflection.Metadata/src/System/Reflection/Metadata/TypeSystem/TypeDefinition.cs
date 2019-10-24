@@ -8,7 +8,7 @@ using System.Reflection.Metadata.Ecma335;
 
 namespace System.Reflection.Metadata
 {
-    public struct TypeDefinition
+    public readonly struct TypeDefinition
     {
         private readonly MetadataReader _reader;
 
@@ -51,6 +51,11 @@ namespace System.Reflection.Metadata
                 return GetProjectedFlags();
             }
         }
+
+        /// <summary>
+        /// Indicates whether this is a nested type.
+        /// </summary>
+        public bool IsNested => Attributes.IsNested();
 
         /// <summary>
         /// Name of the type.
@@ -262,16 +267,12 @@ namespace System.Reflection.Metadata
         {
             var name = _reader.TypeDefTable.GetName(Handle);
 
-            switch (Treatment & TypeDefTreatment.KindMask)
+            return (Treatment & TypeDefTreatment.KindMask) switch
             {
-                case TypeDefTreatment.UnmangleWinRTName:
-                    return name.SuffixRaw(MetadataReader.ClrPrefix.Length);
-
-                case TypeDefTreatment.PrefixWinRTName:
-                    return name.WithWinRTPrefix();
-            }
-
-            return name;
+                TypeDefTreatment.UnmangleWinRTName => name.SuffixRaw(MetadataReader.ClrPrefix.Length),
+                TypeDefTreatment.PrefixWinRTName => name.WithWinRTPrefix(),
+                _ => name,
+            };
         }
 
         private NamespaceDefinitionHandle GetProjectedNamespace()

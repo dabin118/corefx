@@ -12,10 +12,11 @@ namespace Microsoft.CSharp.RuntimeBinder
     /// <see cref="RuntimeBinderException"/> represents a failure to bind in the sense of a usual compiler error, whereas <see cref="RuntimeBinderInternalCompilerException"/>
     /// represents a malfunctioning of the runtime binder itself.
     /// </summary>
+    [Serializable]
     public class RuntimeBinderException : Exception
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="RuntimeBinderException"/> class. 
+        /// Initializes a new instance of the <see cref="RuntimeBinderException"/> class.
         /// </summary>
         public RuntimeBinderException()
         {
@@ -49,7 +50,6 @@ namespace Microsoft.CSharp.RuntimeBinder
         protected RuntimeBinderException(SerializationInfo info, StreamingContext context)
             : base(info, context)
         {
-            throw new PlatformNotSupportedException();
         }
     }
 }

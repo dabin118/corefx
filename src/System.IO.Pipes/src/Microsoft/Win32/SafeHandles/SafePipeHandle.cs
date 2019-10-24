@@ -8,11 +8,10 @@ using System.Security;
 
 namespace Microsoft.Win32.SafeHandles
 {
-    [SecurityCritical]
     public sealed partial class SafePipeHandle : SafeHandleZeroOrMinusOneIsInvalid
     {
         internal SafePipeHandle()
-            : this(new IntPtr(DefaultInvalidHandle), true) 
+            : this(new IntPtr(DefaultInvalidHandle), true)
         {
         }
 

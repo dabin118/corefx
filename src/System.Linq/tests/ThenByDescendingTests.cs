@@ -9,7 +9,7 @@ using Xunit;
 namespace System.Linq.Tests
 {
     public class ThenByDescendingTests : EnumerableTests
-    {        
+    {
         [Fact]
         public void SameResultsRepeatCallsIntQuery()
         {
@@ -18,7 +18,7 @@ namespace System.Linq.Tests
                              select new { a1 = x1, a2 = x2 };
 
             Assert.Equal(
-                q.OrderByDescending(e => e.a2).ThenByDescending(f => f.a1), 
+                q.OrderByDescending(e => e.a2).ThenByDescending(f => f.a1),
                 q.OrderByDescending(e => e.a2).ThenByDescending(f => f.a1)
             );
         }
@@ -27,10 +27,10 @@ namespace System.Linq.Tests
         public void SameResultsRepeatCallsStringQuery()
         {
             var q = from x1 in new[] { 55, 49, 9, -100, 24, 25, -1, 0 }
-                             from x2 in new[] { "!@#$%^", "C", "AAA", "", null, "Calling Twice", "SoS", String.Empty }
-                             where !String.IsNullOrEmpty(x2)
+                             from x2 in new[] { "!@#$%^", "C", "AAA", "", null, "Calling Twice", "SoS", string.Empty }
+                             where !string.IsNullOrEmpty(x2)
                              select new { a1 = x1, a2 = x2 };
-                    
+
             Assert.Equal(
                 q.OrderBy(e => e.a1).ThenByDescending(f => f.a2),
                 q.OrderBy(e => e.a1).ThenByDescending(f => f.a2)
@@ -93,26 +93,26 @@ namespace System.Linq.Tests
         [Fact]
         public void OrderIsStable()
         {
-            var source = @"Because I could not stop for Death —
-He kindly stopped for me —
-The Carriage held but just Ourselves —
-And Immortality.".Split(new []{ ' ', '\n', '\r', '—' }, StringSplitOptions.RemoveEmptyEntries);
+            var source = @"Because I could not stop for Death -
+He kindly stopped for me -
+The Carriage held but just Ourselves -
+And Immortality.".Split(new []{ ' ', '\n', '\r', '-' }, StringSplitOptions.RemoveEmptyEntries);
             var expected = new []
             {
                 "stopped", "kindly", "could", "stop", "held", "just", "not", "for", "for", "but", "me",
-                "Immortality.", "Ourselves", "Carriage", "Because", "Death", "The", "And", "He", "I"   
+                "Immortality.", "Ourselves", "Carriage", "Because", "Death", "The", "And", "He", "I"
             };
-            
+
             Assert.Equal(expected, source.OrderBy(word => char.IsUpper(word[0])).ThenByDescending(word => word.Length));
         }
 
         [Fact]
         public void OrderIsStableCustomComparer()
         {
-            var source = @"Because I could not stop for Death —
-He kindly stopped for me —
-The Carriage held but just Ourselves —
-And Immortality.".Split(new[] { ' ', '\n', '\r', '—' }, StringSplitOptions.RemoveEmptyEntries);
+            var source = @"Because I could not stop for Death -
+He kindly stopped for me -
+The Carriage held but just Ourselves -
+And Immortality.".Split(new[] { ' ', '\n', '\r', '-' }, StringSplitOptions.RemoveEmptyEntries);
             var expected = new[]
             {
                 "me", "not", "for", "for", "but", "stop", "held", "just", "could", "kindly", "stopped",
@@ -125,10 +125,10 @@ And Immortality.".Split(new[] { ' ', '\n', '\r', '—' }, StringSplitOptions.Rem
         [Fact]
         public void RunOnce()
         {
-            var source = @"Because I could not stop for Death —
-He kindly stopped for me —
-The Carriage held but just Ourselves —
-And Immortality.".Split(new[] { ' ', '\n', '\r', '—' }, StringSplitOptions.RemoveEmptyEntries);
+            var source = @"Because I could not stop for Death -
+He kindly stopped for me -
+The Carriage held but just Ourselves -
+And Immortality.".Split(new[] { ' ', '\n', '\r', '-' }, StringSplitOptions.RemoveEmptyEntries);
             var expected = new[]
             {
                 "me", "not", "for", "for", "but", "stop", "held", "just", "could", "kindly", "stopped",
@@ -164,6 +164,72 @@ And Immortality.".Split(new[] { ' ', '\n', '\r', '—' }, StringSplitOptions.Rem
         {
             Func<DateTime, int> keySelector = null;
             AssertExtensions.Throws<ArgumentNullException>("keySelector", () => Enumerable.Empty<DateTime>().OrderBy(e => e).ThenByDescending(keySelector, null));
+        }
+
+        [Theory]
+        [InlineData(1)]
+        [InlineData(2)]
+        [InlineData(3)]
+        public void SortsLargeAscendingEnumerableCorrectly(int thenBys)
+        {
+            const int Items = 100_000;
+            IEnumerable<int> expected = NumberRangeGuaranteedNotCollectionType(0, Items);
+
+            IEnumerable<int> unordered = expected.Select(i => i);
+            IOrderedEnumerable<int> ordered = unordered.OrderBy(_ => 0);
+            switch (thenBys)
+            {
+                case 1: ordered = ordered.ThenByDescending(i => -i); break;
+                case 2: ordered = ordered.ThenByDescending(i => 0).ThenByDescending(i => -i); break;
+                case 3: ordered = ordered.ThenByDescending(i => 0).ThenByDescending(i => 0).ThenByDescending(i => -i); break;
+            }
+
+            Assert.Equal(expected, ordered);
+        }
+
+        [Theory]
+        [InlineData(1)]
+        [InlineData(2)]
+        [InlineData(3)]
+        public void SortsLargeDescendingEnumerableCorrectly(int thenBys)
+        {
+            const int Items = 100_000;
+            IEnumerable<int> expected = NumberRangeGuaranteedNotCollectionType(0, Items);
+
+            IEnumerable<int> unordered = expected.Select(i => Items - i - 1);
+            IOrderedEnumerable<int> ordered = unordered.OrderBy(_ => 0);
+            switch (thenBys)
+            {
+                case 1: ordered = ordered.ThenByDescending(i => -i); break;
+                case 2: ordered = ordered.ThenByDescending(i => 0).ThenByDescending(i => -i); break;
+                case 3: ordered = ordered.ThenByDescending(i => 0).ThenByDescending(i => 0).ThenByDescending(i => -i); break;
+            }
+
+            Assert.Equal(expected, ordered);
+        }
+
+        [Theory]
+        [InlineData(1)]
+        [InlineData(2)]
+        [InlineData(3)]
+        public void SortsLargeRandomizedEnumerableCorrectly(int thenBys)
+        {
+            const int Items = 100_000;
+            var r = new Random(42);
+
+            int[] randomized = Enumerable.Range(0, Items).Select(i => r.Next()).ToArray();
+
+            IOrderedEnumerable<int> orderedEnumerable = randomized.OrderBy(_ => 0);
+            switch (thenBys)
+            {
+                case 1: orderedEnumerable = orderedEnumerable.ThenByDescending(i => -i); break;
+                case 2: orderedEnumerable = orderedEnumerable.ThenByDescending(i => 0).ThenByDescending(i => -i); break;
+                case 3: orderedEnumerable = orderedEnumerable.ThenByDescending(i => 0).ThenByDescending(i => 0).ThenByDescending(i => -i); break;
+            }
+            int[] ordered = orderedEnumerable.ToArray();
+
+            Array.Sort(randomized, (a, b) => a - b);
+            Assert.Equal(randomized, orderedEnumerable);
         }
     }
 }

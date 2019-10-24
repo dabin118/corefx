@@ -79,6 +79,37 @@ namespace System.Net.Sockets.Tests
             }
         }
 
+        [Theory]
+        [InlineData(2, 0)]
+        [InlineData(2, 1)]
+        [InlineData(2, 2)]
+        [InlineData(2, 3)]
+        [InlineData(2, 4)]
+        [InlineData(2, 5)]
+        public void Select_SocketAlreadyClosed_AllSocketsClosableAfterException(int socketsPerType, int indexToDispose)
+        {
+            KeyValuePair<Socket, Socket>[] socketPairs = Enumerable.Range(0, socketsPerType * 3).Select(_ => CreateConnectedSockets()).ToArray();
+            try
+            {
+                Socket[] reads = socketPairs.Take(socketsPerType).Select(p => p.Key).ToArray();
+                Socket[] writes = socketPairs.Skip(socketsPerType).Take(socketsPerType).Select(p => p.Key).ToArray();
+                Socket[] errors = socketPairs.Skip(socketsPerType * 2).Take(socketsPerType).Select(p => p.Key).ToArray();
+
+                socketPairs[indexToDispose].Key.Dispose();
+
+                Assert.Throws<ObjectDisposedException>(() => Socket.Select(reads, writes, errors, 1_000));
+
+                for (int i = 0; i < socketPairs.Length; i++)
+                {
+                    Assert.Equal(i == indexToDispose, socketPairs[i].Key.SafeHandle.IsClosed);
+                }
+            }
+            finally
+            {
+                DisposeSockets(socketPairs);
+            }
+        }
+
         [PlatformSpecific(~TestPlatforms.OSX)] // typical OSX install has very low max open file descriptors value
         [Fact]
         public void Select_ReadError_NoneReady_ManySockets()
@@ -111,8 +142,9 @@ namespace System.Net.Sockets.Tests
             }
         }
 
+        [Fact]
         [PlatformSpecific(~TestPlatforms.OSX)] // typical OSX install has very low max open file descriptors value
-        public void Select_Read_OneReadyAtATime_ManySockets(int reads)
+        public void Select_Read_OneReadyAtATime_ManySockets()
         {
             Select_Read_OneReadyAtATime(90); // value larger than the internal value in SocketPal.Unix that swaps between stack and heap allocation
         }
@@ -146,7 +178,7 @@ namespace System.Net.Sockets.Tests
         }
 
         [PlatformSpecific(~TestPlatforms.OSX)] // typical OSX install has very low max open file descriptors value
-        [ConditionalFact(typeof(PlatformDetection), nameof(PlatformDetection.IsNotWindowsSubsystemForLinux))] // https://github.com/Microsoft/BashOnWindows/issues/308
+        [ConditionalFact(typeof(PlatformDetection), nameof(PlatformDetection.IsNotWindowsSubsystemForLinux))] // [ActiveIssue(11057)]
         public void Select_Error_OneReadyAtATime()
         {
             const int Errors = 90; // value larger than the internal value in SocketPal.Unix that swaps between stack and heap allocation
@@ -235,13 +267,16 @@ namespace System.Net.Sockets.Tests
             foreach (var pair in sockets)
             {
                 pair.Key.Dispose();
+                Assert.True(pair.Key.SafeHandle.IsClosed);
+
                 pair.Value.Dispose();
+                Assert.True(pair.Value.SafeHandle.IsClosed);
             }
         }
 
         [OuterLoop]
         [Fact]
-        public static void Select_AcceptNonBlocking_Success()
+        public static async Task Select_AcceptNonBlocking_Success()
         {
             using (Socket listenSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp))
             {
@@ -264,12 +299,11 @@ namespace System.Net.Sockets.Tests
                 }
 
                 // Give the task 5 seconds to complete; if not, assume it's hung.
-                bool completed = t.Wait(5000);
-                Assert.True(completed);
+                await t.TimeoutAfter(5000);
             }
         }
 
-        public static void DoAccept(Socket listenSocket, int connectionsToAccept)
+        private static void DoAccept(Socket listenSocket, int connectionsToAccept)
         {
             int connectionCount = 0;
             while (true)
@@ -288,7 +322,7 @@ namespace System.Net.Sockets.Tests
                         }
                         catch (SocketException e)
                         {
-                            Assert.Equal(e.SocketErrorCode, SocketError.WouldBlock);
+                            Assert.Equal(SocketError.WouldBlock, e.SocketErrorCode);
 
                             //No more requests in queue
                             break;

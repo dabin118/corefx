@@ -4,9 +4,9 @@
 
 using Microsoft.Win32.SafeHandles;
 using System.Collections;
+using System.Diagnostics;
 using System.IO;
-using System.Runtime.ExceptionServices;
-using System.Runtime.InteropServices;
+using System.Runtime.CompilerServices;
 using System.Threading;
 
 namespace System.Net.Sockets
@@ -25,8 +25,8 @@ namespace System.Net.Sockets
             }
         }
 
-        internal unsafe bool AcceptEx(SafeCloseSocket listenSocketHandle,
-            SafeCloseSocket acceptSocketHandle,
+        internal unsafe bool AcceptEx(SafeSocketHandle listenSocketHandle,
+            SafeSocketHandle acceptSocketHandle,
             IntPtr buffer,
             int len,
             int localAddressLength,
@@ -69,7 +69,7 @@ namespace System.Net.Sockets
                 out remoteSocketAddressLength);
         }
 
-        internal unsafe bool DisconnectEx(SafeCloseSocket socketHandle, NativeOverlapped* overlapped, int flags, int reserved)
+        internal unsafe bool DisconnectEx(SafeSocketHandle socketHandle, NativeOverlapped* overlapped, int flags, int reserved)
         {
             EnsureDynamicWinsockMethods();
             DisconnectExDelegate disconnectEx = _dynamicWinsockMethods.GetDelegate<DisconnectExDelegate>(socketHandle);
@@ -77,7 +77,7 @@ namespace System.Net.Sockets
             return disconnectEx(socketHandle, overlapped, flags, reserved);
         }
 
-        internal bool DisconnectExBlocking(SafeCloseSocket socketHandle, IntPtr overlapped, int flags, int reserved)
+        internal bool DisconnectExBlocking(SafeSocketHandle socketHandle, IntPtr overlapped, int flags, int reserved)
         {
             EnsureDynamicWinsockMethods();
             DisconnectExDelegateBlocking disconnectEx_Blocking = _dynamicWinsockMethods.GetDelegate<DisconnectExDelegateBlocking>(socketHandle);
@@ -85,7 +85,37 @@ namespace System.Net.Sockets
             return disconnectEx_Blocking(socketHandle, overlapped, flags, reserved);
         }
 
-        internal unsafe bool ConnectEx(SafeCloseSocket socketHandle,
+        partial void WildcardBindForConnectIfNecessary(AddressFamily addressFamily)
+        {
+            if (_rightEndPoint != null)
+            {
+                return;
+            }
+
+            // The socket must be bound before using ConnectEx.
+
+            IPAddress address;
+            switch (addressFamily)
+            {
+                case AddressFamily.InterNetwork:
+                    address = IsDualMode ? IPAddress.Any.MapToIPv6() : IPAddress.Any;
+                    break;
+
+                case AddressFamily.InterNetworkV6:
+                    address = IPAddress.IPv6Any;
+                    break;
+
+                default:
+                    return;
+            }
+
+            if (NetEventSource.IsEnabled) NetEventSource.Info(this, address);
+
+            var endPoint = new IPEndPoint(address, 0);
+            DoBind(endPoint, IPEndPointExtensions.Serialize(endPoint));
+        }
+
+        internal unsafe bool ConnectEx(SafeSocketHandle socketHandle,
             IntPtr socketAddress,
             int socketAddressSize,
             IntPtr buffer,
@@ -99,7 +129,7 @@ namespace System.Net.Sockets
             return connectEx(socketHandle, socketAddress, socketAddressSize, buffer, dataLength, out bytesSent, overlapped);
         }
 
-        internal unsafe SocketError WSARecvMsg(SafeCloseSocket socketHandle, IntPtr msg, out int bytesTransferred, NativeOverlapped* overlapped, IntPtr completionRoutine)
+        internal unsafe SocketError WSARecvMsg(SafeSocketHandle socketHandle, IntPtr msg, out int bytesTransferred, NativeOverlapped* overlapped, IntPtr completionRoutine)
         {
             EnsureDynamicWinsockMethods();
             WSARecvMsgDelegate recvMsg = _dynamicWinsockMethods.GetDelegate<WSARecvMsgDelegate>(socketHandle);
@@ -107,7 +137,7 @@ namespace System.Net.Sockets
             return recvMsg(socketHandle, msg, out bytesTransferred, overlapped, completionRoutine);
         }
 
-        internal SocketError WSARecvMsgBlocking(IntPtr socketHandle, IntPtr msg, out int bytesTransferred, IntPtr overlapped, IntPtr completionRoutine)
+        internal SocketError WSARecvMsgBlocking(SafeSocketHandle socketHandle, IntPtr msg, out int bytesTransferred, IntPtr overlapped, IntPtr completionRoutine)
         {
             EnsureDynamicWinsockMethods();
             WSARecvMsgDelegateBlocking recvMsg_Blocking = _dynamicWinsockMethods.GetDelegate<WSARecvMsgDelegateBlocking>(_handle);
@@ -115,7 +145,7 @@ namespace System.Net.Sockets
             return recvMsg_Blocking(socketHandle, msg, out bytesTransferred, overlapped, completionRoutine);
         }
 
-        internal unsafe bool TransmitPackets(SafeCloseSocket socketHandle, IntPtr packetArray, int elementCount, int sendSize, NativeOverlapped* overlapped, TransmitFileOptions flags)
+        internal unsafe bool TransmitPackets(SafeSocketHandle socketHandle, IntPtr packetArray, int elementCount, int sendSize, NativeOverlapped* overlapped, TransmitFileOptions flags)
         {
             EnsureDynamicWinsockMethods();
             TransmitPacketsDelegate transmitPackets = _dynamicWinsockMethods.GetDelegate<TransmitPacketsDelegate>(socketHandle);
@@ -123,43 +153,54 @@ namespace System.Net.Sockets
             return transmitPackets(socketHandle, packetArray, elementCount, sendSize, overlapped, flags);
         }
 
-        internal static IntPtr[] SocketListToFileDescriptorSet(IList socketList)
+        internal static void SocketListToFileDescriptorSet(IList socketList, Span<IntPtr> fileDescriptorSet, ref int refsAdded)
         {
-            if (socketList == null || socketList.Count == 0)
+            int count;
+            if (socketList == null || (count = socketList.Count) == 0)
             {
-                return null;
+                return;
             }
 
-            IntPtr[] fileDescriptorSet = new IntPtr[socketList.Count + 1];
-            fileDescriptorSet[0] = (IntPtr)socketList.Count;
-            for (int current = 0; current < socketList.Count; current++)
+            Debug.Assert(fileDescriptorSet.Length >= count + 1);
+
+            fileDescriptorSet[0] = (IntPtr)count;
+            for (int current = 0; current < count; current++)
             {
-                if (!(socketList[current] is Socket))
+                if (!(socketList[current] is Socket socket))
                 {
                     throw new ArgumentException(SR.Format(SR.net_sockets_select, socketList[current].GetType().FullName, typeof(System.Net.Sockets.Socket).FullName), nameof(socketList));
                 }
 
-                fileDescriptorSet[current + 1] = ((Socket)socketList[current])._handle.DangerousGetHandle();
+                bool success = false;
+                socket.InternalSafeHandle.DangerousAddRef(ref success);
+                fileDescriptorSet[current + 1] = socket.InternalSafeHandle.DangerousGetHandle();
+                refsAdded++;
             }
-            return fileDescriptorSet;
         }
 
         // Transform the list socketList such that the only sockets left are those
         // with a file descriptor contained in the array "fileDescriptorArray".
-        internal static void SelectFileDescriptor(IList socketList, IntPtr[] fileDescriptorSet)
+        internal static void SelectFileDescriptor(IList socketList, Span<IntPtr> fileDescriptorSet, ref int refsAdded)
         {
             // Walk the list in order.
             //
             // Note that the counter is not necessarily incremented at each step;
             // when the socket is removed, advancing occurs automatically as the
             // other elements are shifted down.
-            if (socketList == null || socketList.Count == 0)
+            int count;
+            if (socketList == null || (count = socketList.Count) == 0)
             {
                 return;
             }
 
-            if ((int)fileDescriptorSet[0] == 0)
+            Debug.Assert(fileDescriptorSet.Length >= count + 1);
+
+            int returnedCount = (int)fileDescriptorSet[0];
+            if (returnedCount == 0)
             {
+                // Unref safehandles.
+                SocketListDangerousReleaseRefs(socketList, ref refsAdded);
+
                 // No socket present, will never find any socket, remove them all.
                 socketList.Clear();
                 return;
@@ -167,13 +208,13 @@ namespace System.Net.Sockets
 
             lock (socketList)
             {
-                for (int currentSocket = 0; currentSocket < socketList.Count; currentSocket++)
+                for (int currentSocket = 0; currentSocket < count; currentSocket++)
                 {
                     Socket socket = socketList[currentSocket] as Socket;
 
                     // Look for the file descriptor in the array.
                     int currentFileDescriptor;
-                    for (currentFileDescriptor = 0; currentFileDescriptor < (int)fileDescriptorSet[0]; currentFileDescriptor++)
+                    for (currentFileDescriptor = 0; currentFileDescriptor < returnedCount; currentFileDescriptor++)
                     {
                         if (fileDescriptorSet[currentFileDescriptor + 1] == socket._handle.DangerousGetHandle())
                         {
@@ -181,16 +222,19 @@ namespace System.Net.Sockets
                         }
                     }
 
-                    if (currentFileDescriptor == (int)fileDescriptorSet[0])
+                    if (currentFileDescriptor == returnedCount)
                     {
                         // Descriptor not found: remove the current socket and start again.
+                        socket.InternalSafeHandle.DangerousRelease();
+                        refsAdded--;
                         socketList.RemoveAt(currentSocket--);
+                        count--;
                     }
                 }
             }
         }
 
-        private Socket GetOrCreateAcceptSocket(Socket acceptSocket, bool checkDisconnected, string propertyName, out SafeCloseSocket handle)
+        private Socket GetOrCreateAcceptSocket(Socket acceptSocket, bool checkDisconnected, string propertyName, out SafeSocketHandle handle)
         {
             // If an acceptSocket isn't specified, then we need to create one.
             if (acceptSocket == null)
@@ -222,6 +266,8 @@ namespace System.Net.Sockets
 
             if (errorCode != SocketError.Success)
             {
+                UpdateSendSocketErrorForDisposed(ref errorCode);
+
                 UpdateStatusAfterSocketErrorAndThrowException(errorCode);
             }
 
@@ -246,6 +292,7 @@ namespace System.Net.Sockets
             // Check for synchronous exception
             if (!CheckErrorAndUpdateStatus(errorCode))
             {
+                UpdateSendSocketErrorForDisposed(ref errorCode);
                 throw new SocketException((int)errorCode);
             }
 
@@ -278,17 +325,22 @@ namespace System.Net.Sockets
                 _remoteEndPoint = null;
             }
 
-            if ((SocketError)castedAsyncResult.ErrorCode != SocketError.Success)
+            SocketError errorCode = (SocketError)castedAsyncResult.ErrorCode;
+            if (errorCode != SocketError.Success)
             {
-                UpdateStatusAfterSocketErrorAndThrowException((SocketError)castedAsyncResult.ErrorCode);
+                UpdateSendSocketErrorForDisposed(ref errorCode);
+                UpdateStatusAfterSocketErrorAndThrowException(errorCode);
             }
-
         }
 
-        internal ThreadPoolBoundHandle GetOrAllocateThreadPoolBoundHandle()
+        internal ThreadPoolBoundHandle GetOrAllocateThreadPoolBoundHandle() =>
+            _handle.GetThreadPoolBoundHandle() ??
+            GetOrAllocateThreadPoolBoundHandleSlow();
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        internal ThreadPoolBoundHandle GetOrAllocateThreadPoolBoundHandleSlow()
         {
-            // There is a known bug that exists through Windows 7 with UDP and
-            // SetFileCompletionNotificationModes.
+            // There is a known bug that exists through Windows 7 with UDP and SetFileCompletionNotificationModes.
             // So, don't try to enable skipping the completion port on success in this case.
             bool trySkipCompletionPortOnSuccess = !(CompletionPortHelper.PlatformHasUdpIssue && _protocolType == ProtocolType.Udp);
             return _handle.GetOrAllocateThreadPoolBoundHandle(trySkipCompletionPortOnSuccess);

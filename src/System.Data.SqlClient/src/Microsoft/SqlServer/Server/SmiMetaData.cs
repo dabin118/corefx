@@ -49,13 +49,11 @@ namespace Microsoft.SqlServer.Server
         private byte _scale;                 // Varies for SqlDbType.Decimal, others are fixed value per type
         private long _localeId;              // Valid only for character types, others are 0
         private SqlCompareOptions _compareOptions;        // Valid only for character types, others are SqlCompareOptions.Default
+        private Type _clrType;               // Varies for SqlDbType.Udt, others are fixed value per type.
+        private string _udtAssemblyQualifiedName;           // Valid only for UDT types when _clrType is not available
         private bool _isMultiValued;         // Multiple instances per value? (I.e. tables, arrays)
         private IList<SmiExtendedMetaData> _fieldMetaData;         // Metadata of fields for structured types
         private SmiMetaDataPropertyCollection _extendedProperties;  // Extended properties, Key columns, sort order, etc.
-
-        // DevNote: For now, since the list of extended property types is small, we can handle them in a simple list.
-        //  In the future, we may need to create a more performant storage & lookup mechanism, such as a hash table
-        //  of lists indexed by type of property or an array of lists with a well-known index for each type.
 
         // Limits for attributes (SmiMetaData will assert that these limits as applicable in constructor)
         internal const long UnlimitedMaxLengthIndicator = -1;  // unlimited (except by implementation) max-length.
@@ -67,49 +65,52 @@ namespace Microsoft.SqlServer.Server
         internal const int MaxTimeScale = 7;        // Max scale for time, datetime2, and datetimeoffset
         internal static readonly DateTime MaxSmallDateTime = new DateTime(2079, 06, 06, 23, 59, 29, 998);
         internal static readonly DateTime MinSmallDateTime = new DateTime(1899, 12, 31, 23, 59, 29, 999);
-        internal static readonly SqlMoney MaxSmallMoney = new SqlMoney(((Decimal)Int32.MaxValue) / 10000);
-        internal static readonly SqlMoney MinSmallMoney = new SqlMoney(((Decimal)Int32.MinValue) / 10000);
+        internal static readonly SqlMoney MaxSmallMoney = new SqlMoney(((decimal)int.MaxValue) / 10000);
+        internal static readonly SqlMoney MinSmallMoney = new SqlMoney(((decimal)int.MinValue) / 10000);
         internal const SqlCompareOptions DefaultStringCompareOptions = SqlCompareOptions.IgnoreCase
                                         | SqlCompareOptions.IgnoreKanaType | SqlCompareOptions.IgnoreWidth;
 
         internal const long MaxNameLength = 128;        // maximum length in the server is 128.
-        private static readonly IList<SmiExtendedMetaData> s_emptyFieldList = new SmiExtendedMetaData[0];
-
+        private static readonly IList<SmiExtendedMetaData> s_emptyFieldList = new List<SmiExtendedMetaData>().AsReadOnly();
 
         // Precision to max length lookup table
-        private static byte[] s_maxLenFromPrecision = new byte[] {5,5,5,5,5,5,5,5,5,9,9,9,9,9,
-            9,9,9,9,9,13,13,13,13,13,13,13,13,13,17,17,17,17,17,17,17,17,17,17};
+        private static readonly byte[] s_maxLenFromPrecision = new byte[]
+        {
+            5, 5, 5, 5, 5, 5, 5, 5, 5, 9, 9, 9, 9, 9, 9, 9,
+            9, 9, 9, 13, 13, 13, 13, 13, 13, 13, 13, 13, 17,
+            17, 17, 17, 17, 17, 17, 17, 17, 17
+        };
 
         // Scale offset to max length lookup table
-        private static byte[] s_maxVarTimeLenOffsetFromScale = new byte[] { 2, 2, 2, 1, 1, 0, 0, 0 };
+        private static readonly byte[] s_maxVarTimeLenOffsetFromScale = new byte[] { 2, 2, 2, 1, 1, 0, 0, 0 };
 
         // Defaults
-        //    SmiMetaData(SqlDbType,                  MaxLen,                     Prec, Scale,  CompareOptions)
         internal static readonly SmiMetaData DefaultBigInt = new SmiMetaData(SqlDbType.BigInt, 8, 19, 0, SqlCompareOptions.None);     // SqlDbType.BigInt
         internal static readonly SmiMetaData DefaultBinary = new SmiMetaData(SqlDbType.Binary, 1, 0, 0, SqlCompareOptions.None);     // SqlDbType.Binary
         internal static readonly SmiMetaData DefaultBit = new SmiMetaData(SqlDbType.Bit, 1, 1, 0, SqlCompareOptions.None);     // SqlDbType.Bit
-        internal static readonly SmiMetaData DefaultChar_NoCollation = new SmiMetaData(SqlDbType.Char, 1, 0, 0, DefaultStringCompareOptions);// SqlDbType.Char
+        internal static readonly SmiMetaData DefaultChar_NoCollation = new SmiMetaData(SqlDbType.Char, 1, 0, 0, DefaultStringCompareOptions); // SqlDbType.Char
         internal static readonly SmiMetaData DefaultDateTime = new SmiMetaData(SqlDbType.DateTime, 8, 23, 3, SqlCompareOptions.None);     // SqlDbType.DateTime
         internal static readonly SmiMetaData DefaultDecimal = new SmiMetaData(SqlDbType.Decimal, 9, 18, 0, SqlCompareOptions.None);     // SqlDbType.Decimal
         internal static readonly SmiMetaData DefaultFloat = new SmiMetaData(SqlDbType.Float, 8, 53, 0, SqlCompareOptions.None);     // SqlDbType.Float
         internal static readonly SmiMetaData DefaultImage = new SmiMetaData(SqlDbType.Image, UnlimitedMaxLengthIndicator, 0, 0, SqlCompareOptions.None);     // SqlDbType.Image
         internal static readonly SmiMetaData DefaultInt = new SmiMetaData(SqlDbType.Int, 4, 10, 0, SqlCompareOptions.None);     // SqlDbType.Int
         internal static readonly SmiMetaData DefaultMoney = new SmiMetaData(SqlDbType.Money, 8, 19, 4, SqlCompareOptions.None);     // SqlDbType.Money
-        internal static readonly SmiMetaData DefaultNChar_NoCollation = new SmiMetaData(SqlDbType.NChar, 1, 0, 0, DefaultStringCompareOptions);// SqlDbType.NChar
-        internal static readonly SmiMetaData DefaultNText_NoCollation = new SmiMetaData(SqlDbType.NText, UnlimitedMaxLengthIndicator, 0, 0, DefaultStringCompareOptions);// SqlDbType.NText
-        internal static readonly SmiMetaData DefaultNVarChar_NoCollation = new SmiMetaData(SqlDbType.NVarChar, MaxUnicodeCharacters, 0, 0, DefaultStringCompareOptions);// SqlDbType.NVarChar
+        internal static readonly SmiMetaData DefaultNChar_NoCollation = new SmiMetaData(SqlDbType.NChar, 1, 0, 0, DefaultStringCompareOptions); // SqlDbType.NChar
+        internal static readonly SmiMetaData DefaultNText_NoCollation = new SmiMetaData(SqlDbType.NText, UnlimitedMaxLengthIndicator, 0, 0, DefaultStringCompareOptions); // SqlDbType.NText
+        internal static readonly SmiMetaData DefaultNVarChar_NoCollation = new SmiMetaData(SqlDbType.NVarChar, MaxUnicodeCharacters, 0, 0, DefaultStringCompareOptions); // SqlDbType.NVarChar
         internal static readonly SmiMetaData DefaultReal = new SmiMetaData(SqlDbType.Real, 4, 24, 0, SqlCompareOptions.None);     // SqlDbType.Real
         internal static readonly SmiMetaData DefaultUniqueIdentifier = new SmiMetaData(SqlDbType.UniqueIdentifier, 16, 0, 0, SqlCompareOptions.None);     // SqlDbType.UniqueIdentifier
         internal static readonly SmiMetaData DefaultSmallDateTime = new SmiMetaData(SqlDbType.SmallDateTime, 4, 16, 0, SqlCompareOptions.None);     // SqlDbType.SmallDateTime
         internal static readonly SmiMetaData DefaultSmallInt = new SmiMetaData(SqlDbType.SmallInt, 2, 5, 0, SqlCompareOptions.None);     // SqlDbType.SmallInt
         internal static readonly SmiMetaData DefaultSmallMoney = new SmiMetaData(SqlDbType.SmallMoney, 4, 10, 4, SqlCompareOptions.None);     // SqlDbType.SmallMoney
-        internal static readonly SmiMetaData DefaultText_NoCollation = new SmiMetaData(SqlDbType.Text, UnlimitedMaxLengthIndicator, 0, 0, DefaultStringCompareOptions);// SqlDbType.Text
+        internal static readonly SmiMetaData DefaultText_NoCollation = new SmiMetaData(SqlDbType.Text, UnlimitedMaxLengthIndicator, 0, 0, DefaultStringCompareOptions); // SqlDbType.Text
         internal static readonly SmiMetaData DefaultTimestamp = new SmiMetaData(SqlDbType.Timestamp, 8, 0, 0, SqlCompareOptions.None);     // SqlDbType.Timestamp
         internal static readonly SmiMetaData DefaultTinyInt = new SmiMetaData(SqlDbType.TinyInt, 1, 3, 0, SqlCompareOptions.None);     // SqlDbType.TinyInt
         internal static readonly SmiMetaData DefaultVarBinary = new SmiMetaData(SqlDbType.VarBinary, MaxBinaryLength, 0, 0, SqlCompareOptions.None);     // SqlDbType.VarBinary
-        internal static readonly SmiMetaData DefaultVarChar_NoCollation = new SmiMetaData(SqlDbType.VarChar, MaxANSICharacters, 0, 0, DefaultStringCompareOptions);// SqlDbType.VarChar
+        internal static readonly SmiMetaData DefaultVarChar_NoCollation = new SmiMetaData(SqlDbType.VarChar, MaxANSICharacters, 0, 0, DefaultStringCompareOptions); // SqlDbType.VarChar
         internal static readonly SmiMetaData DefaultVariant = new SmiMetaData(SqlDbType.Variant, 8016, 0, 0, SqlCompareOptions.None);     // SqlDbType.Variant
-        internal static readonly SmiMetaData DefaultXml = new SmiMetaData(SqlDbType.Xml, UnlimitedMaxLengthIndicator, 0, 0, DefaultStringCompareOptions);// SqlDbType.Xml
+        internal static readonly SmiMetaData DefaultXml = new SmiMetaData(SqlDbType.Xml, UnlimitedMaxLengthIndicator, 0, 0, DefaultStringCompareOptions); // SqlDbType.Xml
+        internal static readonly SmiMetaData DefaultUdt_NoType = new SmiMetaData(SqlDbType.Udt, 0, 0, 0, SqlCompareOptions.None);     // SqlDbType.Udt
         internal static readonly SmiMetaData DefaultStructured = new SmiMetaData(SqlDbType.Structured, 0, 0, 0, SqlCompareOptions.None);     // SqlDbType.Structured
         internal static readonly SmiMetaData DefaultDate = new SmiMetaData(SqlDbType.Date, 3, 10, 0, SqlCompareOptions.None);     // SqlDbType.Date
         internal static readonly SmiMetaData DefaultTime = new SmiMetaData(SqlDbType.Time, 5, 0, 7, SqlCompareOptions.None);     // SqlDbType.Time
@@ -117,50 +118,167 @@ namespace Microsoft.SqlServer.Server
         internal static readonly SmiMetaData DefaultDateTimeOffset = new SmiMetaData(SqlDbType.DateTimeOffset, 10, 0, 7, SqlCompareOptions.None);     // SqlDbType.DateTimeOffset
         // No default for generic UDT
 
+        // character defaults hook thread-local culture to get collation
+        internal static SmiMetaData DefaultChar
+            => new SmiMetaData(
+                DefaultChar_NoCollation.SqlDbType,
+                DefaultChar_NoCollation.MaxLength,
+                DefaultChar_NoCollation.Precision,
+                DefaultChar_NoCollation.Scale,
+                CultureInfo.CurrentCulture.LCID,
+                SqlCompareOptions.IgnoreCase | SqlCompareOptions.IgnoreKanaType | SqlCompareOptions.IgnoreWidth,
+                null);
+
+        internal static SmiMetaData DefaultNChar
+            => new SmiMetaData(
+                DefaultNChar_NoCollation.SqlDbType,
+                DefaultNChar_NoCollation.MaxLength,
+                DefaultNChar_NoCollation.Precision,
+                DefaultNChar_NoCollation.Scale,
+                CultureInfo.CurrentCulture.LCID,
+                SqlCompareOptions.IgnoreCase | SqlCompareOptions.IgnoreKanaType | SqlCompareOptions.IgnoreWidth,
+                null);
+
+        internal static SmiMetaData DefaultNText
+            => new SmiMetaData(
+                DefaultNText_NoCollation.SqlDbType,
+                DefaultNText_NoCollation.MaxLength,
+                DefaultNText_NoCollation.Precision,
+                DefaultNText_NoCollation.Scale,
+                CultureInfo.CurrentCulture.LCID,
+                SqlCompareOptions.IgnoreCase | SqlCompareOptions.IgnoreKanaType | SqlCompareOptions.IgnoreWidth,
+                null);
+
         internal static SmiMetaData DefaultNVarChar
+            => new SmiMetaData(
+                DefaultNVarChar_NoCollation.SqlDbType,
+                DefaultNVarChar_NoCollation.MaxLength,
+                DefaultNVarChar_NoCollation.Precision,
+                DefaultNVarChar_NoCollation.Scale,
+                CultureInfo.CurrentCulture.LCID,
+                SqlCompareOptions.IgnoreCase | SqlCompareOptions.IgnoreKanaType | SqlCompareOptions.IgnoreWidth,
+                null);
+
+        internal static SmiMetaData DefaultText
+            => new SmiMetaData(
+                DefaultText_NoCollation.SqlDbType,
+                DefaultText_NoCollation.MaxLength,
+                DefaultText_NoCollation.Precision,
+                DefaultText_NoCollation.Scale,
+                CultureInfo.CurrentCulture.LCID,
+                SqlCompareOptions.IgnoreCase | SqlCompareOptions.IgnoreKanaType | SqlCompareOptions.IgnoreWidth,
+                null);
+
+        internal static SmiMetaData DefaultVarChar
+            => new SmiMetaData(
+                DefaultVarChar_NoCollation.SqlDbType,
+                DefaultVarChar_NoCollation.MaxLength,
+                DefaultVarChar_NoCollation.Precision,
+                DefaultVarChar_NoCollation.Scale,
+                CultureInfo.CurrentCulture.LCID,
+                SqlCompareOptions.IgnoreCase | SqlCompareOptions.IgnoreKanaType | SqlCompareOptions.IgnoreWidth,
+                null);
+
+        // The one and only constructor for use by outside code.
+        //
+        //  Parameters that matter for given values of dbType (other parameters are ignored in favor of internal defaults).
+        //  Thus, if dbType parameter value is SqlDbType.Decimal, the values of precision and scale passed in are used, but
+        //  maxLength, localeId, compareOptions, etc are set to defaults for the Decimal type:
+        //      SqlDbType.BigInt:               dbType
+        //      SqlDbType.Binary:               dbType, maxLength
+        //      SqlDbType.Bit:                  dbType
+        //      SqlDbType.Char:                 dbType, maxLength, localeId, compareOptions
+        //      SqlDbType.DateTime:             dbType
+        //      SqlDbType.Decimal:              dbType, precision, scale
+        //      SqlDbType.Float:                dbType
+        //      SqlDbType.Image:                dbType
+        //      SqlDbType.Int:                  dbType
+        //      SqlDbType.Money:                dbType
+        //      SqlDbType.NChar:                dbType, maxLength, localeId, compareOptions
+        //      SqlDbType.NText:                dbType, localeId, compareOptions
+        //      SqlDbType.NVarChar:             dbType, maxLength, localeId, compareOptions
+        //      SqlDbType.Real:                 dbType
+        //      SqlDbType.UniqueIdentifier:     dbType
+        //      SqlDbType.SmallDateTime:        dbType
+        //      SqlDbType.SmallInt:             dbType
+        //      SqlDbType.SmallMoney:           dbType
+        //      SqlDbType.Text:                 dbType, localeId, compareOptions
+        //      SqlDbType.Timestamp:            dbType
+        //      SqlDbType.TinyInt:              dbType
+        //      SqlDbType.VarBinary:            dbType, maxLength
+        //      SqlDbType.VarChar:              dbType, maxLength, localeId, compareOptions
+        //      SqlDbType.Variant:              dbType
+        //      PlaceHolder for value 24
+        //      SqlDbType.Xml:                  dbType
+        //      Placeholder for value 26
+        //      Placeholder for value 27
+        //      Placeholder for value 28
+        //      SqlDbType.Udt:                  dbType, userDefinedType
+        //
+
+        // SMI V100 (aka V3) constructor.  Superceded in V200.
+        internal SmiMetaData(
+            SqlDbType dbType,
+            long maxLength,
+            byte precision,
+            byte scale,
+            long localeId,
+            SqlCompareOptions compareOptions,
+            Type userDefinedType)
+            : this(
+                dbType,
+                maxLength,
+                precision,
+                scale,
+                localeId,
+                compareOptions,
+                userDefinedType,
+                false,
+                null,
+                null)
         {
-            get
-            {
-                return new SmiMetaData(
-                        DefaultNVarChar_NoCollation.SqlDbType,
-                        DefaultNVarChar_NoCollation.MaxLength,
-                        DefaultNVarChar_NoCollation.Precision,
-                        DefaultNVarChar_NoCollation.Scale,
-                        CultureInfo.CurrentCulture.LCID,
-                        SqlCompareOptions.IgnoreCase | SqlCompareOptions.IgnoreKanaType | SqlCompareOptions.IgnoreWidth);
-            }
         }
 
+        // SMI V200 ctor.
         internal SmiMetaData(
-                                SqlDbType dbType,
-                                long maxLength,
-                                byte precision,
-                                byte scale,
-                                long localeId,
-                                SqlCompareOptions compareOptions) :
-                        this(dbType,
-                                maxLength,
-                                precision,
-                                scale,
-                                localeId,
-                                compareOptions,
-                                false,
-                                null,
-                                null)
+            SqlDbType dbType,
+            long maxLength,
+            byte precision,
+            byte scale,
+            long localeId,
+            SqlCompareOptions compareOptions,
+            Type userDefinedType,
+            bool isMultiValued,
+            IList<SmiExtendedMetaData> fieldTypes,
+            SmiMetaDataPropertyCollection extendedProperties)
+            : this(
+                dbType,
+                maxLength,
+                precision,
+                scale,
+                localeId,
+                compareOptions,
+                userDefinedType,
+                null,
+                isMultiValued,
+                fieldTypes,
+                extendedProperties)
         {
         }
 
         // SMI V220 ctor.
         internal SmiMetaData(
-                                SqlDbType dbType,
-                                long maxLength,
-                                byte precision,
-                                byte scale,
-                                long localeId,
-                                SqlCompareOptions compareOptions,
-                                bool isMultiValued,
-                                IList<SmiExtendedMetaData> fieldTypes,
-                                SmiMetaDataPropertyCollection extendedProperties)
+            SqlDbType dbType,
+            long maxLength,
+            byte precision,
+            byte scale,
+            long localeId,
+            SqlCompareOptions compareOptions,
+            Type userDefinedType,
+            string udtAssemblyQualifiedName,
+            bool isMultiValued,
+            IList<SmiExtendedMetaData> fieldTypes,
+            SmiMetaDataPropertyCollection extendedProperties)
         {
             Debug.Assert(IsSupportedDbType(dbType), "Invalid SqlDbType: " + dbType);
 
@@ -213,11 +331,26 @@ namespace Microsoft.SqlServer.Server
                     _maxLength = s_maxLenFromPrecision[precision - 1];
                     break;
                 case SqlDbType.Udt:
-                    throw System.Data.Common.ADP.DbTypeNotSupported(SqlDbType.Udt.ToString());
+                    // For SqlParameter, both userDefinedType and udtAssemblyQualifiedName can be NULL,
+                    // so we are checking only maxLength if it will be used (i.e. userDefinedType is NULL)
+                    Debug.Assert((null != userDefinedType) || (0 <= maxLength || UnlimitedMaxLengthIndicator == maxLength),
+                            $"SmiMetaData.ctor: Udt name={udtAssemblyQualifiedName}, maxLength={maxLength}");
+                    // Type not validated until matched to a server.  Could be null if extended metadata supplies three-part name!
+                    _clrType = userDefinedType;
+                    if (null != userDefinedType)
+                    {
+                        _maxLength = SerializationHelperSql9.GetUdtMaxLength(userDefinedType);
+                    }
+                    else
+                    {
+                        _maxLength = maxLength;
+                    }
+                    _udtAssemblyQualifiedName = udtAssemblyQualifiedName;
+                    break;
                 case SqlDbType.Structured:
                     if (null != fieldTypes)
                     {
-                        _fieldMetaData = new System.Collections.ObjectModel.ReadOnlyCollection<SmiExtendedMetaData>(fieldTypes);
+                        _fieldMetaData = (new List<SmiExtendedMetaData>(fieldTypes)).AsReadOnly();
                     }
                     _isMultiValued = isMultiValued;
                     _maxLength = _fieldMetaData.Count;
@@ -238,7 +371,7 @@ namespace Microsoft.SqlServer.Server
                     _maxLength = 10 - s_maxVarTimeLenOffsetFromScale[scale];
                     break;
                 default:
-                    Debug.Assert(false, "How in the world did we get here? :" + dbType);
+                    Debug.Fail("How in the world did we get here? :" + dbType);
                     break;
             }
 
@@ -261,84 +394,152 @@ namespace Microsoft.SqlServer.Server
 #endif
         }
 
-        // Sql-style compare options for character types.
-        internal SqlCompareOptions CompareOptions
+        internal bool IsValidMaxLengthForCtorGivenType(SqlDbType dbType, long maxLength)
         {
-            get
+            bool result = true;
+            switch (dbType)
             {
-                return _compareOptions;
+                case SqlDbType.BigInt:
+                case SqlDbType.Bit:
+                case SqlDbType.DateTime:
+                case SqlDbType.Float:
+                case SqlDbType.Image:
+                case SqlDbType.Int:
+                case SqlDbType.Money:
+                case SqlDbType.Real:
+                case SqlDbType.SmallDateTime:
+                case SqlDbType.SmallInt:
+                case SqlDbType.SmallMoney:
+                case SqlDbType.Timestamp:
+                case SqlDbType.TinyInt:
+                case SqlDbType.UniqueIdentifier:
+                case SqlDbType.Variant:
+                case SqlDbType.Xml:
+                case SqlDbType.NText:
+                case SqlDbType.Text:
+                case SqlDbType.Decimal:
+                case SqlDbType.Udt:
+                case SqlDbType.Structured:
+                case SqlDbType.Date:
+                case SqlDbType.Time:
+                case SqlDbType.DateTime2:
+                case SqlDbType.DateTimeOffset:
+                    break;
+                case SqlDbType.Binary:
+                    result = 0 < maxLength && MaxBinaryLength >= maxLength;
+                    break;
+                case SqlDbType.VarBinary:
+                    result = UnlimitedMaxLengthIndicator == maxLength || (0 < maxLength && MaxBinaryLength >= maxLength);
+                    break;
+                case SqlDbType.Char:
+                    result = 0 < maxLength && MaxANSICharacters >= maxLength;
+                    break;
+                case SqlDbType.NChar:
+                    result = 0 < maxLength && MaxUnicodeCharacters >= maxLength;
+                    break;
+                case SqlDbType.NVarChar:
+                    result = UnlimitedMaxLengthIndicator == maxLength || (0 < maxLength && MaxUnicodeCharacters >= maxLength);
+                    break;
+                case SqlDbType.VarChar:
+                    result = UnlimitedMaxLengthIndicator == maxLength || (0 < maxLength && MaxANSICharacters >= maxLength);
+                    break;
+                default:
+                    Debug.Fail("How in the world did we get here? :" + dbType);
+                    break;
             }
+
+            return result;
         }
 
+        // Sql-style compare options for character types.
+        internal SqlCompareOptions CompareOptions => _compareOptions;
+
         // LCID for type.  0 for non-character types.
-        internal long LocaleId
-        {
-            get
-            {
-                return _localeId;
-            }
-        }
+        internal long LocaleId => _localeId;
 
         // Units of length depend on type.
         //  NVarChar, NChar, NText: # of Unicode characters
         //  Everything else: # of bytes
-        internal long MaxLength
+        internal long MaxLength => _maxLength;
+
+        internal byte Precision => _precision;
+
+        internal byte Scale => _scale;
+
+        internal SqlDbType SqlDbType => _databaseType;
+
+        // Clr Type instance for user-defined types
+        internal Type Type
         {
             get
             {
-                return _maxLength;
+                // Fault-in UDT clr types on access if have assembly-qualified name
+                if (null == _clrType && SqlDbType.Udt == _databaseType && _udtAssemblyQualifiedName != null)
+                {
+                    _clrType = Type.GetType(_udtAssemblyQualifiedName, true);
+                }
+                return _clrType;
             }
         }
 
-        internal byte Precision
+        // Clr Type instance for user-defined types in cases where we don't want to throw if the assembly isn't available
+        internal Type TypeWithoutThrowing
         {
             get
             {
-                return _precision;
+                // Fault-in UDT clr types on access if have assembly-qualified name
+                if (null == _clrType && SqlDbType.Udt == _databaseType && _udtAssemblyQualifiedName != null)
+                {
+                    _clrType = Type.GetType(_udtAssemblyQualifiedName, false);
+                }
+                return _clrType;
             }
         }
 
-        internal byte Scale
+        internal string TypeName
         {
             get
             {
-                return _scale;
+                string result = null;
+                if (SqlDbType.Udt == _databaseType)
+                {
+                    Debug.Assert(string.Empty == s_typeNameByDatabaseType[(int)_databaseType], "unexpected udt?");
+                    result = Type.FullName;
+                }
+                else
+                {
+                    result = s_typeNameByDatabaseType[(int)_databaseType];
+                    Debug.Assert(null != result, "unknown type name?");
+                }
+                return result;
             }
         }
 
-        internal SqlDbType SqlDbType
+        internal string AssemblyQualifiedName
         {
             get
             {
-                return _databaseType;
+                string result = null;
+                if (SqlDbType.Udt == _databaseType)
+                {
+                    // Fault-in assembly-qualified name if type is available
+                    if (_udtAssemblyQualifiedName == null && _clrType != null)
+                    {
+                        _udtAssemblyQualifiedName = _clrType.AssemblyQualifiedName;
+                    }
+                    result = _udtAssemblyQualifiedName;
+                }
+                return result;
             }
         }
 
-        internal bool IsMultiValued
-        {
-            get
-            {
-                return _isMultiValued;
-            }
-        }
+        internal bool IsMultiValued => _isMultiValued;
 
         // Returns read-only list of field metadata
-        internal IList<SmiExtendedMetaData> FieldMetaData
-        {
-            get
-            {
-                return _fieldMetaData;
-            }
-        }
+        internal IList<SmiExtendedMetaData> FieldMetaData => _fieldMetaData;
 
         // Returns read-only list of extended properties
-        internal SmiMetaDataPropertyCollection ExtendedProperties
-        {
-            get
-            {
-                return _extendedProperties;
-            }
-        }
+        internal SmiMetaDataPropertyCollection ExtendedProperties => _extendedProperties;
 
         internal static bool IsSupportedDbType(SqlDbType dbType)
         {
@@ -351,7 +552,6 @@ namespace Microsoft.SqlServer.Server
         internal static SmiMetaData GetDefaultForType(SqlDbType dbType)
         {
             Debug.Assert(IsSupportedDbType(dbType), "Unsupported SqlDbtype: " + dbType);
-            Debug.Assert(dbType != SqlDbType.Udt, "UDT not supported");
 
             return s_defaultValues[(int)dbType];
         }
@@ -373,6 +573,7 @@ namespace Microsoft.SqlServer.Server
 
             // defaults are the same for all types for the following attributes.
             _localeId = 0;
+            _clrType = null;
             _isMultiValued = false;
             _fieldMetaData = s_emptyFieldList;
             _extendedProperties = SmiMetaDataPropertyCollection.EmptyInstance;
@@ -381,7 +582,7 @@ namespace Microsoft.SqlServer.Server
         // static array of default-valued metadata ordered by corresponding SqlDbType.
         // NOTE: INDEXED BY SqlDbType ENUM!  MUST UPDATE THIS ARRAY WHEN UPDATING SqlDbType!
         //   ONLY ACCESS THIS GLOBAL FROM GetDefaultForType!
-        private static SmiMetaData[] s_defaultValues =
+        private static readonly SmiMetaData[] s_defaultValues =
             {
                 DefaultBigInt,                 // SqlDbType.BigInt
                 DefaultBinary,                 // SqlDbType.Binary
@@ -412,12 +613,54 @@ namespace Microsoft.SqlServer.Server
                 DefaultNVarChar_NoCollation,   // Placeholder for value 26
                 DefaultNVarChar_NoCollation,   // Placeholder for value 27
                 DefaultNVarChar_NoCollation,   // Placeholder for value 28
-                null,                          // Generic Udt (not supported)
+                DefaultUdt_NoType,             // Generic Udt
                 DefaultStructured,             // Generic structured type
                 DefaultDate,                   // SqlDbType.Date
                 DefaultTime,                   // SqlDbType.Time
                 DefaultDateTime2,              // SqlDbType.DateTime2
                 DefaultDateTimeOffset,         // SqlDbType.DateTimeOffset
+            };
+
+        // static array of type names ordered by corresponding SqlDbType.
+        // NOTE: INDEXED BY SqlDbType ENUM!  MUST UPDATE THIS ARRAY WHEN UPDATING SqlDbType!
+        //   ONLY ACCESS THIS GLOBAL FROM get_TypeName!
+        private static readonly string[] s_typeNameByDatabaseType =
+            {
+                "bigint",               // SqlDbType.BigInt
+                "binary",               // SqlDbType.Binary
+                "bit",                  // SqlDbType.Bit
+                "char",                 // SqlDbType.Char
+                "datetime",             // SqlDbType.DateTime
+                "decimal",              // SqlDbType.Decimal
+                "float",                // SqlDbType.Float
+                "image",                // SqlDbType.Image
+                "int",                  // SqlDbType.Int
+                "money",                // SqlDbType.Money
+                "nchar",                // SqlDbType.NChar
+                "ntext",                // SqlDbType.NText
+                "nvarchar",             // SqlDbType.NVarChar
+                "real",                 // SqlDbType.Real
+                "uniqueidentifier",     // SqlDbType.UniqueIdentifier
+                "smalldatetime",        // SqlDbType.SmallDateTime
+                "smallint",             // SqlDbType.SmallInt
+                "smallmoney",           // SqlDbType.SmallMoney
+                "text",                 // SqlDbType.Text
+                "timestamp",            // SqlDbType.Timestamp
+                "tinyint",              // SqlDbType.TinyInt
+                "varbinary",            // SqlDbType.VarBinary
+                "varchar",              // SqlDbType.VarChar
+                "sql_variant",          // SqlDbType.Variant
+                null,                   // placeholder for 24
+                "xml",                  // SqlDbType.Xml
+                null,                   // placeholder for 26
+                null,                   // placeholder for 27
+                null,                   // placeholder for 28
+                string.Empty,           // SqlDbType.Udt  -- get type name from Type.FullName instead.
+                string.Empty,           // Structured types have user-defined type names.
+                "date",                 // SqlDbType.Date
+                "time",                 // SqlDbType.Time
+                "datetime2",            // SqlDbType.DateTime2
+                "datetimeoffset",       // SqlDbType.DateTimeOffset
             };
 
         // Internal setter to be used by constructors only!  Modifies state!
@@ -430,6 +673,7 @@ namespace Microsoft.SqlServer.Server
             _scale = smdDflt.Scale;
             _localeId = smdDflt.LocaleId;
             _compareOptions = smdDflt.CompareOptions;
+            _clrType = null;
             _isMultiValued = smdDflt._isMultiValued;
             _fieldMetaData = smdDflt._fieldMetaData;            // This is ok due to immutability
             _extendedProperties = smdDflt._extendedProperties;  // This is ok due to immutability
@@ -442,13 +686,12 @@ namespace Microsoft.SqlServer.Server
     //
     internal class SmiExtendedMetaData : SmiMetaData
     {
-
-        private string _name;           // context-dependent identifier, i.e. parameter name for parameters, column name for columns, etc.
+        private readonly string _name;           // context-dependent identifier, i.e. parameter name for parameters, column name for columns, etc.
 
         // three-part name for typed xml schema and for udt names
-        private string _typeSpecificNamePart1;
-        private string _typeSpecificNamePart2;
-        private string _typeSpecificNamePart3;
+        private readonly string _typeSpecificNamePart1;
+        private readonly string _typeSpecificNamePart2;
+        private readonly string _typeSpecificNamePart3;
 
         internal SmiExtendedMetaData(
             SqlDbType dbType,
@@ -457,20 +700,57 @@ namespace Microsoft.SqlServer.Server
             byte scale,
             long localeId,
             SqlCompareOptions compareOptions,
+            Type userDefinedType,
             string name,
             string typeSpecificNamePart1,
             string typeSpecificNamePart2,
-            string typeSpecificNamePart3) :
-            this(
+            string typeSpecificNamePart3)
+            : this(
                 dbType,
                 maxLength,
                 precision,
                 scale,
                 localeId,
                 compareOptions,
+                userDefinedType,
                 false,
                 null,
                 null,
+                name,
+                typeSpecificNamePart1,
+                typeSpecificNamePart2,
+                typeSpecificNamePart3)
+        {
+        }
+
+        // SMI V200 ctor.
+        internal SmiExtendedMetaData(
+            SqlDbType dbType,
+            long maxLength,
+            byte precision,
+            byte scale,
+            long localeId,
+            SqlCompareOptions compareOptions,
+            Type userDefinedType,
+            bool isMultiValued,
+            IList<SmiExtendedMetaData> fieldMetaData,
+            SmiMetaDataPropertyCollection extendedProperties,
+            string name,
+            string typeSpecificNamePart1,
+            string typeSpecificNamePart2,
+            string typeSpecificNamePart3)
+            : this(
+                dbType,
+                maxLength,
+                precision,
+                scale,
+                localeId,
+                compareOptions,
+                userDefinedType,
+                null,
+                isMultiValued,
+                fieldMetaData,
+                extendedProperties,
                 name,
                 typeSpecificNamePart1,
                 typeSpecificNamePart2,
@@ -486,19 +766,24 @@ namespace Microsoft.SqlServer.Server
             byte scale,
             long localeId,
             SqlCompareOptions compareOptions,
+            Type userDefinedType,
+            string udtAssemblyQualifiedName,
             bool isMultiValued,
             IList<SmiExtendedMetaData> fieldMetaData,
             SmiMetaDataPropertyCollection extendedProperties,
             string name,
             string typeSpecificNamePart1,
             string typeSpecificNamePart2,
-            string typeSpecificNamePart3) :
-            base(dbType,
+            string typeSpecificNamePart3)
+            : base(
+                dbType,
                 maxLength,
                 precision,
                 scale,
                 localeId,
                 compareOptions,
+                userDefinedType,
+                udtAssemblyQualifiedName,
                 isMultiValued,
                 fieldMetaData,
                 extendedProperties)
@@ -511,37 +796,13 @@ namespace Microsoft.SqlServer.Server
             _typeSpecificNamePart3 = typeSpecificNamePart3;
         }
 
-        internal string Name
-        {
-            get
-            {
-                return _name;
-            }
-        }
+        internal string Name => _name;
 
-        internal string TypeSpecificNamePart1
-        {
-            get
-            {
-                return _typeSpecificNamePart1;
-            }
-        }
+        internal string TypeSpecificNamePart1 => _typeSpecificNamePart1;
 
-        internal string TypeSpecificNamePart2
-        {
-            get
-            {
-                return _typeSpecificNamePart2;
-            }
-        }
+        internal string TypeSpecificNamePart2 => _typeSpecificNamePart2;
 
-        internal string TypeSpecificNamePart3
-        {
-            get
-            {
-                return _typeSpecificNamePart3;
-            }
-        }
+        internal string TypeSpecificNamePart3 => _typeSpecificNamePart3;
     }
 
     // SmiParameterMetaData
@@ -550,7 +811,44 @@ namespace Microsoft.SqlServer.Server
     //  Sealed because we don't need to derive from it yet.
     internal sealed class SmiParameterMetaData : SmiExtendedMetaData
     {
-        private ParameterDirection _direction;
+        private readonly ParameterDirection _direction;
+
+        // SMI V200 ctor.
+        internal SmiParameterMetaData(
+            SqlDbType dbType,
+            long maxLength,
+            byte precision,
+            byte scale,
+            long localeId,
+            SqlCompareOptions compareOptions,
+            Type userDefinedType,
+            bool isMultiValued,
+            IList<SmiExtendedMetaData> fieldMetaData,
+            SmiMetaDataPropertyCollection extendedProperties,
+            string name,
+            string typeSpecificNamePart1,
+            string typeSpecificNamePart2,
+            string typeSpecificNamePart3,
+            ParameterDirection direction)
+            : this(
+                dbType,
+                maxLength,
+                precision,
+                scale,
+                localeId,
+                compareOptions,
+                userDefinedType,
+                null,
+                isMultiValued,
+                fieldMetaData,
+                extendedProperties,
+                name,
+                typeSpecificNamePart1,
+                typeSpecificNamePart2,
+                typeSpecificNamePart3,
+                direction)
+        {
+        }
 
         // SMI V220 ctor.
         internal SmiParameterMetaData(
@@ -560,6 +858,8 @@ namespace Microsoft.SqlServer.Server
             byte scale,
             long localeId,
             SqlCompareOptions compareOptions,
+            Type userDefinedType,
+            string udtAssemblyQualifiedName,
             bool isMultiValued,
             IList<SmiExtendedMetaData> fieldMetaData,
             SmiMetaDataPropertyCollection extendedProperties,
@@ -567,13 +867,16 @@ namespace Microsoft.SqlServer.Server
             string typeSpecificNamePart1,
             string typeSpecificNamePart2,
             string typeSpecificNamePart3,
-            ParameterDirection direction) :
-            base(dbType,
+            ParameterDirection direction)
+            : base(
+                dbType,
                 maxLength,
                 precision,
                 scale,
                 localeId,
                 compareOptions,
+                userDefinedType,
+                udtAssemblyQualifiedName,
                 isMultiValued,
                 fieldMetaData,
                 extendedProperties,
@@ -589,18 +892,12 @@ namespace Microsoft.SqlServer.Server
             _direction = direction;
         }
 
-        internal ParameterDirection Direction
-        {
-            get
-            {
-                return _direction;
-            }
-        }
+        internal ParameterDirection Direction => _direction;
     }
 
     // SmiStorageMetaData
     //
-    //  This class represents the addition of storage-level attributes to the hierarchy (i.e. attributes from 
+    //  This class represents the addition of storage-level attributes to the hierarchy (i.e. attributes from
     //  underlying table, source variables, or whatever).
     //
     //  Most values use Null (either IsNullable == true or CLR null) to indicate "Not specified" state.  Selection
@@ -610,15 +907,113 @@ namespace Microsoft.SqlServer.Server
     internal class SmiStorageMetaData : SmiExtendedMetaData
     {
         // AllowsDBNull is the only value required to be specified.
-        private bool _allowsDBNull;  // could the column return nulls? equivalent to TDS's IsNullable bit
-        private string _serverName;  // underlying column's server
-        private string _catalogName; // underlying column's database
-        private string _schemaName;  // underlying column's schema
-        private string _tableName;   // underlying column's table
-        private string _columnName;  // underlying column's name
+        private readonly bool _allowsDBNull;  // could the column return nulls? equivalent to TDS's IsNullable bit
+        private readonly string _serverName;  // underlying column's server
+        private readonly string _catalogName; // underlying column's database
+        private readonly string _schemaName;  // underlying column's schema
+        private readonly string _tableName;   // underlying column's table
+        private readonly string _columnName;  // underlying column's name
         private SqlBoolean _isKey;   // Is this one of a set of key columns that uniquely identify an underlying table?
-        private bool _isIdentity;    // Is this from an identity column
-        private bool _isColumnSet;   // Is this column the XML representation of a columnset?
+        private readonly bool _isIdentity;    // Is this from an identity column
+        private readonly bool _isColumnSet;   // Is this column the XML representation of a columnset?
+
+        internal SmiStorageMetaData(
+            SqlDbType dbType,
+            long maxLength,
+            byte precision,
+            byte scale,
+            long localeId,
+            SqlCompareOptions compareOptions,
+            Type userDefinedType,
+            string name,
+            string typeSpecificNamePart1,
+            string typeSpecificNamePart2,
+            string typeSpecificNamePart3,
+            bool allowsDBNull,
+            string serverName,
+            string catalogName,
+            string schemaName,
+            string tableName,
+            string columnName,
+            SqlBoolean isKey,
+            bool isIdentity)
+            : this(
+                dbType,
+                maxLength,
+                precision,
+                scale,
+                localeId,
+                compareOptions,
+                userDefinedType,
+                false,
+                null,
+                null,
+                name,
+                typeSpecificNamePart1,
+                typeSpecificNamePart2,
+                typeSpecificNamePart3,
+                allowsDBNull,
+                serverName,
+                catalogName,
+                schemaName,
+                tableName,
+                columnName,
+                isKey,
+                isIdentity)
+        {
+        }
+
+        // SMI V200 ctor.
+        internal SmiStorageMetaData(
+            SqlDbType dbType,
+            long maxLength,
+            byte precision,
+            byte scale,
+            long localeId,
+            SqlCompareOptions compareOptions,
+            Type userDefinedType,
+            bool isMultiValued,
+            IList<SmiExtendedMetaData> fieldMetaData,
+            SmiMetaDataPropertyCollection extendedProperties,
+            string name,
+            string typeSpecificNamePart1,
+            string typeSpecificNamePart2,
+            string typeSpecificNamePart3,
+            bool allowsDBNull,
+            string serverName,
+            string catalogName,
+            string schemaName,
+            string tableName,
+            string columnName,
+            SqlBoolean isKey,
+            bool isIdentity)
+            : this(
+                dbType,
+                maxLength,
+                precision,
+                scale,
+                localeId,
+                compareOptions,
+                userDefinedType,
+                null,
+                isMultiValued,
+                fieldMetaData,
+                extendedProperties,
+                name,
+                typeSpecificNamePart1,
+                typeSpecificNamePart2,
+                typeSpecificNamePart3,
+                allowsDBNull,
+                serverName,
+                catalogName,
+                schemaName,
+                tableName,
+                columnName,
+                isKey,
+                isIdentity,
+                false)
+        {
+        }
 
         // SMI V220 ctor.
         internal SmiStorageMetaData(
@@ -628,6 +1023,8 @@ namespace Microsoft.SqlServer.Server
             byte scale,
             long localeId,
             SqlCompareOptions compareOptions,
+            Type userDefinedType,
+            string udtAssemblyQualifiedName,
             bool isMultiValued,
             IList<SmiExtendedMetaData> fieldMetaData,
             SmiMetaDataPropertyCollection extendedProperties,
@@ -643,13 +1040,16 @@ namespace Microsoft.SqlServer.Server
             string columnName,
             SqlBoolean isKey,
             bool isIdentity,
-            bool isColumnSet) :
-            base(dbType,
+            bool isColumnSet)
+            : base(
+                dbType,
                 maxLength,
                 precision,
                 scale,
                 localeId,
                 compareOptions,
+                userDefinedType,
+                udtAssemblyQualifiedName,
                 isMultiValued,
                 fieldMetaData,
                 extendedProperties,
@@ -669,13 +1069,23 @@ namespace Microsoft.SqlServer.Server
             _isColumnSet = isColumnSet;
         }
 
-        internal SqlBoolean IsKey
-        {
-            get
-            {
-                return _isKey;
-            }
-        }
+        internal bool AllowsDBNull => _allowsDBNull;
+
+        internal string ServerName => _serverName;
+
+        internal string CatalogName => _catalogName;
+
+        internal string SchemaName => _schemaName;
+
+        internal string TableName => _tableName;
+
+        internal string ColumnName => _columnName;
+
+        internal SqlBoolean IsKey => _isKey;
+
+        internal bool IsIdentity => _isIdentity;
+
+        internal bool IsColumnSet => _isColumnSet;
     }
 
     // SmiQueryMetaData
@@ -685,10 +1095,64 @@ namespace Microsoft.SqlServer.Server
     //  Maps to full COLMETADATA + COLINFO + TABNAME tokens on TDS.
     internal class SmiQueryMetaData : SmiStorageMetaData
     {
-        private bool _isReadOnly;
+        private readonly bool _isReadOnly;
         private SqlBoolean _isExpression;
         private SqlBoolean _isAliased;
         private SqlBoolean _isHidden;
+
+        internal SmiQueryMetaData(
+            SqlDbType dbType,
+            long maxLength,
+            byte precision,
+            byte scale,
+            long localeId,
+            SqlCompareOptions compareOptions,
+            Type userDefinedType,
+            string name,
+            string typeSpecificNamePart1,
+            string typeSpecificNamePart2,
+            string typeSpecificNamePart3,
+            bool allowsDBNull,
+            string serverName,
+            string catalogName,
+            string schemaName,
+            string tableName,
+            string columnName,
+            SqlBoolean isKey,
+            bool isIdentity,
+            bool isReadOnly,
+            SqlBoolean isExpression,
+            SqlBoolean isAliased,
+            SqlBoolean isHidden)
+            : this(
+                dbType,
+                maxLength,
+                precision,
+                scale,
+                localeId,
+                compareOptions,
+                userDefinedType,
+                false,
+                null,
+                null,
+                name,
+                typeSpecificNamePart1,
+                typeSpecificNamePart2,
+                typeSpecificNamePart3,
+                allowsDBNull,
+                serverName,
+                catalogName,
+                schemaName,
+                tableName,
+                columnName,
+                isKey,
+                isIdentity,
+                isReadOnly,
+                isExpression,
+                isAliased,
+                isHidden)
+        {
+        }
 
         // SMI V200 ctor.
         internal SmiQueryMetaData(
@@ -698,6 +1162,7 @@ namespace Microsoft.SqlServer.Server
             byte scale,
             long localeId,
             SqlCompareOptions compareOptions,
+            Type userDefinedType,
             bool isMultiValued,
             IList<SmiExtendedMetaData> fieldMetaData,
             SmiMetaDataPropertyCollection extendedProperties,
@@ -716,13 +1181,16 @@ namespace Microsoft.SqlServer.Server
             bool isReadOnly,
             SqlBoolean isExpression,
             SqlBoolean isAliased,
-            SqlBoolean isHidden) :
-            this(dbType,
+            SqlBoolean isHidden)
+            : this(
+                dbType,
                 maxLength,
                 precision,
                 scale,
                 localeId,
                 compareOptions,
+                userDefinedType,
+                null,
                 isMultiValued,
                 fieldMetaData,
                 extendedProperties,
@@ -754,6 +1222,8 @@ namespace Microsoft.SqlServer.Server
             byte scale,
             long localeId,
             SqlCompareOptions compareOptions,
+            Type userDefinedType,
+            string udtAssemblyQualifiedName,
             bool isMultiValued,
             IList<SmiExtendedMetaData> fieldMetaData,
             SmiMetaDataPropertyCollection extendedProperties,
@@ -773,13 +1243,16 @@ namespace Microsoft.SqlServer.Server
             bool isReadOnly,
             SqlBoolean isExpression,
             SqlBoolean isAliased,
-            SqlBoolean isHidden) :
-            base(dbType,
+            SqlBoolean isHidden)
+            : base(
+                dbType,
                 maxLength,
                 precision,
                 scale,
                 localeId,
                 compareOptions,
+                userDefinedType,
+                udtAssemblyQualifiedName,
                 isMultiValued,
                 fieldMetaData,
                 extendedProperties,
@@ -802,5 +1275,13 @@ namespace Microsoft.SqlServer.Server
             _isAliased = isAliased;
             _isHidden = isHidden;
         }
+
+        internal bool IsReadOnly => _isReadOnly;
+
+        internal SqlBoolean IsExpression => _isExpression;
+
+        internal SqlBoolean IsAliased => _isAliased;
+
+        internal SqlBoolean IsHidden => _isHidden;
     }
 }

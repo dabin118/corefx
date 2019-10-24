@@ -59,7 +59,6 @@ namespace System.Xml.Tests
             }
             catch (Exception e)
             {
-                Console.WriteLine(e);
                 res = (tagVARIATION_STATUS)HandleException(e);
             }
 
@@ -69,4 +68,3 @@ namespace System.Xml.Tests
         public CXmlDriverParam XmlDriverParam { get { return _xmlDriverParams; } set { _xmlDriverParams = value; } }
     }
 }
-

@@ -56,18 +56,17 @@ namespace System.Diagnostics.TraceSourceTests
         }
 
         [Fact]
-        [SkipOnTargetFramework(TargetFrameworkMonikers.UapAot, "Stack Traces are not so rich on AoT.")]
         public void CallstackTest_ContainsExpectedFrames()
         {
             var cache = new TraceEventCache();
-            Assert.Contains("at System.Environment.get_StackTrace()", cache.Callstack);
+            Assert.Contains("System.Environment.get_StackTrace()", cache.Callstack);
         }
 
         [Fact]
         public void LogicalOperationStack()
         {
             var cache = new TraceEventCache();
-            var logicalOperationStack = cache.LogicalOperationStack; 
+            var logicalOperationStack = cache.LogicalOperationStack;
             Assert.Equal(0, logicalOperationStack.Count);
             Trace.CorrelationManager.StartLogicalOperation("SecondaryThread");
             Trace.CorrelationManager.StartLogicalOperation("MainThread");

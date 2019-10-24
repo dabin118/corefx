@@ -17,23 +17,22 @@ namespace System.IO.FileSystem.DriveInfoTests
     public class DriveInfoWindowsTests
     {
         [Theory]
-        [InlineData(":\0", "driveName")]
-        [InlineData(":", null)]
-        [InlineData("://", null)]
-        [InlineData(@":\", null)]
-        [InlineData(":/", null)]
-        [InlineData(@":\\", null)]
-        [InlineData("Az", null)]
-        [InlineData("1", null)]
-        [InlineData("a1", null)]
-        [InlineData(@"\\share", null)]
-        [InlineData(@"\\", null)]
-        [InlineData("c ", null)]
-        [InlineData("", "path")]
-        [InlineData(" c", null)]
-        public void Ctor_InvalidPath_ThrowsArgumentException(string driveName, string paramName)
+        [InlineData(":")]
+        [InlineData("://")]
+        [InlineData(@":\")]
+        [InlineData(":/")]
+        [InlineData(@":\\")]
+        [InlineData("Az")]
+        [InlineData("1")]
+        [InlineData("a1")]
+        [InlineData(@"\\share")]
+        [InlineData(@"\\")]
+        [InlineData("c ")]
+        [InlineData("")]
+        [InlineData(" c")]
+        public void Ctor_InvalidPath_ThrowsArgumentException(string driveName)
         {
-            AssertExtensions.Throws<ArgumentException>(paramName, null, () => new DriveInfo(driveName));
+            AssertExtensions.Throws<ArgumentException>("driveName", null, () => new DriveInfo(driveName));
         }
 
         [Fact]
@@ -80,7 +79,7 @@ namespace System.IO.FileSystem.DriveInfoTests
             Assert.NotNull(validDrive.Name);
             Assert.NotNull(validDrive.RootDirectory.Name);
 
-            if (PlatformDetection.IsWinRT)
+            if (PlatformDetection.IsInAppContainer)
             {
                 Assert.Throws<UnauthorizedAccessException>(() => validDrive.AvailableFreeSpace);
                 Assert.Throws<UnauthorizedAccessException>(() => validDrive.DriveFormat);
@@ -100,7 +99,6 @@ namespace System.IO.FileSystem.DriveInfoTests
 
         [Fact]
         [PlatformSpecific(TestPlatforms.Windows)]
-        [SkipOnTargetFramework(TargetFrameworkMonikers.Uap, "Accessing drive format is not permitted inside an AppContainer.")]
         public void TestDriveFormat()
         {
             DriveInfo validDrive = DriveInfo.GetDrives().Where(d => d.DriveType == DriveType.Fixed).First();
@@ -136,12 +134,11 @@ namespace System.IO.FileSystem.DriveInfoTests
 
             // Test Invalid drive
             var invalidDrive = new DriveInfo(GetInvalidDriveLettersOnMachine().First().ToString());
-            Assert.Equal(invalidDrive.DriveType, DriveType.NoRootDirectory);
+            Assert.Equal(DriveType.NoRootDirectory, invalidDrive.DriveType);
         }
 
         [Fact]
         [PlatformSpecific(TestPlatforms.Windows)]
-        [SkipOnTargetFramework(TargetFrameworkMonikers.Uap, "GetDiskFreeSpaceEx blocked in AC")]
         public void TestValidDiskSpaceProperties()
         {
             bool win32Result;
@@ -217,12 +214,12 @@ namespace System.IO.FileSystem.DriveInfoTests
                     var name = validDrive.VolumeLabel;
                 }
             };
-            
-            if (PlatformDetection.IsWinRT)
+
+            if (PlatformDetection.IsInAppContainer)
             {
                 Assert.Throws<UnauthorizedAccessException>(() => DoDriveCheck());
             }
-            else 
+            else
             {
                 DoDriveCheck();
             }
@@ -234,7 +231,7 @@ namespace System.IO.FileSystem.DriveInfoTests
         {
             DriveInfo drive = DriveInfo.GetDrives().Where(d => d.DriveType == DriveType.Fixed).First();
             // Inside an AppContainer access to VolumeLabel is denied.
-            if (PlatformDetection.IsWinRT)
+            if (PlatformDetection.IsInAppContainer)
             {
                 Assert.Throws<UnauthorizedAccessException>(() => drive.VolumeLabel);
                 return;
@@ -261,7 +258,7 @@ namespace System.IO.FileSystem.DriveInfoTests
                 {
                     Exception e = Assert.ThrowsAny<Exception>(() => { adrive.VolumeLabel = null; });
                     Assert.True(
-                        e is UnauthorizedAccessException || 
+                        e is UnauthorizedAccessException ||
                         e is IOException ||
                         e is SecurityException);
                 }
@@ -283,7 +280,7 @@ namespace System.IO.FileSystem.DriveInfoTests
         private IEnumerable<char> GetValidDriveLettersOnMachine()
         {
             uint mask = (uint)GetLogicalDrives();
-            Assert.NotEqual<uint>(mask, 0);
+            Assert.NotEqual<uint>(0, mask);
 
             var bits = new BitArray(new int[] { (int)mask });
             for (int i = 0; i < bits.Length; i++)
@@ -297,7 +294,7 @@ namespace System.IO.FileSystem.DriveInfoTests
         private IEnumerable<char> GetInvalidDriveLettersOnMachine()
         {
             uint mask = (uint)GetLogicalDrives();
-            Assert.NotEqual<uint>(mask, 0);
+            Assert.NotEqual<uint>(0, mask);
 
             var bits = new BitArray(new int[] { (int)mask });
             for (int i = 0; i < bits.Length; i++)

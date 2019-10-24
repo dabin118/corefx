@@ -9,11 +9,7 @@ using System.Reflection;
 using System.Xml.Serialization;
 
 
-#if XMLSERIALIZERGENERATOR
-namespace Microsoft.XmlSerializer.Generator
-#else
 namespace System.Xml.Serialization
-#endif
 {
     [Flags]
     public enum XmlMappingAccess
@@ -29,13 +25,13 @@ namespace System.Xml.Serialization
     /// </devdoc>
     public abstract class XmlMapping
     {
-        private TypeScope _scope;
+        private readonly TypeScope _scope;
         private bool _generateSerializer = false;
         private bool _isSoap;
-        private ElementAccessor _accessor;
+        private readonly ElementAccessor _accessor;
         private string _key;
-        private bool _shallow = false;
-        private XmlMappingAccess _access;
+        private readonly bool _shallow = false;
+        private readonly XmlMappingAccess _access;
 
         internal XmlMapping(TypeScope scope, ElementAccessor accessor) : this(scope, accessor, XmlMappingAccess.Read | XmlMappingAccess.Write)
         {
@@ -64,11 +60,7 @@ namespace System.Xml.Serialization
         /// </devdoc>
         public string ElementName
         {
-#if XMLSERIALIZERGENERATOR
-            get { return Microsoft.XmlSerializer.Generator.Accessor.UnescapeName(Accessor.Name); }
-#else
             get { return System.Xml.Serialization.Accessor.UnescapeName(Accessor.Name); }
-#endif
         }
 
         /// <devdoc>
@@ -127,7 +119,7 @@ namespace System.Xml.Serialization
             {
                 root = (XmlRootAttribute)XmlAttributes.GetAttr(type, typeof(XmlRootAttribute));
             }
-            return type.FullName + ":" + (root == null ? String.Empty : root.GetKey()) + ":" + (ns == null ? String.Empty : ns);
+            return type.FullName + ":" + (root == null ? string.Empty : root.GetKey()) + ":" + (ns == null ? string.Empty : ns);
         }
 
         internal string Key { get { return _key; } }

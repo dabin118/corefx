@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using System.Net.Http;
 using System.Net.Test.Common;
 using System.Security.Cryptography.X509Certificates;
 using System.Security.Authentication;
@@ -28,39 +29,72 @@ namespace System.Net.Security.Tests
             _serverStream = new SslStream(serverNet, false, ServerCertCallback);
         }
 
+        public static bool IsNotWindows7 => !PlatformDetection.IsWindows7;
+
         protected abstract Task AuthenticateClientAsync(string targetHost, X509CertificateCollection clientCertificates, bool checkCertificateRevocation, SslProtocols? protocols = null);
         protected abstract Task AuthenticateServerAsync(X509Certificate serverCertificate, bool clientCertificateRequired, bool checkCertificateRevocation, SslProtocols? protocols = null);
 
-        [ActiveIssue(7812, TestPlatforms.Windows)]
-        [Theory]
+        [ConditionalTheory(nameof(IsNotWindows7))]
         [InlineData(null, null)]
         [InlineData(SslProtocols.None, null)]
         [InlineData(null, SslProtocols.None)]
         [InlineData(SslProtocols.None, SslProtocols.None)]
-        [InlineData(null, SslProtocols.Tls11)]
-        [InlineData(SslProtocols.Tls11, null)]
+        [InlineData(NegotiatedCipherSuiteTest.NonTls13Protocols, SslProtocols.Tls11)]
+        [InlineData(SslProtocols.Tls11, NegotiatedCipherSuiteTest.NonTls13Protocols)]
         [InlineData(null, SslProtocols.Tls12)]
         [InlineData(SslProtocols.Tls12, null)]
         [InlineData(SslProtocols.Tls | SslProtocols.Tls11 | SslProtocols.Tls12, null)]
         [InlineData(null, SslProtocols.Tls | SslProtocols.Tls11 | SslProtocols.Tls12)]
+#pragma warning disable 0618
+        [InlineData(SslProtocols.Default, NegotiatedCipherSuiteTest.NonTls13Protocols)]
+        [InlineData(NegotiatedCipherSuiteTest.NonTls13Protocols, SslProtocols.Default)]
+#pragma warning restore 0618
         public async Task ClientAndServer_OneOrBothUseDefault_Ok(SslProtocols? clientProtocols, SslProtocols? serverProtocols)
         {
-            X509Certificate2 serverCertificate = Configuration.Certificates.GetServerCertificate();
-            string serverHost = serverCertificate.GetNameInfo(X509NameType.SimpleName, false);
-            var clientCertificates = new X509CertificateCollection();
-            clientCertificates.Add(Configuration.Certificates.GetClientCertificate());
-
-            var tasks = new Task[2];
-            tasks[0] = AuthenticateClientAsync(serverHost, clientCertificates, checkCertificateRevocation: false, protocols: clientProtocols);
-            tasks[1] = AuthenticateServerAsync(serverCertificate, clientCertificateRequired: true, checkCertificateRevocation: false, protocols: serverProtocols);
-            await await Task.WhenAny(tasks);
-            await Task.WhenAll(tasks);
-
-            if (PlatformDetection.IsWindows && PlatformDetection.WindowsVersion >= 10)
+            using (X509Certificate2 serverCertificate = Configuration.Certificates.GetServerCertificate())
+            using (X509Certificate2 clientCertificate = Configuration.Certificates.GetClientCertificate())
             {
-                Assert.True(_clientStream.HashAlgorithm == HashAlgorithmType.Sha256 ||
-                            _clientStream.HashAlgorithm == HashAlgorithmType.Sha384 ||
-                            _clientStream.HashAlgorithm == HashAlgorithmType.Sha512);
+                string serverHost = serverCertificate.GetNameInfo(X509NameType.SimpleName, false);
+                var clientCertificates = new X509CertificateCollection() { clientCertificate };
+
+                await TestConfiguration.WhenAllOrAnyFailedWithTimeout(
+                    AuthenticateClientAsync(serverHost, clientCertificates, checkCertificateRevocation: false, protocols: clientProtocols),
+                    AuthenticateServerAsync(serverCertificate, clientCertificateRequired: true, checkCertificateRevocation: false, protocols: serverProtocols));
+                if (PlatformDetection.IsWindows && PlatformDetection.WindowsVersion >= 10 &&
+#pragma warning disable 0618
+                    clientProtocols.GetValueOrDefault() != SslProtocols.Default &&
+                    serverProtocols.GetValueOrDefault() != SslProtocols.Default)
+#pragma warning restore 0618
+                {
+                    Assert.True(
+                        (_clientStream.SslProtocol == SslProtocols.Tls11 && _clientStream.HashAlgorithm == HashAlgorithmType.Sha1) ||
+                        _clientStream.HashAlgorithm == HashAlgorithmType.Sha256 ||
+                        _clientStream.HashAlgorithm == HashAlgorithmType.Sha384 ||
+                        _clientStream.HashAlgorithm == HashAlgorithmType.Sha512,
+                        _clientStream.SslProtocol + " " + _clientStream.HashAlgorithm);
+                }
+            }
+        }
+
+        [ConditionalTheory(nameof(IsNotWindows7))]
+#pragma warning disable 0618
+        [InlineData(null, SslProtocols.Ssl2)]
+        [InlineData(SslProtocols.None, SslProtocols.Ssl2)]
+        [InlineData(SslProtocols.Ssl2, null)]
+        [InlineData(SslProtocols.Ssl2, SslProtocols.None)]
+#pragma warning restore 0618
+        public async Task ClientAndServer_OneUsesDefault_OtherUsesLowerProtocol_Fails(
+            SslProtocols? clientProtocols, SslProtocols? serverProtocols)
+        {
+            using (X509Certificate2 serverCertificate = Configuration.Certificates.GetServerCertificate())
+            using (X509Certificate2 clientCertificate = Configuration.Certificates.GetClientCertificate())
+            {
+                string serverHost = serverCertificate.GetNameInfo(X509NameType.SimpleName, false);
+                var clientCertificates = new X509CertificateCollection() { clientCertificate };
+
+                await Assert.ThrowsAnyAsync<Exception>(() => TestConfiguration.WhenAllOrAnyFailedWithTimeout(
+                    AuthenticateClientAsync(serverHost, clientCertificates, checkCertificateRevocation: false, protocols: clientProtocols),
+                    AuthenticateServerAsync(serverCertificate, clientCertificateRequired: true, checkCertificateRevocation: false, protocols: serverProtocols)));
             }
         }
 

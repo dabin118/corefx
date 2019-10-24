@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using System.Diagnostics;
+
 namespace System.Collections.Specialized
 {
     /// <devdoc>
@@ -15,23 +17,21 @@ namespace System.Collections.Specialized
     [System.Runtime.CompilerServices.TypeForwardedFrom("System, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089")]
     public class ListDictionary : IDictionary
     {
-        private DictionaryNode head; // Do not rename (binary serialization)
+        private DictionaryNode? head; // Do not rename (binary serialization)
         private int version; // Do not rename (binary serialization)
         private int count; // Do not rename (binary serialization)
-        private readonly IComparer comparer; // Do not rename (binary serialization)
-        [NonSerialized]
-        private Object _syncRoot;
+        private readonly IComparer? comparer; // Do not rename (binary serialization)
 
         public ListDictionary()
         {
         }
 
-        public ListDictionary(IComparer comparer)
+        public ListDictionary(IComparer? comparer)
         {
             this.comparer = comparer;
         }
 
-        public object this[object key]
+        public object? this[object key]
         {
             get
             {
@@ -39,7 +39,7 @@ namespace System.Collections.Specialized
                 {
                     throw new ArgumentNullException(nameof(key));
                 }
-                DictionaryNode node = head;
+                DictionaryNode? node = head;
                 if (comparer == null)
                 {
                     while (node != null)
@@ -73,8 +73,8 @@ namespace System.Collections.Specialized
                     throw new ArgumentNullException(nameof(key));
                 }
                 version++;
-                DictionaryNode last = null;
-                DictionaryNode node;
+                DictionaryNode? last = null;
+                DictionaryNode? node;
                 for (node = head; node != null; node = node.next)
                 {
                     object oldKey = node.key;
@@ -146,17 +146,7 @@ namespace System.Collections.Specialized
             }
         }
 
-        public object SyncRoot
-        {
-            get
-            {
-                if (_syncRoot == null)
-                {
-                    System.Threading.Interlocked.CompareExchange(ref _syncRoot, new Object(), null);
-                }
-                return _syncRoot;
-            }
-        }
+        public object SyncRoot => this;
 
         public ICollection Values
         {
@@ -166,16 +156,16 @@ namespace System.Collections.Specialized
             }
         }
 
-        public void Add(object key, object value)
+        public void Add(object key, object? value)
         {
             if (key == null)
             {
                 throw new ArgumentNullException(nameof(key));
             }
             version++;
-            DictionaryNode last = null;
-            DictionaryNode node;
-            for (node = head; node != null; node = node.next)
+            DictionaryNode? last = null;
+
+            for (DictionaryNode? node = head; node != null; node = node.next)
             {
                 object oldKey = node.key;
                 if ((comparer == null) ? oldKey.Equals(key) : comparer.Compare(oldKey, key) == 0)
@@ -212,7 +202,7 @@ namespace System.Collections.Specialized
             {
                 throw new ArgumentNullException(nameof(key));
             }
-            for (DictionaryNode node = head; node != null; node = node.next)
+            for (DictionaryNode? node = head; node != null; node = node.next)
             {
                 object oldKey = node.key;
                 if ((comparer == null) ? oldKey.Equals(key) : comparer.Compare(oldKey, key) == 0)
@@ -228,12 +218,12 @@ namespace System.Collections.Specialized
             if (array == null)
                 throw new ArgumentNullException(nameof(array));
             if (index < 0)
-                throw new ArgumentOutOfRangeException(nameof(index), index, SR.ArgumentOutOfRange_NeedNonNegNum);
+                throw new ArgumentOutOfRangeException(nameof(index), index, SR.ArgumentOutOfRange_NeedNonNegNum_Index);
 
             if (array.Length - index < count)
                 throw new ArgumentException(SR.Arg_InsufficientSpace);
 
-            for (DictionaryNode node = head; node != null; node = node.next)
+            for (DictionaryNode? node = head; node != null; node = node.next)
             {
                 array.SetValue(new DictionaryEntry(node.key, node.value), index);
                 index++;
@@ -257,8 +247,8 @@ namespace System.Collections.Specialized
                 throw new ArgumentNullException(nameof(key));
             }
             version++;
-            DictionaryNode last = null;
-            DictionaryNode node;
+            DictionaryNode? last = null;
+            DictionaryNode? node;
             for (node = head; node != null; node = node.next)
             {
                 object oldKey = node.key;
@@ -278,6 +268,7 @@ namespace System.Collections.Specialized
             }
             else
             {
+                Debug.Assert(last != null);
                 last.next = node.next;
             }
             count--;
@@ -285,9 +276,9 @@ namespace System.Collections.Specialized
 
         private class NodeEnumerator : IDictionaryEnumerator
         {
-            private ListDictionary _list;
-            private DictionaryNode _current;
-            private int _version;
+            private readonly ListDictionary _list;
+            private DictionaryNode? _current;
+            private readonly int _version;
             private bool _start;
 
 
@@ -331,7 +322,7 @@ namespace System.Collections.Specialized
                 }
             }
 
-            public object Value
+            public object? Value
             {
                 get
                 {
@@ -371,11 +362,11 @@ namespace System.Collections.Specialized
                 _current = null;
             }
         }
-        
+
         private class NodeKeyValueCollection : ICollection
         {
-            private ListDictionary _list;
-            private bool _isKeys;
+            private readonly ListDictionary _list;
+            private readonly bool _isKeys;
 
             public NodeKeyValueCollection(ListDictionary list, bool isKeys)
             {
@@ -388,9 +379,9 @@ namespace System.Collections.Specialized
                 if (array == null)
                     throw new ArgumentNullException(nameof(array));
                 if (index < 0)
-                    throw new ArgumentOutOfRangeException(nameof(index), index, SR.ArgumentOutOfRange_NeedNonNegNum);
+                    throw new ArgumentOutOfRangeException(nameof(index), index, SR.ArgumentOutOfRange_NeedNonNegNum_Index);
 
-                for (DictionaryNode node = _list.head; node != null; node = node.next)
+                for (DictionaryNode? node = _list.head; node != null; node = node.next)
                 {
                     array.SetValue(_isKeys ? node.key : node.value, index);
                     index++;
@@ -402,7 +393,7 @@ namespace System.Collections.Specialized
                 get
                 {
                     int count = 0;
-                    for (DictionaryNode node = _list.head; node != null; node = node.next)
+                    for (DictionaryNode? node = _list.head; node != null; node = node.next)
                     {
                         count++;
                     }
@@ -434,10 +425,10 @@ namespace System.Collections.Specialized
 
             private class NodeKeyValueEnumerator : IEnumerator
             {
-                private ListDictionary _list;
-                private DictionaryNode _current;
-                private int _version;
-                private bool _isKeys;
+                private readonly ListDictionary _list;
+                private DictionaryNode? _current;
+                private readonly int _version;
+                private readonly bool _isKeys;
                 private bool _start;
 
                 public NodeKeyValueEnumerator(ListDictionary list, bool isKeys)
@@ -449,7 +440,7 @@ namespace System.Collections.Specialized
                     _current = null;
                 }
 
-                public object Current
+                public object? Current
                 {
                     get
                     {
@@ -495,9 +486,9 @@ namespace System.Collections.Specialized
         [System.Runtime.CompilerServices.TypeForwardedFrom("System, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089")]
         public class DictionaryNode
         {
-            public object key; // Do not rename (binary serialization)
-            public object value; // Do not rename (binary serialization)
-            public DictionaryNode next; // Do not rename (binary serialization)
+            public object key = null!; // Do not rename (binary serialization)
+            public object? value; // Do not rename (binary serialization)
+            public DictionaryNode? next; // Do not rename (binary serialization)
         }
     }
 }

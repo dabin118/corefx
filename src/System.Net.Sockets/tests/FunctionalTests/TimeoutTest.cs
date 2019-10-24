@@ -2,13 +2,14 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using System.Diagnostics;
 using Xunit;
 
 namespace System.Net.Sockets.Tests
 {
+    [Collection("NoParallelTests")]
     public class TimeoutTest
     {
-        [OuterLoop] // TODO: Issue #11345
         [Fact]
         public void GetAndSet_Success()
         {
@@ -24,7 +25,6 @@ namespace System.Net.Sockets.Tests
             }
         }
 
-        [OuterLoop] // TODO: Issue #11345
         [Fact]
         public void SocketSendTimeout_GetAndSet_Success()
         {
@@ -42,7 +42,7 @@ namespace System.Net.Sockets.Tests
 
         // Use a Timeout large enough so that we can effectively detect when it's not accurate,
         // but also not so large that it takes too long to run.
-        const int Timeout = 2000;
+        private const int Timeout = 2000;
 
         [OuterLoop] // TODO: Issue #11345
         [Theory]
@@ -66,21 +66,20 @@ namespace System.Net.Sockets.Tests
 
                 acceptedSocket.ForceNonBlocking(forceNonBlocking);
 
-                DateTime start = default(DateTime);
+                long start = Environment.TickCount64;
 
                 SocketException sockEx = Assert.Throws<SocketException>(() =>
                 {
-                    start = DateTime.UtcNow;
                     acceptedSocket.Receive(new byte[1]);
                 });
 
-                double elapsed = (DateTime.UtcNow - start).TotalMilliseconds;
-
+                long elapsed = Environment.TickCount64 - start;
                 Assert.Equal(SocketError.TimedOut, sockEx.SocketErrorCode);
                 Assert.True(acceptedSocket.Connected);
 
                 // Try to ensure that the elapsed timeout is reasonably correct
-                Assert.InRange(elapsed, Timeout * 0.75, Timeout * 1.5);
+                // Sometimes test machines run slowly
+                Assert.InRange(elapsed, Timeout * 0.75, Timeout * 1.9999);
             }
         }
 
@@ -106,7 +105,7 @@ namespace System.Net.Sockets.Tests
 
                 acceptedSocket.ForceNonBlocking(forceNonBlocking);
 
-                DateTime start = default(DateTime);
+                long start = Environment.TickCount64;
 
                 // Force Send to timeout by filling the kernel buffer.
                 var sendBuffer = new byte[16 * 1024];
@@ -114,18 +113,18 @@ namespace System.Net.Sockets.Tests
                 {
                     while (true)
                     {
-                        start = DateTime.UtcNow;
+                        start = Environment.TickCount64;
                         acceptedSocket.Send(sendBuffer);
                     }
                 }));
 
-                double elapsed = (DateTime.UtcNow - start).TotalMilliseconds;
-
+                long elapsed = Environment.TickCount64 - start;
                 Assert.Equal(SocketError.TimedOut, sockEx.SocketErrorCode);
                 Assert.True(acceptedSocket.Connected);
 
                 // Try to ensure that the elapsed timeout is reasonably correct
-                Assert.InRange(elapsed, Timeout * 0.75, Timeout * 1.5);
+                // Sometimes test machines run slowly
+                Assert.InRange(elapsed, Timeout * 0.75, Timeout * 1.9999);
             }
         }
     }

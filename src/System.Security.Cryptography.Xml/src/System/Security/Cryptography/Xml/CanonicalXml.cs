@@ -5,16 +5,13 @@
 using System.Xml;
 using System.IO;
 using System.Text;
-using System.Collections;
-using System.Security.Cryptography;
-using System;
 
 namespace System.Security.Cryptography.Xml
 {
     internal class CanonicalXml
     {
-        private CanonicalXmlDocument _c14nDoc;
-        private C14NAncestralNamespaceContextManager _ancMgr;
+        private readonly CanonicalXmlDocument _c14nDoc;
+        private readonly C14NAncestralNamespaceContextManager _ancMgr;
 
         // private static string defaultXPathWithoutComments = "(//. | //@* | //namespace::*)[not(self::comment())]";
         // private static string defaultXPathWithoutComments = "(//. | //@* | //namespace::*)";
@@ -51,7 +48,7 @@ namespace System.Security.Cryptography.Xml
 
             XmlDocument doc = Utils.GetOwnerDocument(nodeList);
             if (doc == null)
-                throw new ArgumentException("nodeList");
+                throw new ArgumentException(nameof(nodeList));
 
             _c14nDoc = new CanonicalXmlDocument(false, includeComments);
             _c14nDoc.XmlResolver = resolver;
@@ -118,7 +115,7 @@ namespace System.Security.Cryptography.Xml
         internal byte[] GetDigestedBytes(HashAlgorithm hash)
         {
             _c14nDoc.WriteHash(hash, DocPosition.BeforeRootElement, _ancMgr);
-            hash.TransformFinalBlock(new byte[0], 0, 0);
+            hash.TransformFinalBlock(Array.Empty<byte>(), 0, 0);
             byte[] res = (byte[])hash.Hash.Clone();
             // reinitialize the hash so it is still usable after the call
             hash.Initialize();

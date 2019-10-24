@@ -11,7 +11,7 @@ namespace System.Reflection.Metadata.Ecma335
     /// Decodes signature blobs.
     /// See Metadata Specification section II.23.2: Blobs and signatures.
     /// </summary>
-    public struct SignatureDecoder<TType, TGenericContext>
+    public readonly struct SignatureDecoder<TType, TGenericContext>
     {
         private readonly ISignatureTypeProvider<TType, TGenericContext> _provider;
         private readonly MetadataReader _metadataReaderOpt;
@@ -132,7 +132,7 @@ namespace System.Reflection.Metadata.Ecma335
             }
         }
 
-        /// <summary> 
+        /// <summary>
         /// Decodes a list of types, with at least one instance that is preceded by its count as a compressed integer.
         /// </summary>
         private ImmutableArray<TType> DecodeTypeSequence(ref BlobReader blobReader)

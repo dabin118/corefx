@@ -6,7 +6,6 @@ using System;
 using System.Diagnostics;
 using System.Globalization;
 using System.Security.Principal;
-using System.Security.Permissions;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Collections;
@@ -14,13 +13,12 @@ using System.Collections;
 namespace System.DirectoryServices.AccountManagement
 {
     [System.Diagnostics.DebuggerDisplay("Name ( {Name} )")]
-    abstract public class Principal : IDisposable
+    public abstract class Principal : IDisposable
     {
         //
         // Public properties
         //
 
-        [System.Security.SecurityCritical]
         public override string ToString()
         {
             return Name;
@@ -29,7 +27,6 @@ namespace System.DirectoryServices.AccountManagement
         // Context property
         public PrincipalContext Context
         {
-            [System.Security.SecuritySafeCritical]
             get
             {
                 // Make sure we're not disposed or deleted.
@@ -45,7 +42,6 @@ namespace System.DirectoryServices.AccountManagement
         // ContextType property
         public ContextType ContextType
         {
-            [System.Security.SecurityCritical]
             get
             {
                 // Make sure we're not disposed or deleted.
@@ -70,13 +66,11 @@ namespace System.DirectoryServices.AccountManagement
 
         public string Description
         {
-            [System.Security.SecurityCritical]
             get
             {
                 return HandleGet<string>(ref _description, PropertyNames.PrincipalDescription, ref _descriptionChanged);
             }
 
-            [System.Security.SecurityCritical]
             set
             {
                 if (!GetStoreCtxToUse().IsValidProperty(this, PropertyNames.PrincipalDescription))
@@ -96,13 +90,11 @@ namespace System.DirectoryServices.AccountManagement
 
         public string DisplayName
         {
-            [System.Security.SecurityCritical]
             get
             {
                 return HandleGet<string>(ref _displayName, PropertyNames.PrincipalDisplayName, ref _displayNameChanged);
             }
 
-            [System.Security.SecurityCritical]
             set
             {
                 if (!GetStoreCtxToUse().IsValidProperty(this, PropertyNames.PrincipalDisplayName))
@@ -120,21 +112,19 @@ namespace System.DirectoryServices.AccountManagement
         private string _samName = null;          // the actual property value
 
         [System.Diagnostics.DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private LoadState _samNameChanged = LoadState.NotSet;    // change-tracking     
+        private LoadState _samNameChanged = LoadState.NotSet;    // change-tracking
 
         public string SamAccountName
         {
-            [System.Security.SecurityCritical]
             get
             {
                 return HandleGet<string>(ref _samName, PropertyNames.PrincipalSamAccountName, ref _samNameChanged);
             }
 
-            [System.Security.SecurityCritical]
             set
             {
                 if (null == value || 0 == value.Length)
-                    throw new ArgumentNullException(String.Format(CultureInfo.CurrentCulture, SR.InvalidNullArgument, PropertyNames.PrincipalSamAccountName));
+                    throw new ArgumentNullException(PropertyNames.PrincipalSamAccountName);
 
                 if (!GetStoreCtxToUse().IsValidProperty(this, PropertyNames.PrincipalSamAccountName))
                     throw new InvalidOperationException(SR.InvalidPropertyForStore);
@@ -148,16 +138,14 @@ namespace System.DirectoryServices.AccountManagement
         private string _userPrincipalName = null;          // the actual property value
 
         [System.Diagnostics.DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private LoadState _userPrincipalNameChanged = LoadState.NotSet;    // change-tracking           
+        private LoadState _userPrincipalNameChanged = LoadState.NotSet;    // change-tracking
         public string UserPrincipalName
         {
-            [System.Security.SecurityCritical]
             get
             {
                 return HandleGet<string>(ref _userPrincipalName, PropertyNames.PrincipalUserPrincipalName, ref _userPrincipalNameChanged);
             }
 
-            [System.Security.SecurityCritical]
             set
             {
                 if (!GetStoreCtxToUse().IsValidProperty(this, PropertyNames.PrincipalUserPrincipalName))
@@ -176,7 +164,6 @@ namespace System.DirectoryServices.AccountManagement
 
         public SecurityIdentifier Sid
         {
-            [System.Security.SecurityCritical]
             get
             {
                 return HandleGet<SecurityIdentifier>(ref _sid, PropertyNames.PrincipalSid, ref _sidChanged);
@@ -191,7 +178,6 @@ namespace System.DirectoryServices.AccountManagement
         private LoadState _guidChanged = LoadState.NotSet;
         public Nullable<Guid> Guid
         {
-            [System.Security.SecurityCritical]
             get
             {
                 return HandleGet<Nullable<Guid>>(ref _guid, PropertyNames.PrincipalGuid, ref _guidChanged);
@@ -206,7 +192,6 @@ namespace System.DirectoryServices.AccountManagement
         private LoadState _distinguishedNameChanged = LoadState.NotSet;
         public string DistinguishedName
         {
-            [System.Security.SecurityCritical]
             get
             {
                 return HandleGet<string>(ref _distinguishedName, PropertyNames.PrincipalDistinguishedName, ref _distinguishedNameChanged);
@@ -222,7 +207,6 @@ namespace System.DirectoryServices.AccountManagement
 
         public string StructuralObjectClass
         {
-            [System.Security.SecurityCritical]
             get
             {
                 return HandleGet<string>(ref _structuralObjectClass, PropertyNames.PrincipalStructuralObjectClass, ref _structuralObjectClassChanged);
@@ -237,7 +221,6 @@ namespace System.DirectoryServices.AccountManagement
 
         public string Name
         {
-            [System.Security.SecurityCritical]
             get
             {
                 // TODO Store should be mapping both to the same property already....
@@ -258,11 +241,10 @@ namespace System.DirectoryServices.AccountManagement
                     return HandleGet<string>(ref _name, PropertyNames.PrincipalName, ref _nameChanged);
                 }
             }
-            [System.Security.SecurityCritical]
             set
             {
                 if (null == value || 0 == value.Length)
-                    throw new ArgumentNullException(String.Format(CultureInfo.CurrentCulture, SR.InvalidNullArgument, PropertyNames.PrincipalName));
+                    throw new ArgumentNullException(PropertyNames.PrincipalName);
 
                 if (!GetStoreCtxToUse().IsValidProperty(this, PropertyNames.PrincipalName))
                     throw new InvalidOperationException(SR.InvalidPropertyForStore);
@@ -298,19 +280,16 @@ namespace System.DirectoryServices.AccountManagement
         // Public methods
         //
 
-        [System.Security.SecurityCritical]
         public static Principal FindByIdentity(PrincipalContext context, string identityValue)
         {
             return FindByIdentityWithType(context, typeof(Principal), identityValue);
         }
 
-        [System.Security.SecurityCritical]
         public static Principal FindByIdentity(PrincipalContext context, IdentityType identityType, string identityValue)
         {
             return FindByIdentityWithType(context, typeof(Principal), identityType, identityValue);
         }
 
-        [System.Security.SecurityCritical]
         public void Save()
         {
             GlobalDebug.WriteLineIf(GlobalDebug.Info, "Principal", "Entering Save");
@@ -338,7 +317,7 @@ namespace System.DirectoryServices.AccountManagement
                 GlobalDebug.WriteLineIf(GlobalDebug.Info, "Principal", "Save: inserting principal of type {0} using {1}", this.GetType(), storeCtxToUse.GetType());
                 Debug.Assert(storeCtxToUse == _ctx.ContextForType(this.GetType()));
                 storeCtxToUse.Insert(this);
-                this.unpersisted = false;  // once we persist, we're no longer in the unpersisted state             
+                this.unpersisted = false;  // once we persist, we're no longer in the unpersisted state
             }
             else
             {
@@ -348,7 +327,6 @@ namespace System.DirectoryServices.AccountManagement
             }
         }
 
-        [System.Security.SecurityCritical]
         public void Save(PrincipalContext context)
         {
             GlobalDebug.WriteLineIf(GlobalDebug.Info, "Principal", "Entering Save(Context)");
@@ -359,16 +337,17 @@ namespace System.DirectoryServices.AccountManagement
             // Make sure we're not a fake principal
             CheckFakePrincipal();
 
-            if (context.ContextType == ContextType.Machine || _ctx.ContextType == ContextType.Machine)
-            {
-                throw new InvalidOperationException(SR.SaveToNotSupportedAgainstMachineStore);
-            }
             // We must have a PrincipalContext to save into.  This should always be the case, unless we're unpersisted
             // and they never set a PrincipalContext.
             if (context == null)
             {
                 Debug.Assert(this.unpersisted == true);
                 throw new InvalidOperationException(SR.NullArguments);
+            }
+
+            if (context.ContextType == ContextType.Machine || _ctx.ContextType == ContextType.Machine)
+            {
+                throw new InvalidOperationException(SR.SaveToNotSupportedAgainstMachineStore);
             }
 
             // If the user is trying to save to the same context we are already set to then just save the changes
@@ -402,14 +381,14 @@ namespace System.DirectoryServices.AccountManagement
                 GlobalDebug.WriteLineIf(GlobalDebug.Info, "Principal", "Save(context): inserting new principal of type {0} using {1}", this.GetType(), newStoreCtx.GetType());
                 Debug.Assert(newStoreCtx == _ctx.ContextForType(this.GetType()));
                 newStoreCtx.Insert(this);
-                this.unpersisted = false;  // once we persist, we're no longer in the unpersisted state             
+                this.unpersisted = false;  // once we persist, we're no longer in the unpersisted state
             }
             else
             {
-                // We have a principal that already exists.  We need to move it to the new store.            
+                // We have a principal that already exists.  We need to move it to the new store.
                 GlobalDebug.WriteLineIf(GlobalDebug.Info, "Principal", "Save(context): Moving principal of type {0} using {1}", this.GetType(), newStoreCtx.GetType());
 
-                // we are now saving to a new store so this principal is unpersisted.                
+                // we are now saving to a new store so this principal is unpersisted.
                 this.unpersisted = true;
 
                 // If the user has modified the name save away the current name so
@@ -430,7 +409,7 @@ namespace System.DirectoryServices.AccountManagement
 
                 try
                 {
-                    this.unpersisted = false;  // once we persist, we're no longer in the unpersisted state                             
+                    this.unpersisted = false;  // once we persist, we're no longer in the unpersisted state
 
                     newStoreCtx.Update(this);
                 }
@@ -456,14 +435,13 @@ namespace System.DirectoryServices.AccountManagement
                     if (e is System.Runtime.InteropServices.COMException)
                         throw ExceptionHelper.GetExceptionFromCOMException((System.Runtime.InteropServices.COMException)e);
                     else
-                        throw e;
+                        throw;
                 }
             }
 
             _ctx.QueryCtx = newStoreCtx;  // so Updates go to the right StoreCtx
         }
 
-        [System.Security.SecurityCritical]
         public void Delete()
         {
             GlobalDebug.WriteLineIf(GlobalDebug.Info, "Principal", "Entering Delete");
@@ -493,7 +471,7 @@ namespace System.DirectoryServices.AccountManagement
             if (that == null)
                 return false;
 
-            if (Object.ReferenceEquals(this, that))
+            if (object.ReferenceEquals(this, that))
                 return true;
 
             if ((_key != null) && (that._key != null) && (_key.Equals(that._key)))
@@ -507,7 +485,6 @@ namespace System.DirectoryServices.AccountManagement
             return base.GetHashCode();
         }
 
-        [System.Security.SecurityCritical]
         public object GetUnderlyingObject()
         {
             // Make sure we're not disposed or deleted.
@@ -524,7 +501,6 @@ namespace System.DirectoryServices.AccountManagement
             return this.UnderlyingObject;
         }
 
-        [System.Security.SecurityCritical]
         public Type GetUnderlyingObjectType()
         {
             // Make sure we're not disposed or deleted.
@@ -552,44 +528,40 @@ namespace System.DirectoryServices.AccountManagement
             }
         }
 
-        [System.Security.SecurityCritical]
         public PrincipalSearchResult<Principal> GetGroups()
         {
             return new PrincipalSearchResult<Principal>(GetGroupsHelper());
         }
 
-        [System.Security.SecurityCritical]
         public PrincipalSearchResult<Principal> GetGroups(PrincipalContext contextToQuery)
         {
             if (contextToQuery == null)
-                throw new ArgumentNullException("contextToQuery");
+                throw new ArgumentNullException(nameof(contextToQuery));
 
             return new PrincipalSearchResult<Principal>(GetGroupsHelper(contextToQuery));
         }
 
-        [System.Security.SecurityCritical]
         public bool IsMemberOf(GroupPrincipal group)
         {
             // Make sure we're not disposed or deleted.
             CheckDisposedOrDeleted();
 
             if (group == null)
-                throw new ArgumentNullException("group");
+                throw new ArgumentNullException(nameof(group));
 
             return group.Members.Contains(this);
         }
 
-        [System.Security.SecurityCritical]
         public bool IsMemberOf(PrincipalContext context, IdentityType identityType, string identityValue)
         {
             // Make sure we're not disposed or deleted.
             CheckDisposedOrDeleted();
 
             if (context == null)
-                throw new ArgumentNullException("context");
+                throw new ArgumentNullException(nameof(context));
 
             if (identityValue == null)
-                throw new ArgumentNullException("identityValue");
+                throw new ArgumentNullException(nameof(identityValue));
 
             GroupPrincipal g = GroupPrincipal.FindByIdentity(context, identityType, identityValue);
 
@@ -607,7 +579,6 @@ namespace System.DirectoryServices.AccountManagement
         //
         // IDisposable
         //
-        [System.Security.SecurityCritical]
         public virtual void Dispose()
         {
             if (!_disposed)
@@ -632,7 +603,7 @@ namespace System.DirectoryServices.AccountManagement
         }
 
         //
-        // 
+        //
         //
         [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Advanced)]
         protected Principal()
@@ -644,10 +615,9 @@ namespace System.DirectoryServices.AccountManagement
         //------------------------------------------------
 
         // Stores all  values from derived classes for use at attributes or search filter.
-        private ExtensionCache _extensionCache = new ExtensionCache();
+        private readonly ExtensionCache _extensionCache = new ExtensionCache();
         private LoadState _extensionCacheChanged = LoadState.NotSet;
 
-        [System.Security.SecurityCritical]
         protected object[] ExtensionGet(string attribute)
         {
             if (null == attribute)
@@ -665,7 +635,7 @@ namespace System.DirectoryServices.AccountManagement
             }
             else if (this.unpersisted)
             {
-                return new object[0];
+                return Array.Empty<object>();
             }
             else
             {
@@ -675,7 +645,7 @@ namespace System.DirectoryServices.AccountManagement
                 int valCount = de.Properties[attribute].Count;
 
                 if (valCount == 0)
-                    return new object[0];
+                    return Array.Empty<object>();
                 else
                 {
                     object[] objectArray = new object[valCount];
@@ -721,7 +691,6 @@ namespace System.DirectoryServices.AccountManagement
             }
         }
 
-        [System.Security.SecurityCritical]
         protected void ExtensionSet(string attribute, object value)
         {
             if (null == attribute)
@@ -737,7 +706,6 @@ namespace System.DirectoryServices.AccountManagement
             _extensionCacheChanged = LoadState.Changed;
         }
 
-        [System.Security.SecurityCritical]
         internal void AdvancedFilterSet(string attribute, object value, Type objectType, MatchType mt)
         {
             if (null == attribute)
@@ -773,18 +741,17 @@ namespace System.DirectoryServices.AccountManagement
         internal bool fakePrincipal = false;
 
         // Directly corresponds to the Principal.PrincipalContext public property
-        [System.Security.SecuritySafeCritical]
         private PrincipalContext _ctx = null;
 
         internal bool Loaded
         {
-            set
-            {
-                _loaded = value;
-            }
             get
             {
                 return _loaded;
+            }
+            set
+            {
+                _loaded = value;
             }
         }
 
@@ -792,15 +759,11 @@ namespace System.DirectoryServices.AccountManagement
         // hence the LinkDemand.
         [System.ComponentModel.Browsable(false)]
         [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
-        internal protected PrincipalContext ContextRaw
+        protected internal PrincipalContext ContextRaw
         {
-            //[StrongNameIdentityPermission(SecurityAction.LinkDemand,  PublicKey = Microsoft.Internal.BuildInfo.WINDOWS_PUBLIC_KEY_STRING)]                
-            [System.Security.SecurityCritical]
             get
             { return _ctx; }
 
-            //[StrongNameIdentityPermission(SecurityAction.LinkDemand,  PublicKey = Microsoft.Internal.BuildInfo.WINDOWS_PUBLIC_KEY_STRING)]                    
-            [System.Security.SecurityCritical]
             set
             {
                 // Verify that the passed context is not disposed.
@@ -810,7 +773,7 @@ namespace System.DirectoryServices.AccountManagement
             }
         }
 
-        static internal Principal MakePrincipal(PrincipalContext ctx, Type principalType)
+        internal static Principal MakePrincipal(PrincipalContext ctx, Type principalType)
         {
             Principal p = null;
 
@@ -836,7 +799,6 @@ namespace System.DirectoryServices.AccountManagement
         // returns the appropriate StoreCtx from the PrincipalContext that we should use for
         // all StoreCtx-related operations.
         // Returns null if no context has been set yet.
-        [System.Security.SecuritySafeCritical]
         internal StoreCtx GetStoreCtxToUse()
         {
             if (_ctx == null)
@@ -921,7 +883,6 @@ namespace System.DirectoryServices.AccountManagement
 
         // Checks if the principal has been disposed or deleted, and throws an appropriate exception if it has.
         [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Advanced)]
-        [System.Security.SecuritySafeCritical]
         protected void CheckDisposedOrDeleted()
         {
             if (_disposed)
@@ -937,36 +898,33 @@ namespace System.DirectoryServices.AccountManagement
             }
         }
 
-        [System.Security.SecurityCritical]
         [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Advanced)]
         protected static Principal FindByIdentityWithType(PrincipalContext context, Type principalType, string identityValue)
         {
             if (context == null)
-                throw new ArgumentNullException("context");
+                throw new ArgumentNullException(nameof(context));
 
             if (identityValue == null)
-                throw new ArgumentNullException("identityValue");
+                throw new ArgumentNullException(nameof(identityValue));
 
             return FindByIdentityWithTypeHelper(context, principalType, null, identityValue, DateTime.UtcNow);
         }
 
-        [System.Security.SecurityCritical]
         [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Advanced)]
         protected static Principal FindByIdentityWithType(PrincipalContext context, Type principalType, IdentityType identityType, string identityValue)
         {
             if (context == null)
-                throw new ArgumentNullException("context");
+                throw new ArgumentNullException(nameof(context));
 
             if (identityValue == null)
-                throw new ArgumentNullException("identityValue");
+                throw new ArgumentNullException(nameof(identityValue));
 
             if ((identityType < IdentityType.SamAccountName) || (identityType > IdentityType.Guid))
-                throw new InvalidEnumArgumentException("identityType", (int)identityType, typeof(IdentityType));
+                throw new InvalidEnumArgumentException(nameof(identityType), (int)identityType, typeof(IdentityType));
 
             return FindByIdentityWithTypeHelper(context, principalType, identityType, identityValue, DateTime.UtcNow);
         }
 
-        [System.Security.SecurityCritical]
         private static Principal FindByIdentityWithTypeHelper(PrincipalContext context, Type principalType, Nullable<IdentityType> identityType, string identityValue, DateTime refDate)
         {
             // Ask the store to find a Principal based on this IdentityReference info.
@@ -986,7 +944,6 @@ namespace System.DirectoryServices.AccountManagement
             }
         }
 
-        [System.Security.SecuritySafeCritical]
         private ResultSet GetGroupsHelper()
         {
             // Make sure we're not disposed or deleted.
@@ -1008,7 +965,6 @@ namespace System.DirectoryServices.AccountManagement
             return resultSet;
         }
 
-        [System.Security.SecuritySafeCritical]
         private ResultSet GetGroupsHelper(PrincipalContext contextToQuery)
         {
             // Make sure we're not disposed or deleted.
@@ -1026,7 +982,6 @@ namespace System.DirectoryServices.AccountManagement
         // If we're the result of a query and our properties haven't been loaded yet, do so now
         // We'd like this to be marked protected AND internal, but that's not possible, so we'll settle for
         // internal and treat it as if it were also protected.
-        [System.Security.SecurityCritical]
         internal void LoadIfNeeded(string principalPropertyName)
         {
             // Fake principals have nothing to load, since they have no store object.
@@ -1068,8 +1023,7 @@ namespace System.DirectoryServices.AccountManagement
         // HandleGet<T> was called.
         //
         // We'd like this to be marked protected AND internal, but that's not possible, so we'll settle for
-        // internal and treat it as if it were also protected.        
-        [System.Security.SecurityCritical]
+        // internal and treat it as if it were also protected.
         internal T HandleGet<T>(ref T currentValue, string name, ref LoadState state)
         {
             // Make sure we're not disposed or deleted.
@@ -1090,7 +1044,6 @@ namespace System.DirectoryServices.AccountManagement
 
         // We'd like this to be marked protected AND internal, but that's not possible, so we'll settle for
         // internal and treat it as if it were also protected.
-        [System.Security.SecurityCritical]
         internal void HandleSet<T>(ref T currentValue, T newValue, ref LoadState state, string name)
         {
             // Make sure we're not disposed or deleted.
@@ -1126,7 +1079,6 @@ namespace System.DirectoryServices.AccountManagement
         //  each byte[] is a certificate.
         // (The property can never be a PrincipalCollection, since such properties
         //  are not loaded by StoreCtx.Load()).
-        //[StrongNameIdentityPermission(SecurityAction.InheritanceDemand,  PublicKey = Microsoft.Internal.BuildInfo.WINDOWS_PUBLIC_KEY_STRING)]
         // ExtensionCache is never directly loaded by the store hence it does not exist in the switch
         internal virtual void LoadValueIntoProperty(string propertyName, object value)
         {
@@ -1183,7 +1135,7 @@ namespace System.DirectoryServices.AccountManagement
 
                 default:
                     // If we're here, we didn't find the property.  They probably asked for a property we don't
-                    // support (e.g., we're a Group, and they asked for PropertyNames.UserEmailAddress).  
+                    // support (e.g., we're a Group, and they asked for PropertyNames.UserEmailAddress).
                     break;
             }
         }
@@ -1193,63 +1145,28 @@ namespace System.DirectoryServices.AccountManagement
         //
 
         // Given a property name, returns true if that property has changed since it was loaded, false otherwise.
-        //[StrongNameIdentityPermission(SecurityAction.InheritanceDemand,  PublicKey = Microsoft.Internal.BuildInfo.WINDOWS_PUBLIC_KEY_STRING)]        
-        [System.Security.SecuritySafeCritical]
         internal virtual bool GetChangeStatusForProperty(string propertyName)
         {
             GlobalDebug.WriteLineIf(GlobalDebug.Info, "Principal", "GetChangeStatusForProperty: name=" + propertyName);
-            LoadState currentPropState;
 
-            switch (propertyName)
+            LoadState currentPropState = propertyName switch
             {
-                case PropertyNames.PrincipalDisplayName:
-                    currentPropState = _displayNameChanged;
-                    break;
+                PropertyNames.PrincipalDisplayName => _displayNameChanged,
+                PropertyNames.PrincipalDescription => _descriptionChanged,
+                PropertyNames.PrincipalSamAccountName => _samNameChanged,
+                PropertyNames.PrincipalUserPrincipalName => _userPrincipalNameChanged,
+                PropertyNames.PrincipalSid => _sidChanged,
+                PropertyNames.PrincipalGuid => _guidChanged,
+                PropertyNames.PrincipalDistinguishedName => _distinguishedNameChanged,
+                PropertyNames.PrincipalStructuralObjectClass => _structuralObjectClassChanged,
+                PropertyNames.PrincipalName => _nameChanged,
+                PropertyNames.PrincipalExtensionCache => _extensionCacheChanged,
 
-                case PropertyNames.PrincipalDescription:
-                    currentPropState = _descriptionChanged;
-                    break;
-
-                case PropertyNames.PrincipalSamAccountName:
-                    currentPropState = _samNameChanged;
-                    break;
-
-                case PropertyNames.PrincipalUserPrincipalName:
-                    currentPropState = _userPrincipalNameChanged;
-                    break;
-
-                case PropertyNames.PrincipalSid:
-                    currentPropState = _sidChanged;
-                    break;
-
-                case PropertyNames.PrincipalGuid:
-                    currentPropState = _guidChanged;
-                    break;
-
-                case PropertyNames.PrincipalDistinguishedName:
-                    currentPropState = _distinguishedNameChanged;
-                    break;
-
-                case PropertyNames.PrincipalStructuralObjectClass:
-                    currentPropState = _structuralObjectClassChanged;
-                    break;
-
-                case PropertyNames.PrincipalName:
-                    currentPropState = _nameChanged;
-                    break;
-
-                case PropertyNames.PrincipalExtensionCache:
-                    currentPropState = _extensionCacheChanged;
-                    break;
-
-                default:
-                    // If we're here, we didn't find the property.  They probably asked for a property we don't
-                    // support (e.g., we're a User, and they asked for PropertyNames.GroupMembers).  Since we don't
-                    // have it, it didn't change.
-                    currentPropState = LoadState.NotSet;
-                    break;
-            }
-
+                // If we're here, we didn't find the property.  They probably asked for a property we don't
+                // support (e.g., we're a User, and they asked for PropertyNames.GroupMembers).  Since we don't
+                // have it, it didn't change.
+                _ => LoadState.NotSet,
+            };
             return (currentPropState == LoadState.Changed);
         }
 
@@ -1263,7 +1180,6 @@ namespace System.DirectoryServices.AccountManagement
         // If the property is a ValueCollection<T>, the return value is the ValueCollection<T> itself.
         // If the property is a X509Certificate2Collection, the return value is the X509Certificate2Collection itself.
         // If the property is a PrincipalCollection, the return value is the PrincipalCollection itself.
-        //[StrongNameIdentityPermission(SecurityAction.InheritanceDemand,  PublicKey = Microsoft.Internal.BuildInfo.WINDOWS_PUBLIC_KEY_STRING)]        
         internal virtual object GetValueForProperty(string propertyName)
         {
             GlobalDebug.WriteLineIf(GlobalDebug.Info, "Principal", "GetValueForProperty: name=" + propertyName);
@@ -1301,7 +1217,7 @@ namespace System.DirectoryServices.AccountManagement
                     return _extensionCache;
 
                 default:
-                    Debug.Fail(String.Format(CultureInfo.CurrentCulture, "Principal.GetValueForProperty: Ran off end of list looking for {0}", propertyName));
+                    Debug.Fail($"Principal.GetValueForProperty: Ran off end of list looking for {propertyName}");
                     return null;
             }
         }
@@ -1309,7 +1225,6 @@ namespace System.DirectoryServices.AccountManagement
         // Reset all change-tracking status for all properties on the object to "unchanged".
         // This is used by StoreCtx.Insert() and StoreCtx.Update() to reset the change-tracking after they
         // have persisted all current changes to the store.
-        //[StrongNameIdentityPermission(SecurityAction.InheritanceDemand,  PublicKey = Microsoft.Internal.BuildInfo.WINDOWS_PUBLIC_KEY_STRING)]        
         internal virtual void ResetAllChangeStatus()
         {
             GlobalDebug.WriteLineIf(GlobalDebug.Info, "Principal", "ResetAllChangeStatus");

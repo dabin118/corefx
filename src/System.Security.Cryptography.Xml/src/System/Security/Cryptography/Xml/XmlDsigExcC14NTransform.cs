@@ -2,23 +2,16 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using System;
-using System.Collections;
 using System.IO;
-using System.Runtime.InteropServices;
-using System.Security;
-using System.Text;
 using System.Xml;
-using System.Xml.XPath;
-using System.Xml.Xsl;
 
 namespace System.Security.Cryptography.Xml
 {
     public class XmlDsigExcC14NTransform : Transform
     {
-        private Type[] _inputTypes = { typeof(Stream), typeof(XmlDocument), typeof(XmlNodeList) };
-        private Type[] _outputTypes = { typeof(Stream) };
-        private bool _includeComments = false;
+        private readonly Type[] _inputTypes = { typeof(Stream), typeof(XmlDocument), typeof(XmlNodeList) };
+        private readonly Type[] _outputTypes = { typeof(Stream) };
+        private readonly bool _includeComments = false;
         private string _inclusiveNamespacesPrefixList;
         private ExcCanonicalXml _excCanonicalXml;
 
@@ -58,12 +51,23 @@ namespace System.Security.Cryptography.Xml
                 foreach (XmlNode n in nodeList)
                 {
                     XmlElement e = n as XmlElement;
-                    if (e != null && e.LocalName.Equals("InclusiveNamespaces") &&
-                        e.NamespaceURI.Equals(SignedXml.XmlDsigExcC14NTransformUrl) &&
-                        Utils.HasAttribute(e, "PrefixList", SignedXml.XmlDsigNamespaceUrl))
+                    if (e != null)
                     {
-                        InclusiveNamespacesPrefixList = Utils.GetAttribute(e, "PrefixList", SignedXml.XmlDsigNamespaceUrl);
-                        return;
+                        if (e.LocalName.Equals("InclusiveNamespaces")
+                        && e.NamespaceURI.Equals(SignedXml.XmlDsigExcC14NTransformUrl) &&
+                        Utils.HasAttribute(e, "PrefixList", SignedXml.XmlDsigNamespaceUrl))
+                        {
+                            if (!Utils.VerifyAttributes(e, "PrefixList"))
+                            {
+                                throw new CryptographicException(SR.Cryptography_Xml_UnknownTransform);
+                            }
+                            this.InclusiveNamespacesPrefixList = Utils.GetAttribute(e, "PrefixList", SignedXml.XmlDsigNamespaceUrl);
+                            return;
+                        }
+                        else
+                        {
+                            throw new CryptographicException(SR.Cryptography_Xml_UnknownTransform);
+                        }
                     }
                 }
             }

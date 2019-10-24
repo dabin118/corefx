@@ -1,4 +1,4 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
@@ -6,6 +6,8 @@ namespace System.Text.RegularExpressions.Tests
 {
     public static class RegexHelpers
     {
+        public const string DefaultMatchTimeout_ConfigKeyName = "REGEX_DEFAULT_MATCH_TIMEOUT";
+
         public static bool IsDefaultCount(string input, RegexOptions options, int count)
         {
             if ((options & RegexOptions.RightToLeft) != 0)
@@ -32,7 +34,7 @@ namespace System.Text.RegularExpressions.Tests
             Value = value;
             Index = index;
             Length = length;
-            
+
             // Prevent a StackOverflow recursion in the constructor
             if (createCaptures)
             {

@@ -35,6 +35,28 @@ internal static partial class Interop
         /// </summary>
         [DllImport(Libraries.CryptoNative, EntryPoint = "CryptoNative_GetX509StackField")]
         internal static extern IntPtr GetX509StackField(SafeSharedX509StackHandle stack, int loc);
+
+        [DllImport(Libraries.CryptoNative)]
+        private static extern int CryptoNative_X509StackAddDirectoryStore(SafeX509StackHandle stack, string storePath);
+
+        internal static void X509StackAddDirectoryStore(SafeX509StackHandle stack, string storePath)
+        {
+            if (CryptoNative_X509StackAddDirectoryStore(stack, storePath) != 1)
+            {
+                throw CreateOpenSslCryptographicException();
+            }
+        }
+
+        [DllImport(Libraries.CryptoNative)]
+        private static extern int CryptoNative_X509StackAddMultiple(SafeX509StackHandle dest, SafeX509StackHandle src);
+
+        internal static void X509StackAddMultiple(SafeX509StackHandle dest, SafeX509StackHandle src)
+        {
+            if (CryptoNative_X509StackAddMultiple(dest, src) != 1)
+            {
+                throw CreateOpenSslCryptographicException();
+            }
+        }
     }
 }
 
@@ -57,6 +79,17 @@ namespace Microsoft.Win32.SafeHandles
         public override bool IsInvalid
         {
             get { return handle == IntPtr.Zero; }
+        }
+
+        internal static SafeX509StackHandle InvalidHandle =>
+            SafeHandleCache<SafeX509StackHandle>.GetInvalidHandle(() => new SafeX509StackHandle());
+
+        protected override void Dispose(bool disposing)
+        {
+            if (!SafeHandleCache<SafeX509StackHandle>.IsCachedInvalidHandle(this))
+            {
+                base.Dispose(disposing);
+            }
         }
     }
 

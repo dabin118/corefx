@@ -16,7 +16,7 @@ namespace Microsoft.CSharp.RuntimeBinder.Semantics
         SymWithType and its cousins. These package an aggregate member (field,
         prop, event, or meth) together with the particular instantiation of the
         aggregate (the AggregateType).
-     
+
         The default constructor does nothing so these are not safe to use
         uninitialized. Note that when they are used as member of an EXPR they
         are automatically zero filled by newExpr.
@@ -94,7 +94,7 @@ namespace Microsoft.CSharp.RuntimeBinder.Semantics
         }
 
         // The SymWithType is considered NULL iff the Symbol is NULL.
-        public static implicit operator bool (SymWithType swt)
+        public static implicit operator bool(SymWithType swt)
         {
             return swt != null;
         }
@@ -129,7 +129,7 @@ namespace Microsoft.CSharp.RuntimeBinder.Semantics
         {
             if (sym == null)
                 ats = null;
-            Debug.Assert(ats == null || sym.parent == ats.getAggregate());
+            Debug.Assert(ats == null || sym.parent == ats.OwningAggregate);
             _sym = sym;
             _ats = ats;
         }
@@ -193,7 +193,7 @@ namespace Microsoft.CSharp.RuntimeBinder.Semantics
         the method type arguments. Properties will never have type args, but
         methods and properties share a lot of code so it's convenient to allow
         both here.
-     
+
         The default constructor does nothing so these are not safe to use
         uninitialized. Note that when they are used as member of an EXPR they
         are automatically zero filled by newExpr.
@@ -231,7 +231,7 @@ namespace Microsoft.CSharp.RuntimeBinder.Semantics
                 ats = null;
                 typeArgs = null;
             }
-            Debug.Assert(ats == null || mps != null && mps.getClass() == ats.getAggregate());
+            Debug.Assert(ats == null || mps != null && mps.getClass() == ats.OwningAggregate);
             base.Set(mps, ats);
             TypeArgs = typeArgs;
         }

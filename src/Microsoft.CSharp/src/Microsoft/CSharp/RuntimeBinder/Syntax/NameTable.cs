@@ -2,8 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using System;
 using System.Diagnostics;
-using System.Linq;
 
 namespace Microsoft.CSharp.RuntimeBinder.Syntax
 {
@@ -65,38 +65,9 @@ namespace Microsoft.CSharp.RuntimeBinder.Syntax
         {
             int hashCode = ComputeHashCode(name.Text);
             // make sure it doesn't already exist
-            Debug.Assert(Lookup(name.Text) == null);
-            Debug.Assert(_entries.All(e => e?.Name.Text != name.Text));
+            Debug.Assert(Array.TrueForAll(_entries, e => e?.Name.Text != name.Text));
 
             AddEntry(name, hashCode);
-        }
-
-        public Name Lookup(string key)
-        {
-            int hashCode = ComputeHashCode(key);
-            for (Entry e = _entries[hashCode & _mask]; e != null; e = e.Next)
-            {
-                if (e.HashCode == hashCode && e.Name.Text.Equals(key))
-                {
-                    return e.Name;
-                }
-            }
-
-            return null;
-        }
-
-        public Name Lookup(string key, int length)
-        {
-            int hashCode = ComputeHashCode(key, length);
-            for (Entry e = _entries[hashCode & _mask]; e != null; e = e.Next)
-            {
-                if (e.HashCode == hashCode && Equals(e.Name.Text, key, length))
-                {
-                    return e.Name;
-                }
-            }
-
-            return null;
         }
 
         private static int ComputeHashCode(string key)
@@ -180,7 +151,7 @@ namespace Microsoft.CSharp.RuntimeBinder.Syntax
             Entry[] oldEntries = _entries;
             Entry[] newEntries = new Entry[newMask + 1];
 
-            // use oldEntries.Length to eliminate the range check            
+            // use oldEntries.Length to eliminate the range check
             for (int i = 0; i < oldEntries.Length; i++)
             {
                 Entry e = oldEntries[i];

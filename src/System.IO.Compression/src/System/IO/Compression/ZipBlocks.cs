@@ -185,7 +185,7 @@ namespace System.IO.Compression
                 return false;
 
             // this pattern needed because nested using blocks trigger CA2202
-            MemoryStream ms = null;
+            MemoryStream? ms = null;
             try
             {
                 ms = new MemoryStream(extraField.Data);
@@ -289,6 +289,8 @@ namespace System.IO.Compression
     internal struct Zip64EndOfCentralDirectoryLocator
     {
         public const uint SignatureConstant = 0x07064B50;
+        public const int SignatureSize = sizeof(uint);
+
         public const int SizeOfBlockWithoutSignature = 16;
 
         public uint NumberOfDiskWithZip64EOCD;
@@ -371,11 +373,12 @@ namespace System.IO.Compression
         }
     }
 
-    internal struct ZipLocalFileHeader
+    internal readonly struct ZipLocalFileHeader
     {
         public const uint DataDescriptorSignature = 0x08074B50;
         public const uint SignatureConstant = 0x04034B50;
         public const int OffsetToCrcFromHeaderStart = 14;
+        public const int OffsetToVersionFromHeaderStart = 4;
         public const int OffsetToBitFlagFromHeaderStart = 6;
         public const int SizeOfLocalHeader = 30;
 
@@ -428,6 +431,109 @@ namespace System.IO.Compression
 
             return true;
         }
+
+        public static bool TryValidateBlock(BinaryReader reader, ZipArchiveEntry entry)
+        {
+            const int OffsetToFilename = 26; // from the point after the signature
+
+            if (reader.ReadUInt32() != SignatureConstant)
+                return false;
+
+            if (reader.BaseStream.Length < reader.BaseStream.Position + OffsetToFilename)
+                return false;
+
+            reader.BaseStream.Seek(2, SeekOrigin.Current); // skipping minimum version (using min version from central directory header)
+            uint dataDescriptorBit = reader.ReadUInt16() & (uint)ZipArchiveEntry.BitFlagValues.DataDescriptor;
+            reader.BaseStream.Seek(10, SeekOrigin.Current); // skipping bytes used for Compression method (2 bytes), last modification time and date (4 bytes) and CRC (4 bytes)
+            long compressedSize = reader.ReadUInt32();
+            long uncompressedSize = reader.ReadUInt32();
+            int filenameLength = reader.ReadUInt16();
+            uint extraFieldLength = reader.ReadUInt16();
+
+            if (reader.BaseStream.Length < reader.BaseStream.Position + filenameLength + extraFieldLength)
+                return false;
+
+            reader.BaseStream.Seek(filenameLength, SeekOrigin.Current);  // skipping Filename
+            long endExtraFields = reader.BaseStream.Position + extraFieldLength;
+
+            if (dataDescriptorBit == 0)
+            {
+                bool isUncompressedSizeInZip64 = uncompressedSize == ZipHelper.Mask32Bit;
+                bool isCompressedSizeInZip64 = compressedSize == ZipHelper.Mask32Bit;
+                Zip64ExtraField zip64;
+
+                // Ideally we should also check if the minimumVersion is 64 bit or above, but there could zip files for which this version is not set correctly
+                if (isUncompressedSizeInZip64 || isCompressedSizeInZip64)
+                {
+                    zip64 = Zip64ExtraField.GetJustZip64Block(new SubReadStream(reader.BaseStream, reader.BaseStream.Position, extraFieldLength), isUncompressedSizeInZip64, isCompressedSizeInZip64, false, false);
+
+                    if (zip64.UncompressedSize != null)
+                    {
+                        uncompressedSize = zip64.UncompressedSize.Value;
+                    }
+
+                    if (zip64.CompressedSize != null)
+                    {
+                        compressedSize = zip64.CompressedSize.Value;
+                    }
+                }
+
+                reader.BaseStream.AdvanceToPosition(endExtraFields);
+            }
+            else
+            {
+                if (reader.BaseStream.Length < reader.BaseStream.Position + extraFieldLength + entry.CompressedLength + 4)
+                {
+                    return false;
+                }
+
+                reader.BaseStream.Seek(extraFieldLength + entry.CompressedLength, SeekOrigin.Current); // seek to end of compressed file from which Data descriptor starts
+                uint dataDescriptorSignature = reader.ReadUInt32();
+                bool wasDataDescriptorSignatureRead = false;
+                int seekSize = 0;
+                if (dataDescriptorSignature == DataDescriptorSignature)
+                {
+                    wasDataDescriptorSignatureRead = true;
+                    seekSize = 4;
+                }
+
+                bool is64bit = entry._versionToExtract >= ZipVersionNeededValues.Zip64;
+                seekSize += (is64bit ? 8 : 4) * 2;   // if Zip64 read by 8 bytes else 4 bytes 2 times (compressed and uncompressed size)
+
+                if (reader.BaseStream.Length < reader.BaseStream.Position + seekSize)
+                {
+                    return false;
+                }
+
+                // dataDescriptorSignature is optional, if it was the DataDescriptorSignature we need to skip CRC 4 bytes else we can assume CRC is alreadyskipped
+                if (wasDataDescriptorSignatureRead)
+                    reader.BaseStream.Seek(4, SeekOrigin.Current);
+
+                if (is64bit)
+                {
+                    compressedSize = reader.ReadInt64();
+                    uncompressedSize = reader.ReadInt64();
+                }
+                else
+                {
+                    compressedSize = reader.ReadInt32();
+                    uncompressedSize = reader.ReadInt32();
+                }
+                reader.BaseStream.Seek(-seekSize - entry.CompressedLength - 4, SeekOrigin.Current); // Seek back to the beginning of compressed stream
+            }
+
+            if (entry.CompressedLength != compressedSize)
+            {
+                return false;
+            }
+
+            if (entry.Length != uncompressedSize)
+            {
+                return false;
+            }
+
+            return true;
+        }
     }
 
     internal struct ZipCentralDirectoryFileHeader
@@ -451,8 +557,8 @@ namespace System.IO.Compression
         public long RelativeOffsetOfLocalHeader;
 
         public byte[] Filename;
-        public byte[] FileComment;
-        public List<ZipGenericExtraField> ExtraFields;
+        public byte[]? FileComment;
+        public List<ZipGenericExtraField>? ExtraFields;
 
         // if saveExtraFieldsAndComments is false, FileComment and ExtraFields will be null
         // in either case, the zip64 extra field info will be incorporated into other fields
@@ -539,7 +645,16 @@ namespace System.IO.Compression
     internal struct ZipEndOfCentralDirectoryBlock
     {
         public const uint SignatureConstant = 0x06054B50;
+        public const int SignatureSize = sizeof(uint);
+
+        // This is the minimum possible size, assuming the zip file comments variable section is empty
         public const int SizeOfBlockWithoutSignature = 18;
+
+        // The end of central directory can have a variable size zip file comment at the end, but its max length can be 64K
+        // The Zip File Format Specification does not explicitly mention a max size for this field, but we are assuming this
+        // max size because that is the maximum value an ushort can hold.
+        public const int ZipFileCommentMaxLength = ushort.MaxValue;
+
         public uint Signature;
         public ushort NumberOfThisDisk;
         public ushort NumberOfTheDiskWithTheStartOfTheCentralDirectory;
@@ -549,7 +664,7 @@ namespace System.IO.Compression
         public uint OffsetOfStartOfCentralDirectoryWithRespectToTheStartingDiskNumber;
         public byte[] ArchiveComment;
 
-        public static void WriteBlock(Stream stream, long numberOfEntries, long startOfCentralDirectory, long sizeOfCentralDirectory, byte[] archiveComment)
+        public static void WriteBlock(Stream stream, long numberOfEntries, long startOfCentralDirectory, long sizeOfCentralDirectory, byte[]? archiveComment)
         {
             BinaryWriter writer = new BinaryWriter(stream);
 
@@ -569,7 +684,7 @@ namespace System.IO.Compression
             writer.Write(startOfCentralDirectoryTruncated);
 
             // Should be valid because of how we read archiveComment in TryReadBlock:
-            Debug.Assert((archiveComment == null) || (archiveComment.Length < ushort.MaxValue));
+            Debug.Assert((archiveComment == null) || (archiveComment.Length <= ZipFileCommentMaxLength));
 
             writer.Write(archiveComment != null ? (ushort)archiveComment.Length : (ushort)0); // zip file comment length
             if (archiveComment != null)

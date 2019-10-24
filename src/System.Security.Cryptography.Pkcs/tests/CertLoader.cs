@@ -3,24 +3,47 @@
 // See the LICENSE file in the project root for more information.
 
 using System;
-using System.Diagnostics;
+using System.Runtime.InteropServices;
+using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 
 namespace Test.Cryptography
 {
     internal abstract partial class CertLoader
     {
+        private static readonly X509KeyStorageFlags s_defaultKeyStorageFlags = GetBestKeyStorageFlags();
+
         // Prefer ephemeral when available
-        protected X509KeyStorageFlags KeyStorageFlags =
-#if netcoreapp
-            X509KeyStorageFlags.EphemeralKeySet;
-#else
-            X509KeyStorageFlags.DefaultKeySet;
+        private static X509KeyStorageFlags GetBestKeyStorageFlags()
+        {
+#if NETCOREAPP
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                // On Windows 7 ephemeral keys with a key usage embedded in the PFX
+                // are treated differently than Windows 8.  So just use the default
+                // storage flags for Win7.
+                Version win8 = new Version(6, 2, 9200);
+
+                if (Environment.OSVersion.Version >= win8)
+                {
+                    return X509KeyStorageFlags.EphemeralKeySet;
+                }
+            }
+            else if (!RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+            {
+                // OSX doesn't allow ephemeral, but every other Unix does.
+                return X509KeyStorageFlags.EphemeralKeySet;
+            }
 #endif
 
+            return X509KeyStorageFlags.DefaultKeySet;
+        }
+
+        protected X509KeyStorageFlags KeyStorageFlags = s_defaultKeyStorageFlags;
+
         /// <summary>
-        /// Returns a freshly allocated X509Certificate2 instance that has a public key only. 
-        /// 
+        /// Returns a freshly allocated X509Certificate2 instance that has a public key only.
+        ///
         /// This method never returns null.
         /// </summary>
         public X509Certificate2 GetCertificate()
@@ -31,14 +54,14 @@ namespace Test.Cryptography
         /// <summary>
         /// Attempts to return a freshly allocated X509Certificate2 instance that has a public and private key. Only use this method if your test
         /// needs the private key to work. Otherwise, use GetCertificate() which places far fewer conditions on you.
-        /// 
+        ///
         /// The test must check the return value for null. If it is null, exit the test without reporting a failure. A null means
         /// the test host chose to disable loading private keys.
-        /// 
-        /// If this method does return a certificate, the test must Dispose() it manually and as soon it no longer needs the certificate. 
-        /// Due to the way PFX loading works on Windows, failure to dispose may leave an artifact on the test machine's disk. 
+        ///
+        /// If this method does return a certificate, the test must Dispose() it manually and as soon it no longer needs the certificate.
+        /// Due to the way PFX loading works on Windows, failure to dispose may leave an artifact on the test machine's disk.
         /// </summary>
-        public X509Certificate2 TryGetCertificateWithPrivateKey()
+        public X509Certificate2 TryGetCertificateWithPrivateKey(bool exportable=false)
         {
             if (PfxData == null)
                 throw new Exception("Cannot call TryGetCertificateWithPrivateKey() on this CertLoader: No PfxData provided.");
@@ -60,7 +83,10 @@ namespace Test.Cryptography
                     return null;
 
                 case CertLoadMode.LoadFromPfx:
-                    return new X509Certificate2(PfxData, Password, KeyStorageFlags);
+                    return new X509Certificate2(
+                        PfxData,
+                        Password,
+                        KeyStorageFlags | (exportable ? X509KeyStorageFlags.Exportable : 0));
 
                 case CertLoadMode.LoadFromStore:
                     {
@@ -106,10 +132,18 @@ namespace Test.Cryptography
             using (X509Certificate2 cer = new X509Certificate2(CerData))
             {
                 X509Certificate2Collection matches = new X509Certificate2Collection();
+
                 using (X509Store store = new X509Store(storeName, storeLocation))
                 {
-                    store.Open(OpenFlags.ReadOnly | OpenFlags.OpenExistingOnly);
-                    
+                    try
+                    {
+                        store.Open(OpenFlags.ReadOnly | OpenFlags.OpenExistingOnly);
+                    }
+                    catch (CryptographicException)
+                    {
+                        return matches;
+                    }
+
                     foreach (X509Certificate2 candidate in store.Certificates)
                     {
                         // X509Certificate2.Equals() compares issuer and serial.
@@ -117,7 +151,7 @@ namespace Test.Cryptography
                         {
                             matches.Add(candidate);
                         }
-                    } 
+                    }
                     return matches;
                 }
             }
@@ -144,7 +178,7 @@ namespace Test.Cryptography
 
         internal override CertLoader CloneAsEphemeralLoader()
         {
-#if netcoreapp
+#if NETCOREAPP
             return new CertLoaderFromRawData(CerData, PfxData, Password)
             {
                 KeyStorageFlags = X509KeyStorageFlags.EphemeralKeySet,
@@ -171,15 +205,14 @@ namespace Test.Cryptography
 
         // Load certs from PFX data. This is convenient as it requires no preparatory steps. The downside is that every time you open a CNG .PFX,
         // a temporarily key is permanently leaked to your disk. (And every time you open a CAPI PFX, a key is leaked if the test aborts before
-        // Disposing the certificate.) 
+        // Disposing the certificate.)
         //
         // Only use if you're testing on a VM or if you just don't care about your machine accumulating leaked keys.
         LoadFromPfx = 2,
 
         // Load certs from the certificate store (set StoreName to the name you want to use.) This requires that you preinstall the certificates
         // into the cert store (say by File.WriteAllByte()'ing the PFX blob into a "foo.pfx" file, then launching it and following the wizard.)
-        // but then you don't need to worry about key leaks. 
+        // but then you don't need to worry about key leaks.
         LoadFromStore = 3,
     }
 }
-

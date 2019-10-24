@@ -2,8 +2,11 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using System.Buffers;
 using System.IO;
 using System.IO.Pipes;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace System.Data.SqlClient.SNI
 {
@@ -47,19 +50,62 @@ namespace System.Data.SqlClient.SNI
         /// <param name="offset">Offset</param>
         /// <param name="count">Byte count</param>
         /// <returns>Bytes read</returns>
-        public override int Read(byte[] buffer, int offset, int count)
+        public override int Read(byte[] buffer, int offset, int count) =>
+            ReadInternal(buffer, offset, count, CancellationToken.None, async: false).GetAwaiter().GetResult();
+
+        /// <summary>
+        /// Write Buffer
+        /// </summary>
+        /// <param name="buffer"></param>
+        /// <param name="offset"></param>
+        /// <param name="count"></param>
+        public override void Write(byte[] buffer, int offset, int count)
+            => WriteInternal(buffer, offset, count, CancellationToken.None, async: false).Wait();
+
+        /// <summary>
+        /// Write Buffer Asynchronosly
+        /// </summary>
+        /// <param name="buffer"></param>
+        /// <param name="offset"></param>
+        /// <param name="count"></param>
+        /// <param name="token"></param>
+        /// <returns></returns>
+        public override Task WriteAsync(byte[] buffer, int offset, int count, CancellationToken token)
+            => WriteInternal(buffer, offset, count, token, async: true);
+
+        /// <summary>
+        /// Read Buffer Asynchronosly
+        /// </summary>
+        /// <param name="buffer"></param>
+        /// <param name="offset"></param>
+        /// <param name="count"></param>
+        /// <param name="token"></param>
+        /// <returns></returns>
+        public override Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken token)
+            => ReadInternal(buffer, offset, count, token, async: true);
+
+        /// <summary>
+        /// Read Internal is called synchronosly when async is false
+        /// </summary>
+        private async Task<int> ReadInternal(byte[] buffer, int offset, int count, CancellationToken token, bool async)
         {
             int readBytes = 0;
-            byte[] packetData = new byte[count < TdsEnums.HEADER_LEN ? TdsEnums.HEADER_LEN : count];
-
+            byte[] packetData = null;
+            byte[] readTarget = buffer;
+            int readOffset = offset;
             if (_encapsulate)
             {
+                packetData = ArrayPool<byte>.Shared.Rent(count < TdsEnums.HEADER_LEN ? TdsEnums.HEADER_LEN : count);
+                readTarget = packetData;
+                readOffset = 0;
                 if (_packetBytes == 0)
                 {
                     // Account for split packets
                     while (readBytes < TdsEnums.HEADER_LEN)
                     {
-                        readBytes += _stream.Read(packetData, readBytes, TdsEnums.HEADER_LEN - readBytes);
+                        readBytes += async ?
+                            await _stream.ReadAsync(packetData, readBytes, TdsEnums.HEADER_LEN - readBytes, token).ConfigureAwait(false) :
+                            _stream.Read(packetData, readBytes, TdsEnums.HEADER_LEN - readBytes);
                     }
 
                     _packetBytes = (packetData[TdsEnums.HEADER_LEN_FIELD_OFFSET] << 8) | packetData[TdsEnums.HEADER_LEN_FIELD_OFFSET + 1];
@@ -72,24 +118,26 @@ namespace System.Data.SqlClient.SNI
                 }
             }
 
-            readBytes = _stream.Read(packetData, 0, count);
+            readBytes = async ?
+                await _stream.ReadAsync(readTarget, readOffset, count, token).ConfigureAwait(false) :
+                _stream.Read(readTarget, readOffset, count);
 
             if (_encapsulate)
             {
                 _packetBytes -= readBytes;
             }
-
-            Buffer.BlockCopy(packetData, 0, buffer, offset, readBytes);
+            if (packetData != null)
+            {
+                Buffer.BlockCopy(packetData, 0, buffer, offset, readBytes);
+                ArrayPool<byte>.Shared.Return(packetData, clearArray: true);
+            }
             return readBytes;
         }
 
         /// <summary>
-        /// Write buffer
+        /// The internal write method calls Sync APIs when Async flag is false
         /// </summary>
-        /// <param name="buffer">Buffer</param>
-        /// <param name="offset">Offset</param>
-        /// <param name="count">Byte count</param>
-        public override void Write(byte[] buffer, int offset, int count)
+        private async Task WriteInternal(byte[] buffer, int offset, int count, CancellationToken token, bool async)
         {
             int currentCount = 0;
             int currentOffset = offset;
@@ -113,11 +161,13 @@ namespace System.Data.SqlClient.SNI
                     count -= currentCount;
 
                     // Prepend buffer data with TDS prelogin header
-                    byte[] combinedBuffer = new byte[TdsEnums.HEADER_LEN + currentCount];
+                    int combinedLength = TdsEnums.HEADER_LEN + currentCount;
+                    byte[] combinedBuffer = ArrayPool<byte>.Shared.Rent(combinedLength);
 
-                    // We can only send 4088 bytes in one packet. Header[1] is set to 1 if this is a 
+                    // We can only send 4088 bytes in one packet. Header[1] is set to 1 if this is a
                     // partial packet (whether or not count != 0).
-                    // 
+                    //
+                    combinedBuffer[7] = 0; // touch this first for the jit bounds check
                     combinedBuffer[0] = PRELOGIN_PACKET_TYPE;
                     combinedBuffer[1] = (byte)(count > 0 ? 0 : 1);
                     combinedBuffer[2] = (byte)((currentCount + TdsEnums.HEADER_LEN) / 0x100);
@@ -125,30 +175,52 @@ namespace System.Data.SqlClient.SNI
                     combinedBuffer[4] = 0;
                     combinedBuffer[5] = 0;
                     combinedBuffer[6] = 0;
-                    combinedBuffer[7] = 0;
 
-                    for(int i = TdsEnums.HEADER_LEN; i < combinedBuffer.Length; i++)
+                    Array.Copy(buffer, currentOffset, combinedBuffer, TdsEnums.HEADER_LEN, (combinedLength - TdsEnums.HEADER_LEN));
+
+                    if (async)
                     {
-                        combinedBuffer[i] = buffer[currentOffset + (i - TdsEnums.HEADER_LEN)];
+                        await _stream.WriteAsync(combinedBuffer, 0, combinedLength, token).ConfigureAwait(false);
+                    }
+                    else
+                    {
+                        _stream.Write(combinedBuffer, 0, combinedLength);
                     }
 
-                    _stream.Write(combinedBuffer, 0, combinedBuffer.Length);
+                    Array.Clear(combinedBuffer, 0, combinedLength);
+                    ArrayPool<byte>.Shared.Return(combinedBuffer);
+
                 }
                 else
                 {
                     currentCount = count;
                     count = 0;
 
-                    _stream.Write(buffer, currentOffset, currentCount);
+                    if (async)
+                    {
+                        await _stream.WriteAsync(buffer, currentOffset, currentCount, token).ConfigureAwait(false);
+                    }
+                    else
+                    {
+                        _stream.Write(buffer, currentOffset, currentCount);
+                    }
                 }
 
-                _stream.Flush();
+                if (async)
+                {
+                    await _stream.FlushAsync().ConfigureAwait(false);
+                }
+                else
+                {
+                    _stream.Flush();
+                }
+
                 currentOffset += currentCount;
             }
         }
 
         /// <summary>
-        /// Set stream length. 
+        /// Set stream length.
         /// </summary>
         /// <param name="value">Length</param>
         public override void SetLength(long value)

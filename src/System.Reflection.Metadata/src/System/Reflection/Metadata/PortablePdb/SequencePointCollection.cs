@@ -10,7 +10,7 @@ using System.Reflection.Metadata.Ecma335;
 
 namespace System.Reflection.Metadata
 {
-    public struct SequencePointCollection : IEnumerable<SequencePoint>
+    public readonly struct SequencePointCollection : IEnumerable<SequencePoint>
     {
         private readonly MemoryBlock _block;
         private readonly DocumentHandle _document;
@@ -66,7 +66,7 @@ namespace System.Reflection.Metadata
                 {
                     // header (skip local signature rid):
                     _reader.ReadCompressedInteger();
-					
+
                     if (document.IsNil)
                     {
                         document = ReadDocumentHandle();

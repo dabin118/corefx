@@ -13,7 +13,7 @@ namespace System.Data.SqlClient
     public sealed partial class SqlParameterCollection : DbParameterCollection
     {
         private bool _isDirty;
-        private static Type s_itemType = typeof(SqlParameter);
+        private static readonly Type s_itemType = typeof(SqlParameter);
 
         internal SqlParameterCollection() : base()
         {
@@ -30,8 +30,9 @@ namespace System.Data.SqlClient
                 _isDirty = value;
             }
         }
-
-        new public SqlParameter this[int index]
+        public override bool IsFixedSize => ((System.Collections.IList)InnerList).IsFixedSize;
+        public override bool IsReadOnly => ((System.Collections.IList)InnerList).IsReadOnly;
+        public new SqlParameter this[int index]
         {
             get
             {
@@ -43,7 +44,7 @@ namespace System.Data.SqlClient
             }
         }
 
-        new public SqlParameter this[string parameterName]
+        public new SqlParameter this[string parameterName]
         {
             get
             {
@@ -86,7 +87,7 @@ namespace System.Data.SqlClient
             AddRange((Array)values);
         }
 
-        override public bool Contains(string value)
+        public override bool Contains(string value)
         { // WebData 97349
             return (-1 != IndexOf(value));
         }

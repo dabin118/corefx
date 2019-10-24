@@ -1,4 +1,4 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // See the LICENSE file in the project root for more information.
 //
 // EnumerableRowCollectionTest.cs
@@ -17,10 +17,10 @@
 // distribute, sublicense, and/or sell copies of the Software, and to
 // permit persons to whom the Software is furnished to do so, subject to
 // the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be
 // included in all copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
 // EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
 // MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
@@ -39,11 +39,13 @@ namespace MonoTests.System.Data
 {
     public class EnumerableRowCollectionTest
     {
+        private string _testDataSet = "Mono/testdataset1.xml";
+
         [Fact]
         public void QueryWhere()
         {
             var ds = new DataSet();
-            ds.ReadXml("Mono/testdataset1.xml");
+            ds.ReadXml(_testDataSet);
             var table = ds.Tables[0];
             /* schema generated as ...
             var table = ds.Tables.Add ("ScoreList");
@@ -70,7 +72,7 @@ namespace MonoTests.System.Data
         public void QueryWhereSelect ()
         {
             var ds = new DataSet ();
-            ds.ReadXml ("Mono/testdataset1.xml");
+            ds.ReadXml (_testDataSet);
             var table = ds.Tables [0];
             var q = from line in table.AsEnumerable ()
                 where line.Field<int> ("Score") > 80
@@ -91,7 +93,7 @@ namespace MonoTests.System.Data
         public void QueryWhereSelectOrderBy ()
         {
             var ds = new DataSet ();
-            ds.ReadXml ("Mono/testdataset1.xml");
+            ds.ReadXml (_testDataSet);
             var table = ds.Tables [0];
             var q = from line in table.AsEnumerable ()
                 where line.Field<int> ("Score") >= 80
@@ -113,7 +115,7 @@ namespace MonoTests.System.Data
                         Assert.True(false, "should match only one raw");
                         break;
                 }
-	            prevID = ql.StudentID;
+                prevID = ql.StudentID;
             }
         }
 
@@ -121,7 +123,7 @@ namespace MonoTests.System.Data
         public void QueryWhereSelectOrderByDescending ()
         {
             var ds = new DataSet ();
-            ds.ReadXml ("Mono/testdataset1.xml");
+            ds.ReadXml (_testDataSet);
             var table = ds.Tables [0];
             var q = from line in table.AsEnumerable ()
                 where line.Field<int> ("Score") >= 80
@@ -151,7 +153,7 @@ namespace MonoTests.System.Data
         public void ThenBy ()
         {
             var ds = new DataSet ();
-            ds.ReadXml ("Mono/testdataset1.xml");
+            ds.ReadXml (_testDataSet);
             var table = ds.Tables [0];
             var q = from line in table.AsEnumerable ()
                 where line.Field<int> ("Score") >= 80
@@ -181,7 +183,7 @@ namespace MonoTests.System.Data
         public void ThenByDescending ()
         {
             var ds = new DataSet ();
-            ds.ReadXml ("Mono/testdataset1.xml");
+            ds.ReadXml (_testDataSet);
             var table = ds.Tables [0];
             var q = from line in table.AsEnumerable ()
                 where line.Field<int> ("Score") >= 80

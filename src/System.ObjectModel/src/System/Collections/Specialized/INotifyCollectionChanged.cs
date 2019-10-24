@@ -2,9 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using System;
-using System.Runtime.CompilerServices;
-
 namespace System.Collections.Specialized
 {
     /// <summary>
@@ -21,8 +18,6 @@ namespace System.Collections.Specialized
         /// <seealso cref="System.Collections.Specialized.NotifyCollectionChangedEventArgs" />
         /// containing data related to this event.
         /// </remarks>
-        event NotifyCollectionChangedEventHandler CollectionChanged;
+        event NotifyCollectionChangedEventHandler? CollectionChanged;
     }
 }
-
-

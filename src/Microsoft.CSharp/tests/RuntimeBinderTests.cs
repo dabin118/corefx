@@ -1,9 +1,12 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
 using System;
+using System.Collections;
+using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using Xunit;
 
 // IVT to "Microsoft.CSharp.RuntimeBinder.Binder", just to use IVT in a test (see: InternalsVisibleToTest below)
@@ -11,6 +14,7 @@ using Xunit;
 
 namespace Microsoft.CSharp.RuntimeBinder.Tests
 {
+    [ActiveIssue(31032, TargetFrameworkMonikers.NetFramework)]
     public class RuntimeBinderTests
     {
         [Fact]
@@ -46,7 +50,7 @@ namespace Microsoft.CSharp.RuntimeBinder.Tests
         public void GenericNameMatchesPredefined()
         {
             dynamic d = 3;
-            dynamic v = new Value<int> {Quantity = d};
+            dynamic v = new Value<int> { Quantity = d };
             dynamic r = v.Quantity;
             Assert.Equal(3, r);
             dynamic h = new Holder();
@@ -137,7 +141,7 @@ namespace Microsoft.CSharp.RuntimeBinder.Tests
 
         interface ITestDerived : ITestInterface
         {
-            
+
         }
 
         class TestImpl : ITestDerived
@@ -175,7 +179,7 @@ namespace Microsoft.CSharp.RuntimeBinder.Tests
             Assert.True(res);
         }
 
-        [Fact, ActiveIssue(7527)]
+        [Fact]
         public void CyclicTypeDefinition()
         {
             dynamic x = new Third<int>();
@@ -193,6 +197,259 @@ namespace Microsoft.CSharp.RuntimeBinder.Tests
 
         class Third<T> : Second<Third<T>>
         {
+        }
+
+        public class Castable
+        {
+            public static implicit operator int(Castable _) => 2;
+
+            public static implicit operator string(Castable _) => "abc";
+        }
+
+        [Fact]
+        public void ImplicitOperatorForPlus()
+        {
+            dynamic d = new Castable();
+            dynamic result = d + 1;
+            Assert.Equal(3, result);
+            result = 5 + d;
+            Assert.Equal(7, result);
+            result = d + "def";
+            Assert.Equal("abcdef", result);
+            result = "xyz" + d;
+            Assert.Equal("xyzabc", result);
+        }
+
+        [Fact]
+        public void DynamicArgumentToCyclicTypeDefinition()
+        {
+            dynamic arg = 5;
+            new Builder<object>().SomeMethod(arg);
+        }
+
+        public class Builder<TItem> : BuilderBaseEx<Builder<TItem>>
+        {
+            public Builder<TItem> SomeMethod(object arg)
+            {
+                return this;
+            }
+        }
+        public class BuilderBaseEx<T> : BuilderBase<T> where T : BuilderBaseEx<T> { }
+        public class BuilderBase<T> where T : BuilderBase<T> { }
+
+        [Fact]
+        public void CircularOnOwnNested()
+        {
+            dynamic d = new Generic<string>.Inner
+            {
+                Foo = "expected"
+            };
+
+            Assert.Equal("expected", d.Foo);
+        }
+
+
+        [Fact]
+        public void CircularOnOwnNestedAbsentMember()
+        {
+            dynamic d = new Generic<string>.Inner
+            {
+                Foo = "expected"
+            };
+
+            Assert.Throws<RuntimeBinderException>(() => d.Bar);
+        }
+
+        class Generic<T> : BindingList<Generic<T>.Inner>
+        {
+            public class Inner
+            {
+                public object Foo { get; set; }
+            }
+        }
+
+        public class SomeType
+        {
+            public string SomeMethod(int i) => "ABC " + i;
+        }
+
+        private class SomePrivateType
+        {
+            public string SomeMethod(int i) => "ABC " + i;
+        }
+
+        internal class SomeInternalType
+        {
+            public string SomeMethod(int i) => "ABC " + i;
+        }
+
+        protected class SomeProtectedType
+        {
+            public string SomeMethod(int i) => "ABC " + i;
+        }
+
+        [Fact]
+        public void MethodCallWithNullContext()
+        {
+            CallSiteBinder binder = Binder.InvokeMember(
+                CSharpBinderFlags.None, nameof(SomeType.SomeMethod), Type.EmptyTypes, null,
+                new[]
+                {
+                    CSharpArgumentInfo.Create(CSharpArgumentInfoFlags.None, null),
+                    CSharpArgumentInfo.Create(CSharpArgumentInfoFlags.None, null)
+                });
+            CallSite<Func<CallSite, object, object, object>> site =
+                CallSite<Func<CallSite, object, object, object>>.Create(binder);
+            Func<CallSite, object, object, object> targ = site.Target;
+            object res = targ(site, new SomeType(), 9);
+            Assert.Equal("ABC 9", res);
+        }
+
+        [Fact]
+        public void MethodCallWithNullContextCannotSeeNonPublic()
+        {
+            CallSiteBinder binder = Binder.InvokeMember(
+                CSharpBinderFlags.None, nameof(SomePrivateType.SomeMethod), Type.EmptyTypes, null,
+                new[]
+                {
+                    CSharpArgumentInfo.Create(CSharpArgumentInfoFlags.None, null),
+                    CSharpArgumentInfo.Create(CSharpArgumentInfoFlags.None, null)
+                });
+            CallSite<Func<CallSite, object, object, object>> site =
+                CallSite<Func<CallSite, object, object, object>>.Create(binder);
+            Func<CallSite, object, object, object> targ = site.Target;
+            Assert.Throws<RuntimeBinderException>(() => targ(site, new SomePrivateType(), 9));
+            Assert.Throws<RuntimeBinderException>(() => targ(site, new SomeInternalType(), 9));
+            Assert.Throws<RuntimeBinderException>(() => targ(site, new SomeProtectedType(), 9));
+        }
+
+        interface ICounter1
+        {
+            int Count(ICollection x);
+            double ExplicitCount { get; set; }
+        }
+
+        interface ICounter2
+        {
+            int Count(ICollection x);
+            int ExplicitCount { get; set; }
+        }
+
+        interface ICounterBoth : ICounter1, ICounter2 { }
+
+        [Fact]
+        public void AmbiguousInterfaceInheritedMethodError()
+        {
+            ICounterBoth icb = null; // Error on ambiguity should happen before error on null.
+            string message = Assert.Throws<RuntimeBinderException>(() => icb.Count((dynamic)new int[3])).Message;
+            // The call is ambiguous between the following methods or properties:
+            // 'Microsoft.CSharp.RuntimeBinder.Tests.RuntimeBinderTests.ICounter1.Count(System.Collections.ICollection)'
+            // and 'Microsoft.CSharp.RuntimeBinder.Tests.RuntimeBinderTests.ICounter2.Count(System.Collections.ICollection)'
+            Assert.Contains("'Microsoft.CSharp.RuntimeBinder.Tests.RuntimeBinderTests.ICounter1.Count(System.Collections.ICollection)'", message);
+            Assert.Contains("'Microsoft.CSharp.RuntimeBinder.Tests.RuntimeBinderTests.ICounter2.Count(System.Collections.ICollection)'", message);
+        }
+
+        [Fact]
+        public void AmbiguousMemberError()
+        {
+            CallSite<Func<CallSite, ICounterBoth, int, object>> compileTimeTypeValueSetter =
+                CallSite<Func<CallSite, ICounterBoth, int, object>>.Create(
+                    Binder.SetMember(
+                        CSharpBinderFlags.None, "ExplicitCount", GetType(),
+                        new[]
+                        {
+                            CSharpArgumentInfo.Create(CSharpArgumentInfoFlags.UseCompileTimeType, null),
+                            CSharpArgumentInfo.Create(CSharpArgumentInfoFlags.UseCompileTimeType, null)
+                        }));
+            Func<CallSite, ICounterBoth, int, object> target0 = compileTimeTypeValueSetter.Target;
+            string message = Assert.Throws<RuntimeBinderException>(() => target0(compileTimeTypeValueSetter, null, 2)).Message;
+            // Ambiguity between 'Microsoft.CSharp.RuntimeBinder.Tests.RuntimeBinderTests.ICounter1.ExplicitCount'
+            // and 'Microsoft.CSharp.RuntimeBinder.Tests.RuntimeBinderTests.ICounter2.ExplicitCount'
+            Assert.Contains("'Microsoft.CSharp.RuntimeBinder.Tests.RuntimeBinderTests.ICounter1.ExplicitCount'", message);
+            Assert.Contains("'Microsoft.CSharp.RuntimeBinder.Tests.RuntimeBinderTests.ICounter2.ExplicitCount'", message);
+
+            CallSite<Func<CallSite, ICounterBoth, object, object>> runTimeTypeValueSetter =
+                CallSite<Func<CallSite, ICounterBoth, object, object>>.Create(
+                    Binder.SetMember(
+                        CSharpBinderFlags.None, "ExplicitCount", GetType(),
+                        new[]
+                        {
+                            CSharpArgumentInfo.Create(CSharpArgumentInfoFlags.UseCompileTimeType, null),
+                            CSharpArgumentInfo.Create(CSharpArgumentInfoFlags.None, null)
+                        }));
+            var target1 = runTimeTypeValueSetter.Target;
+            Assert.Equal(message, Assert.Throws<RuntimeBinderException>(() => target1(runTimeTypeValueSetter, null, 2)).Message);
+
+            CallSite<Func<CallSite, ICounterBoth, object>> getter =
+                CallSite<Func<CallSite, ICounterBoth, object>>.Create(
+                    Binder.GetMember(
+                        CSharpBinderFlags.None, "ExplicitCount", GetType(),
+                        new[]
+                        {
+                            CSharpArgumentInfo.Create(CSharpArgumentInfoFlags.UseCompileTimeType, null)
+                        }));
+
+            Func<CallSite, ICounterBoth, object> target2 = getter.Target;
+            Assert.Equal(message, Assert.Throws<RuntimeBinderException>(() => target2(getter, null)).Message);
+        }
+
+        // This is not the defined COM interface for IKnownFolderManager.
+        // We need a registered COM interface and CoClass to validate the behavior with dynamic and COM.
+        // The real IKnownFolderManager interface is available on Windows Vista+, so it is on all platforms that we're testing.
+        [ComImport]
+        [Guid("8BE2D872-86AA-4d47-B776-32CCA40C7018")]
+        interface Not_IKnownFolderManager
+        {
+            void MethodCall();
+
+            int this[int i] { get; set; }
+
+            int Property { get; set; }
+        }
+
+        [CoClass(typeof(KnownFolderManagerClass))]
+        [ComImport]
+        [Guid("8BE2D872-86AA-4d47-B776-32CCA40C7018")]
+        interface KnownFolderManager : Not_IKnownFolderManager { }
+
+        [Guid("4df0c730-df9d-4ae3-9153-aa6b82e9795a")]
+        class KnownFolderManagerClass { }
+
+        [Fact]
+        [PlatformSpecific(TestPlatforms.Windows)]
+        [SkipOnTargetFramework(TargetFrameworkMonikers.NetFramework)]
+        public void DynamicComThrowsException()
+        {
+            Assert.Throws<RuntimeBinderException>(() =>
+            {
+                var a = new { Manager = new KnownFolderManagerClass() };
+                dynamic d = a;
+                d.Manager.MethodCall();
+            });
+            Assert.Throws<RuntimeBinderException>(() =>
+            {
+                var a = new { Manager = new KnownFolderManagerClass() };
+                dynamic d = a;
+                return d.Manager[0];
+            });
+            Assert.Throws<RuntimeBinderException>(() =>
+            {
+                var a = new { Manager = new KnownFolderManagerClass() };
+                dynamic d = a;
+                d.Manager[0] = 1;
+            });
+            Assert.Throws<RuntimeBinderException>(() =>
+            {
+                var a = new { Manager = new KnownFolderManagerClass() };
+                dynamic d = a;
+                d.Manager.Property = 1;
+            });
+            Assert.Throws<RuntimeBinderException>(() =>
+            {
+                var a = new { Manager = new KnownFolderManagerClass() };
+                dynamic d = a;
+                d.Manager.Property = 1;
+            });
         }
     }
 }

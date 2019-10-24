@@ -41,7 +41,7 @@ namespace System.Threading.Tasks.Tests
 
     public enum WorkloadType
     {
-        CreateChildTask, //Start a attached childTask in the workload
+        CreateChildTask, //Start an attached childTask in the workload
         CreateDetachedChildTask, //start a detached childTask in the workload
         ContinueInside, //Invoke continuewith as the workload inside the task
         RunWithUserScheduler, //create a task with custom task scheduler that runs that task inline
@@ -89,13 +89,11 @@ namespace System.Threading.Tasks.Tests
             }
         }
 
-        [SecuritySafeCritical]
         private bool ExecuteTask(Task task)
         {
             return TryExecuteTask(task);
         }
 
-        [SecurityCritical]
         protected override void QueueTask(Task task)
         {
             _tasks.Add(task);
@@ -109,7 +107,6 @@ namespace System.Threading.Tasks.Tests
             }
         }
 
-        [SecurityCritical]
         protected override bool TryExecuteTaskInline(Task task, bool taskWasPreviouslyQueued)
         {
             RunSyncCalledCount++;
@@ -128,7 +125,6 @@ namespace System.Threading.Tasks.Tests
             }
         }
 
-        [SecurityCritical]
         protected override IEnumerable<Task> GetScheduledTasks()
         {
             return _tasks;
@@ -216,7 +212,7 @@ namespace System.Threading.Tasks.Tests
             // Stage 1 -- create task
             CreateTask();
 
-            // Stage 2 - start with the pre-action 
+            // Stage 2 - start with the pre-action
             switch (_preTaskStatus)
             {
                 case PreTaskStatus.Continued:
@@ -300,7 +296,7 @@ namespace System.Threading.Tasks.Tests
             }
 
             //
-            // Extra verification to ensure the Task was RunSynchronously on 
+            // Extra verification to ensure the Task was RunSynchronously on
             // specified TaskScheduler
             //
             if (_taskSchedulerType == TaskSchedulerType.CustomWithInlineExecution ||
@@ -385,8 +381,8 @@ namespace System.Threading.Tasks.Tests
             get
             {
                 // The following cases will cause an exception
-                // 1. Task already started / canceled / disposed / completed 
-                // 2. Task is a continuation task 
+                // 1. Task already started / canceled / disposed / completed
+                // 2. Task is a continuation task
                 return (_preTaskStatus != PreTaskStatus.Created);
             }
         }

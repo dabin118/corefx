@@ -18,7 +18,7 @@ namespace System.IO.Compression
 
     internal sealed class InputBuffer
     {
-        private byte[] _buffer;           // byte array to store input
+        private byte[]? _buffer;           // byte array to store input
         private int _start;               // start poisition of the buffer
         private int _end;                 // end position of the buffer
         private uint _bitBuffer = 0;      // store the bits here, we can quickly shift in this buffer
@@ -44,6 +44,7 @@ namespace System.IO.Compression
                 {
                     return false;
                 }
+                Debug.Assert(_buffer != null);
                 // insert a byte to bitbuffer
                 _bitBuffer |= (uint)_buffer[_start++] << _bitsInBuffer;
                 _bitsInBuffer += 8;
@@ -72,6 +73,7 @@ namespace System.IO.Compression
         /// </summary>
         public uint TryLoad16Bits()
         {
+            Debug.Assert(_buffer != null);
             if (_bitsInBuffer < 8)
             {
                 if (_start < _end)
@@ -152,6 +154,7 @@ namespace System.IO.Compression
                 length = avail;
             }
 
+            Debug.Assert(_buffer != null);
             Array.Copy(_buffer, _start, output, offset, length);
             _start += length;
             return bytesFromBitBuffer + length;
@@ -176,11 +179,13 @@ namespace System.IO.Compression
             Debug.Assert(offset >= 0);
             Debug.Assert(length >= 0);
             Debug.Assert(offset <= buffer.Length - length);
-            Debug.Assert(_start == _end);
 
-            _buffer = buffer;
-            _start = offset;
-            _end = offset + length;
+            if (_start == _end)
+            {
+                _buffer = buffer;
+                _start = offset;
+                _end = offset + length;
+            }
         }
 
         /// <summary>Skip n bits in the buffer.</summary>

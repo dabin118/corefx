@@ -13,7 +13,7 @@ namespace System.Text.Encodings.Web
     /// </summary>
     public class TextEncoderSettings
     {
-        private AllowedCharactersBitmap _allowedCharactersBitmap;
+        private readonly AllowedCharactersBitmap _allowedCharactersBitmap;
 
         /// <summary>
         /// Instantiates an empty filter (allows no code points through by default).
@@ -28,6 +28,11 @@ namespace System.Text.Encodings.Web
         /// </summary>
         public TextEncoderSettings(TextEncoderSettings other)
         {
+            if (other == null)
+            {
+                throw new ArgumentNullException(nameof(other));
+            }
+
             _allowedCharactersBitmap = AllowedCharactersBitmap.CreateNew();
             AllowCodePoints(other.GetAllowedCodePoints());
         }
@@ -38,7 +43,7 @@ namespace System.Text.Encodings.Web
         /// </summary>
         public TextEncoderSettings(params UnicodeRange[] allowedRanges)
         {
-            if(allowedRanges == null)
+            if (allowedRanges == null)
             {
                 throw new ArgumentNullException(nameof(allowedRanges));
             }

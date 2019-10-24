@@ -49,12 +49,12 @@ namespace System.Transactions.Distributed
     /// <summary>
     /// A Transaction object represents a single transaction.  It is created by TransactionManager
     /// objects through CreateTransaction or through deserialization.  Alternatively, the static Create
-    /// methodis provided, which creates a "default" TransactionManager and requests that it create
-    /// a new transaction with default values.  A transaction can only be committed by 
-    /// the client application that created the transaction.  If a client application wishes to allow 
-    /// access to the transaction by multiple threads, but wants to prevent those other threads from 
-    /// committing the transaction, the application can make a "clone" of the transaction.  Transaction 
-    /// clones have the same capabilities as the original transaction, except for the ability to commit 
+    /// methods provided, which creates a "default" TransactionManager and requests that it create
+    /// a new transaction with default values.  A transaction can only be committed by
+    /// the client application that created the transaction.  If a client application wishes to allow
+    /// access to the transaction by multiple threads, but wants to prevent those other threads from
+    /// committing the transaction, the application can make a "clone" of the transaction.  Transaction
+    /// clones have the same capabilities as the original transaction, except for the ability to commit
     /// the transaction.
     /// </summary>
     internal class DistributedTransaction : ISerializable, IObjectReference

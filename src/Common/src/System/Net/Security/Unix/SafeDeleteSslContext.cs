@@ -5,6 +5,7 @@
 using Microsoft.Win32.SafeHandles;
 
 using System.Diagnostics;
+using System.Net.Security;
 using System.Runtime.InteropServices;
 using System.Security.Authentication;
 using System.Security.Authentication.ExtendedProtection;
@@ -25,7 +26,7 @@ namespace System.Net.Security
             }
         }
 
-        public SafeDeleteSslContext(SafeFreeSslCredentials credential, bool isServer, bool remoteCertRequired)
+        public SafeDeleteSslContext(SafeFreeSslCredentials credential, SslAuthenticationOptions sslAuthenticationOptions)
             : base(credential)
         {
             Debug.Assert((null != credential) && !credential.IsInvalid, "Invalid credential used in SafeDeleteSslContext");
@@ -37,10 +38,9 @@ namespace System.Net.Security
                     credential.CertHandle,
                     credential.CertKeyHandle,
                     credential.Policy,
-                    isServer,
-                    remoteCertRequired);
+                    sslAuthenticationOptions);
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 Debug.Write("Exception Caught. - " + ex);
                 Dispose();

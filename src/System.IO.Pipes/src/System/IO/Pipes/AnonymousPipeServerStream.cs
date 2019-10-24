@@ -16,26 +16,22 @@ namespace System.IO.Pipes
         private SafePipeHandle _clientHandle;
         private bool _clientHandleExposed;
 
-        [SecuritySafeCritical]
         public AnonymousPipeServerStream()
             : this(PipeDirection.Out, HandleInheritability.None, 0)
         {
         }
 
-        [SecuritySafeCritical]
         public AnonymousPipeServerStream(PipeDirection direction)
             : this(direction, HandleInheritability.None, 0)
         {
         }
 
-        [SecuritySafeCritical]
         public AnonymousPipeServerStream(PipeDirection direction, HandleInheritability inheritability)
             : this(direction, inheritability, 0)
-        { 
+        {
         }
 
         // Create an AnonymousPipeServerStream from two existing pipe handles.
-        [SecuritySafeCritical]
         public AnonymousPipeServerStream(PipeDirection direction, SafePipeHandle serverSafePipeHandle, SafePipeHandle clientSafePipeHandle)
             : base(direction, 0)
         {
@@ -71,7 +67,6 @@ namespace System.IO.Pipes
 
         // bufferSize is used as a suggestion; specify 0 to let OS decide
         // This constructor instantiates the PipeSecurity using just the inheritability flag
-        [SecuritySafeCritical]
         public AnonymousPipeServerStream(PipeDirection direction, HandleInheritability inheritability, int bufferSize)
             : base(direction, bufferSize)
         {
@@ -93,10 +88,9 @@ namespace System.IO.Pipes
         }
 
         // This method should exist until we add a first class way of passing handles between parent and child
-        // processes. For now, people do it via command line arguments. 
-        [SecurityCritical]
+        // processes. For now, people do it via command line arguments.
         [SuppressMessage("Microsoft.Reliability", "CA2001:AvoidCallingProblematicMethods", MessageId = "System.Runtime.InteropServices.SafeHandle.DangerousGetHandle", Justification = "By design")]
-        public String GetClientHandleAsString()
+        public string GetClientHandleAsString()
         {
             _clientHandleExposed = true;
             GC.SuppressFinalize(_clientHandle);
@@ -105,7 +99,6 @@ namespace System.IO.Pipes
 
         public SafePipeHandle ClientSafePipeHandle
         {
-            [SecurityCritical]
             get
             {
                 _clientHandleExposed = true;
@@ -113,18 +106,17 @@ namespace System.IO.Pipes
             }
         }
 
-        // This method is an annoying one but it has to exist at least until we make passing handles between 
+        // This method is an annoying one but it has to exist at least until we make passing handles between
         // processes first class.  We need this because once the child handle is inherited, the OS considers
-        // the parent and child's handles to be different.  Therefore, if a child closes its handle, our 
+        // the parent and child's handles to be different.  Therefore, if a child closes its handle, our
         // Read/Write methods won't throw because the OS will think that there is still a child handle around
         // that can still Write/Read to/from the other end of the pipe.
         //
         // Ideally, we would want the Process class to close this handle after it has been inherited.  See
         // the pipe spec future features section for more information.
-        // 
+        //
         // Right now, this is the best signal to set the anonymous pipe as connected; if this is called, we
         // know the client has been passed the handle and so the connection is live.
-        [SecurityCritical]
         public void DisposeLocalCopyOfClientHandle()
         {
             if (_clientHandle != null && !_clientHandle.IsClosed)
@@ -133,12 +125,11 @@ namespace System.IO.Pipes
             }
         }
 
-        [SecurityCritical]
         protected override void Dispose(bool disposing)
         {
             try
             {
-                // We should dispose of the client handle if it was not exposed. 
+                // We should dispose of the client handle if it was not exposed.
                 if (!_clientHandleExposed && _clientHandle != null && !_clientHandle.IsClosed)
                 {
                     _clientHandle.Dispose();
@@ -153,13 +144,11 @@ namespace System.IO.Pipes
         // Anonymous pipes do not support message mode so there is no need to use the base version that P/Invokes here.
         public override PipeTransmissionMode TransmissionMode
         {
-            [SecurityCritical]
             get { return PipeTransmissionMode.Byte; }
         }
 
         public override PipeTransmissionMode ReadMode
         {
-            [SecurityCritical]
             set
             {
                 CheckPipePropertyOperations();

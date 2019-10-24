@@ -3,7 +3,6 @@
 // See the LICENSE file in the project root for more information.
 
 using System.Collections.Generic;
-using System.Diagnostics.Contracts;
 using System.IO;
 using System.Runtime.Serialization;
 using System.Security.Principal;
@@ -97,8 +96,6 @@ namespace System.Security.Claims
                 throw new ArgumentNullException(nameof(identities));
             }
 
-            Contract.EndContractBlock();
-
             _identities.AddRange(identities);
         }
 
@@ -113,8 +110,6 @@ namespace System.Security.Claims
             {
                 throw new ArgumentNullException(nameof(identity));
             }
-
-            Contract.EndContractBlock();
 
             ClaimsIdentity ci = identity as ClaimsIdentity;
             if (ci != null)
@@ -138,8 +133,6 @@ namespace System.Security.Claims
             {
                 throw new ArgumentNullException(nameof(principal));
             }
-
-            Contract.EndContractBlock();
 
             //
             // If IPrincipal is a ClaimsPrincipal add all of the identities
@@ -211,8 +204,6 @@ namespace System.Security.Claims
                 throw new ArgumentNullException(nameof(identity));
             }
 
-            Contract.EndContractBlock();
-
             _identities.Add(identity);
         }
 
@@ -227,8 +218,6 @@ namespace System.Security.Claims
             {
                 throw new ArgumentNullException(nameof(identities));
             }
-
-            Contract.EndContractBlock();
 
             _identities.AddRange(identities);
         }
@@ -306,7 +295,7 @@ namespace System.Security.Claims
         /// Retrieves a <see cref="IEnumerable{Claim}"/> where each claim is matched by <paramref name="match"/>.
         /// </summary>
         /// <param name="match">The predicate that performs the matching logic.</param>
-        /// <returns>A <see cref="IEnumerable{Claim}"/> of matched claims.</returns>  
+        /// <returns>A <see cref="IEnumerable{Claim}"/> of matched claims.</returns>
         /// <remarks>Each <see cref="ClaimsIdentity"/> is called. <seealso cref="ClaimsIdentity.FindAll(string)"/>.</remarks>
         /// <exception cref="ArgumentNullException">if 'match' is null.</exception>
         public virtual IEnumerable<Claim> FindAll(Predicate<Claim> match)
@@ -315,8 +304,6 @@ namespace System.Security.Claims
             {
                 throw new ArgumentNullException(nameof(match));
             }
-
-            Contract.EndContractBlock();
 
             foreach (ClaimsIdentity identity in Identities)
             {
@@ -334,7 +321,7 @@ namespace System.Security.Claims
         /// Retrieves a <see cref="IEnumerable{Claim}"/> where each Claim.Type equals <paramref name="type"/>.
         /// </summary>
         /// <param name="type">The type of the claim to match.</param>
-        /// <returns>A <see cref="IEnumerable{Claim}"/> of matched claims.</returns>   
+        /// <returns>A <see cref="IEnumerable{Claim}"/> of matched claims.</returns>
         /// <remarks>Each <see cref="ClaimsIdentity"/> is called. <seealso cref="ClaimsIdentity.FindAll(Predicate{Claim})"/>.</remarks>
         /// <exception cref="ArgumentNullException">if 'type' is null.</exception>
         public virtual IEnumerable<Claim> FindAll(string type)
@@ -344,7 +331,6 @@ namespace System.Security.Claims
                 throw new ArgumentNullException(nameof(type));
             }
 
-            Contract.EndContractBlock();
             foreach (ClaimsIdentity identity in Identities)
             {
                 if (identity != null)
@@ -363,15 +349,13 @@ namespace System.Security.Claims
         /// <param name="match">The predicate that performs the matching logic.</param>
         /// <returns>A <see cref="Claim"/>, null if nothing matches.</returns>
         /// <remarks>Each <see cref="ClaimsIdentity"/> is called. <seealso cref="ClaimsIdentity.FindFirst(string)"/>.</remarks>
-        /// <exception cref="ArgumentNullException">if 'match' is null.</exception> 
+        /// <exception cref="ArgumentNullException">if 'match' is null.</exception>
         public virtual Claim FindFirst(Predicate<Claim> match)
         {
             if (match == null)
             {
                 throw new ArgumentNullException(nameof(match));
             }
-
-            Contract.EndContractBlock();
 
             Claim claim = null;
 
@@ -404,8 +388,6 @@ namespace System.Security.Claims
                 throw new ArgumentNullException(nameof(type));
             }
 
-            Contract.EndContractBlock();
-
             Claim claim = null;
 
             for (int i = 0; i < _identities.Count; i++)
@@ -436,8 +418,6 @@ namespace System.Security.Claims
             {
                 throw new ArgumentNullException(nameof(match));
             }
-
-            Contract.EndContractBlock();
 
             for (int i = 0; i < _identities.Count; i++)
             {
@@ -473,8 +453,6 @@ namespace System.Security.Claims
             {
                 throw new ArgumentNullException(nameof(value));
             }
-
-            Contract.EndContractBlock();
 
             for (int i = 0; i < _identities.Count; i++)
             {

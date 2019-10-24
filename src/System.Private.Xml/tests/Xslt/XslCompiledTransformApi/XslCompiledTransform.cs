@@ -39,9 +39,9 @@ namespace System.Xml.Tests
             return methInfo;
         }
 
-        protected String scriptTestPath = null;
+        protected string scriptTestPath = null;
 
-        protected String ScriptTestPath
+        protected string ScriptTestPath
         {
             get
             {
@@ -63,8 +63,8 @@ namespace System.Xml.Tests
         {
             get
             {
-                String asmPath = Path.Combine(Path.Combine("TestFiles", FilePathUtil.GetTestDataPath(), "xsltc", "precompiled"), "bftBaseLine.dll");
-                String type = "bftBaseLine";
+                string asmPath = Path.Combine(Path.Combine("TestFiles", FilePathUtil.GetTestDataPath(), "xsltc", "precompiled"), "bftBaseLine.dll");
+                string type = "bftBaseLine";
 
                 Assembly asm = AssemblyLoadContext.Default.LoadFromAssemblyPath(asmPath);
                 Type t = asm.GetType(type);
@@ -73,7 +73,7 @@ namespace System.Xml.Tests
             }
         }
 
-        protected void WLoad(XslCompiledTransform instance, MethodInfo meth, Byte[] bytes, Type[] types)
+        protected void WLoad(XslCompiledTransform instance, MethodInfo meth, byte[] bytes, Type[] types)
         {
             instance.Load(meth, bytes, types);
         }
@@ -89,14 +89,13 @@ namespace System.Xml.Tests
         }
 
         //[Variation("Load(MethodInfo = null, ByteArray, TypeArray)", Pri = 1)]
-        [InlineData()]
-        [Theory]
+        [Fact]
         public void Var1()
         {
             XslCompiledTransform xslt = new XslCompiledTransform();
             try
             {
-                WLoad(xslt, (MethodInfo)null, new Byte[5], new Type[5]);
+                WLoad(xslt, (MethodInfo)null, new byte[5], new Type[5]);
             }
             catch (Exception e)
             {
@@ -111,8 +110,7 @@ namespace System.Xml.Tests
         }
 
         //[Variation("Load(MethodInfo, ByteArray = null, TypeArray)", Pri = 1)]
-        [InlineData()]
-        [Theory]
+        [Fact]
         public void Var2()
         {
             XslCompiledTransform xslt = new XslCompiledTransform();
@@ -143,8 +141,7 @@ namespace System.Xml.Tests
         }
 
         //[Variation("Load(string = null)", Pri = 1)]
-        [InlineData()]
-        [Theory]
+        [Fact]
         public void Var0()
         {
             try
@@ -164,8 +161,7 @@ namespace System.Xml.Tests
         }
 
         //[Variation("Load(IXPathNavigable = null)", Pri = 1)]
-        [InlineData()]
-        [Theory]
+        [Fact]
         public void Var1()
         {
             try
@@ -185,8 +181,7 @@ namespace System.Xml.Tests
         }
 
         //[Variation("Load(XmlReader = null)", Pri = 1)]
-        [InlineData()]
-        [Theory]
+        [Fact]
         public void Var2()
         {
             try
@@ -206,8 +201,7 @@ namespace System.Xml.Tests
         }
 
         //[Variation("Load(IXPathNavigable = null, XmlResolver = null)", Pri = 1)]
-        [InlineData()]
-        [Theory]
+        [Fact]
         public void Var3()
         {
             try
@@ -227,8 +221,7 @@ namespace System.Xml.Tests
         }
 
         //[Variation("Load(XmlReader = null, XmlResolver = null)", Pri = 1)]
-        [InlineData()]
-        [Theory]
+        [Fact]
         public void Var4()
         {
             try
@@ -248,8 +241,7 @@ namespace System.Xml.Tests
         }
 
         //[Variation("Load(IXPathNavigable = null, XmlResolver = null)", Pri = 1)]
-        [InlineData()]
-        [Theory]
+        [Fact]
         public void Var5()
         {
             try
@@ -269,8 +261,7 @@ namespace System.Xml.Tests
         }
 
         //[Variation("Load(XmlReader = null, XmlResolver = null)", Pri = 1)]
-        [InlineData()]
-        [Theory]
+        [Fact]
         public void Var6()
         {
             try
@@ -290,8 +281,7 @@ namespace System.Xml.Tests
         }
 
         //[Variation("Transform(IXPathNavigable = null, XsltArgumentList = null)", Pri = 1)]
-        [InlineData()]
-        [Theory]
+        [Fact]
         public void Var7()
         {
             try
@@ -314,8 +304,7 @@ namespace System.Xml.Tests
         }
 
         //[Variation("Transform(IXPathNavigable = null, XsltArgumentList = null)", Pri = 1)]
-        [InlineData()]
-        [Theory]
+        [Fact]
         public void Var8()
         {
             try
@@ -338,8 +327,7 @@ namespace System.Xml.Tests
         }
 
         //[Variation("Transform(IXPathNavigable = null, XsltArgumentList = null, TextWriter = null)", Pri = 1)]
-        [InlineData()]
-        [Theory]
+        [Fact]
         public void Var9()
         {
             try
@@ -361,8 +349,7 @@ namespace System.Xml.Tests
         }
 
         //[Variation("Transform(IXPathNavigable = null, XsltArgumentList = null, TextWriter = null)", Pri = 1)]
-        [InlineData()]
-        [Theory]
+        [Fact]
         public void Var10()
         {
             try
@@ -384,8 +371,7 @@ namespace System.Xml.Tests
         }
 
         //[Variation("Transform(IXPathNavigable = null, XsltArgumentList = null, Stream = null)", Pri = 1)]
-        [InlineData()]
-        [Theory]
+        [Fact]
         public void Var11()
         {
             try
@@ -407,8 +393,7 @@ namespace System.Xml.Tests
         }
 
         //[Variation("Transform(IXPathNavigable = null, XsltArgumentList = null, Stream = null)", Pri = 1)]
-        [InlineData()]
-        [Theory]
+        [Fact]
         public void Var12()
         {
             try
@@ -430,8 +415,7 @@ namespace System.Xml.Tests
         }
 
         //[Variation("Transform(IXPathNavigable = null, XsltArgumentList = null, XmlWriter = null)", Pri = 1)]
-        [InlineData()]
-        [Theory]
+        [Fact]
         public void Var13()
         {
             try
@@ -453,8 +437,7 @@ namespace System.Xml.Tests
         }
 
         //[Variation("Transform(IXPathNavigable = null, XsltArgumentList = null, XmlWriter = null)", Pri = 1)]
-        [InlineData()]
-        [Theory]
+        [Fact]
         public void Var14()
         {
             try
@@ -609,18 +592,13 @@ namespace System.Xml.Tests
             AppContext.SetSwitch("Switch.System.Xml.AllowDefaultResolver", true);
 
             string expected = @"<?xml version=""1.0"" encoding=""utf-8""?><result>123</result>";
+            string fileName = GetType().Name + "_" + Path.GetRandomFileName();
+            string testFile = Path.Combine(Path.GetTempPath(), fileName);
+            string xmlFile = FullFilePath(fileName);
 
             // copy file on the local machine
             try
             {
-                string tempPath = Path.GetTempPath();
-                string testFile = Path.Combine(tempPath, "xmlResolver_document_function.xml");
-                if (File.Exists(testFile))
-                {
-                    File.SetAttributes(testFile, FileAttributes.Normal);
-                    File.Delete(testFile);
-                }
-                string xmlFile = FullFilePath("xmlResolver_document_function.xml");
                 File.Copy(xmlFile, testFile, true);
             }
             catch (Exception e)
@@ -628,6 +606,14 @@ namespace System.Xml.Tests
                 _output.WriteLine(e.ToString());
                 _output.WriteLine("Could not copy file to local. Some other issues prevented this test from running");
                 return; //TEST_SKIPPED;
+            }
+            finally
+            {
+                if (File.Exists(testFile))
+                {
+                    File.SetAttributes(testFile, FileAttributes.Normal);
+                    File.Delete(testFile);
+                }
             }
 
             // copy file on the local machine (this is now done with createAPItestfiles.js, see Oasys scenario.)
@@ -1308,13 +1294,7 @@ namespace System.Xml.Tests
 
         //[Variation("Style sheet has import/include, call Load first with default resolver and then with custom null resolver, should fail", Param = "XmlResolverTestMain.txt")]
         [InlineData("XmlResolverTestMain.txt", XslInputType.URI, ReaderType.XmlValidatingReader)]
-        [InlineData("XmlResolverTestMain.txt", XslInputType.URI, ReaderType.XmlValidatingReader)]
-        [InlineData("XmlResolverTestMain.txt", XslInputType.URI, ReaderType.XmlValidatingReader)]
         [InlineData("XmlResolverTestMain.txt", XslInputType.Reader, ReaderType.XmlValidatingReader)]
-        [InlineData("XmlResolverTestMain.txt", XslInputType.Reader, ReaderType.XmlValidatingReader)]
-        [InlineData("XmlResolverTestMain.txt", XslInputType.Reader, ReaderType.XmlValidatingReader)]
-        [InlineData("XmlResolverTestMain.txt", XslInputType.Navigator, ReaderType.XmlValidatingReader)]
-        [InlineData("XmlResolverTestMain.txt", XslInputType.Navigator, ReaderType.XmlValidatingReader)]
         [InlineData("XmlResolverTestMain.txt", XslInputType.Navigator, ReaderType.XmlValidatingReader)]
         [Theory]
         public void LoadGeneric8(object param, XslInputType xslInputType, ReaderType readerType)
@@ -1616,7 +1596,7 @@ namespace System.Xml.Tests
         {
             try
             {
-                LoadXSL("\\\\", XslInputType.URI, readerType, new XmlUrlResolver());
+                LoadXSL("    ", XslInputType.URI, readerType, new XmlUrlResolver());
             }
             catch (System.ArgumentException)
             {
@@ -1647,7 +1627,7 @@ namespace System.Xml.Tests
         {
             string Baseline = Path.Combine("baseline", (string)param);
             xslt = new XslCompiledTransform();
-            String _strXslFile = "showParam.xsl";
+            string _strXslFile = "showParam.xsl";
 
             _strXslFile = FullFilePath(_strXslFile);
             _output.WriteLine("Compiling {0}", _strXslFile);
@@ -1710,8 +1690,7 @@ namespace System.Xml.Tests
         }
 
         //[Variation("Regression case for bug 80768")]
-        [InlineData()]
-        [Theory]
+        [Fact]
         public void LoadNavigator4()
         {
             var e = Assert.ThrowsAny<XsltException>(() =>
@@ -1755,7 +1734,7 @@ namespace System.Xml.Tests
         public void LoadXmlReader1(object param, OutputType outputType, NavType navType)
         {
             string Baseline = Path.Combine("baseline", (string)param);
-            Boolean fTEST_FAIL = false;
+            bool fTEST_FAIL = false;
             xslt = new XslCompiledTransform();
 
             XmlReaderSettings xrs = new XmlReaderSettings();
@@ -1788,8 +1767,7 @@ namespace System.Xml.Tests
         }
 
         //[Variation("Calling with a closed reader, should throw exception")]
-        [InlineData()]
-        [Theory]
+        [Fact]
         public void LoadXmlReader2()
         {
             xslt = new XslCompiledTransform();
@@ -1815,11 +1793,10 @@ namespace System.Xml.Tests
         }
 
         //[Variation("Verify Reader isn't closed after Load")]
-        [InlineData()]
-        [Theory]
+        [Fact]
         public void LoadXmlReader3()
         {
-            Boolean fTEST_FAIL = false;
+            bool fTEST_FAIL = false;
             xslt = new XslCompiledTransform();
 
             XmlReaderSettings xrs = new XmlReaderSettings();
@@ -1845,18 +1822,17 @@ namespace System.Xml.Tests
             }
             if (fTEST_FAIL)
             {
-                _output.WriteLine("Appear to have accidently closed the Reader");
+                _output.WriteLine("Appear to have accidentally closed the Reader");
                 Assert.True(false);
             }
             return;
         }
 
         //[Variation("Verify position of node in Reader is at EOF after Load")]
-        [InlineData()]
-        [Theory]
+        [Fact]
         public void LoadXmlReader4()
         {
-            Boolean fTEST_FAIL = false;
+            bool fTEST_FAIL = false;
             xslt = new XslCompiledTransform();
 
             XmlReaderSettings xrs = new XmlReaderSettings();
@@ -1888,11 +1864,10 @@ namespace System.Xml.Tests
         }
 
         //[Variation("Load with reader position at EOF, should throw exception")]
-        [InlineData()]
-        [Theory]
+        [Fact]
         public void LoadXmlReader5()
         {
-            Boolean fTEST_FAIL = false;
+            bool fTEST_FAIL = false;
             xslt = new XslCompiledTransform();
 
             XmlReaderSettings xrs = new XmlReaderSettings();
@@ -1920,8 +1895,7 @@ namespace System.Xml.Tests
         }
 
         //[Variation("Load with NULL reader, should throw System.ArgumentNullException")]
-        [InlineData()]
-        [Theory]
+        [Fact]
         public void LoadXmlReader6()
         {
             xslt = new XslCompiledTransform();
@@ -1961,8 +1935,7 @@ namespace System.Xml.Tests
         }
 
         //[Variation("bug 380138 NRE during XSLT compilation")]
-        [InlineData()]
-        [Theory]
+        [Fact]
         public void Bug380138()
         {
             string xsl = @"<?xml version=""1.0"" encoding=""utf-8""?>
@@ -2299,8 +2272,7 @@ namespace System.Xml.Tests
         }
 
         //[Variation("Bug382506 - Loading stylesheet from custom navigator with enableDebug = true causes ArgumentOutOfRangeException")]
-        [InlineData()]
-        [Theory]
+        [Fact]
         public void TransformGeneric8()
         {
             xslt = new XslCompiledTransform();
@@ -2337,8 +2309,7 @@ namespace System.Xml.Tests
         }
 
         //[Variation("Bug349757 - document() function does not work when stylesheet was loaded from a stream or reader or constructed DOM")]
-        [InlineData()]
-        [Theory]
+        [Fact]
         public void TransformGeneric10()
         {
             xslt = new XslCompiledTransform();
@@ -2522,18 +2493,13 @@ namespace System.Xml.Tests
             AppContext.SetSwitch("Switch.System.Xml.AllowDefaultResolver", true);
 
             string expected = @"<?xml version=""1.0"" encoding=""utf-8""?><result>123</result>";
+            string fileName = GetType().Name + "_" + Path.GetRandomFileName();
+            string testFile = Path.Combine(Path.GetTempPath(), fileName);
+            string xmlFile = FullFilePath(fileName);
 
             // copy file on the local machine
             try
             {
-                string tempPath = Path.GetTempPath();
-                string testFile = Path.Combine(tempPath, "xmlResolver_document_function.xml");
-                if (File.Exists(testFile))
-                {
-                    File.SetAttributes(testFile, FileAttributes.Normal);
-                    File.Delete(testFile);
-                }
-                string xmlFile = FullFilePath("xmlResolver_document_function.xml");
                 File.Copy(xmlFile, testFile, true);
             }
             catch (Exception e)
@@ -2541,6 +2507,14 @@ namespace System.Xml.Tests
                 _output.WriteLine(e.ToString());
                 _output.WriteLine("Could not copy file to local. Some other issues prevented this test from running");
                 return; //TEST_SKIPPED;
+            }
+            finally
+            {
+                if (File.Exists(testFile))
+                {
+                    File.SetAttributes(testFile, FileAttributes.Normal);
+                    File.Delete(testFile);
+                }
             }
 
             if (LoadXSL("xmlResolver_document_function_absolute_uri.xsl", xslInputType, readerType) == 1)
@@ -2606,7 +2580,7 @@ namespace System.Xml.Tests
         public void TransformStrStr1(object param, XslInputType xslInputType, ReaderType readerType)
         {
             string Baseline = Path.Combine("baseline", (string)param);
-            String szFullFilename = FullFilePath("fruits.xml");
+            string szFullFilename = FullFilePath("fruits.xml");
 
             if (LoadXSL("showParam.xsl", xslInputType, readerType) == 1)
             {
@@ -2644,7 +2618,7 @@ namespace System.Xml.Tests
         [Theory]
         public void TransformStrStr3(XslInputType xslInputType, ReaderType readerType)
         {
-            String szFullFilename = FullFilePath("fruits.xml");
+            string szFullFilename = FullFilePath("fruits.xml");
 
             if (LoadXSL("showParam.xsl", xslInputType, readerType) == 1)
             {
@@ -2691,7 +2665,7 @@ namespace System.Xml.Tests
         [Theory]
         public void TransformStrStr5(XslInputType xslInputType, ReaderType readerType)
         {
-            String szFullFilename = FullFilePath("fruits.xml");
+            string szFullFilename = FullFilePath("fruits.xml");
 
             if (LoadXSL("showParam.xsl", xslInputType, readerType) == 1)
             {
@@ -2737,7 +2711,7 @@ namespace System.Xml.Tests
         [Theory]
         public void TransformStrStr7(XslInputType xslInputType, ReaderType readerType)
         {
-            String szFullFilename = FullFilePath("fruits.xml");
+            string szFullFilename = FullFilePath("fruits.xml");
 
             if (LoadXSL("showParam.xsl", xslInputType, readerType) == 1)
             {
@@ -2762,7 +2736,7 @@ namespace System.Xml.Tests
         public void TransformStrStr8(object param, XslInputType xslInputType, ReaderType readerType)
         {
             string Baseline = Path.Combine("baseline", (string)param);
-            String szFullFilename = FullFilePath("fruits.xml");
+            string szFullFilename = FullFilePath("fruits.xml");
 
             for (int i = 0; i < 50; i++)
             {
@@ -2777,8 +2751,7 @@ namespace System.Xml.Tests
         }
 
         //[Variation("Call without loading")]
-        [InlineData()]
-        [Theory]
+        [Fact]
         public void TransformStrStr9()
         {
             xslt = new XslCompiledTransform();
@@ -2872,7 +2845,7 @@ namespace System.Xml.Tests
         [Theory]
         public void TransformStrStr12(XslInputType xslInputType, ReaderType readerType)
         {
-            String szFullFilename = FullFilePath("fruits.xml");
+            string szFullFilename = FullFilePath("fruits.xml");
             int iCount = 0;
             if (LoadXSL("showParam.xsl", xslInputType, readerType) == 1)
             {
@@ -2909,11 +2882,11 @@ namespace System.Xml.Tests
         [Theory]
         public void TransformStrStr12_win(XslInputType xslInputType, ReaderType readerType)
         {
-            String szFullFilename = FullFilePath("fruits.xml");
+            string szFullFilename = FullFilePath("fruits.xml");
 
             if (LoadXSL("showParam.xsl", xslInputType, readerType) == 1)
             {
-                    Assert.Throws<System.ArgumentException>(() => xslt.Transform(szFullFilename, "\\\\"));
+                    Assert.Throws<System.ArgumentException>(() => xslt.Transform(szFullFilename, "    "));
                     return;
             }
 
@@ -2928,7 +2901,7 @@ namespace System.Xml.Tests
         [Theory]
         public void TransformStrStr13(XslInputType xslInputType, ReaderType readerType)
         {
-            String szFullFilename = FullFilePath("fruits.xml");
+            string szFullFilename = FullFilePath("fruits.xml");
             Stream strmTemp;
 
             if (LoadXSL("showParam.xsl", xslInputType, readerType) == 1)
@@ -2978,7 +2951,7 @@ namespace System.Xml.Tests
         [Theory]
         public void TransformStrStrResolver1(XslInputType xslInputType, ReaderType readerType)
         {
-            String szFullFilename = FullFilePath("fruits.xml");
+            string szFullFilename = FullFilePath("fruits.xml");
             string expected = @"<result>
   <fruit>Apple</fruit>
   <fruit>orange</fruit>
@@ -3011,7 +2984,7 @@ namespace System.Xml.Tests
             // "xmlResolver_document_function.xsl" contains
             // <xsl:for-each select="document('xmlResolver_document_function.xml')//elem">
 
-            String szFullFilename = FullFilePath("fruits.xml");
+            string szFullFilename = FullFilePath("fruits.xml");
 
             if (LoadXSL("xmlResolver_document_function.xsl", xslInputType, readerType) == 1)
             {
@@ -3037,7 +3010,7 @@ namespace System.Xml.Tests
             // "xmlResolver_document_function.xsl" contains
             // <xsl:for-each select="document('xmlResolver_document_function.xml')//elem">
 
-            String szFullFilename = FullFilePath("fruits.xml");
+            string szFullFilename = FullFilePath("fruits.xml");
             string Baseline = Path.Combine("baseline", (string)param);
 
             if (LoadXSL("xmlResolver_document_function.xsl", xslInputType, readerType) == 1)
@@ -3360,7 +3333,6 @@ param2 (correct answer is 'local-param2-arg'): local-param2-arg
         }
 
         //[Variation("Bug398968 - Globalization is broken for document() function")]
-        [PlatformSpecific(TestPlatforms.Windows)] //[ActiveIssue(14750)]
         [InlineData(XslInputType.URI, ReaderType.XmlValidatingReader, OutputType.Stream, NavType.XPathDocument)]
         [Theory]
         public void RegressionTest1(XslInputType xslInputType, ReaderType readerType, OutputType outputType, NavType navType)
@@ -3373,7 +3345,7 @@ param2 (correct answer is 'local-param2-arg'): local-param2-arg
             // Create the file.
             using (FileStream fs = File.Open(testFile, FileMode.Open))
             {
-                Byte[] info = new UTF8Encoding(true).GetBytes("<PASSED  />");
+                byte[] info = new UTF8Encoding(true).GetBytes("<PASSED  />");
                 fs.Write(info, 0, info.Length);
             }
 
@@ -3403,8 +3375,7 @@ param2 (correct answer is 'local-param2-arg'): local-param2-arg
         }
 
         //[Variation("Bug423641 - XslCompiledTransform.Load() [retail] throws a NullReferenceException when scripts are prohibited")]
-        [InlineData()]
-        [Theory]
+        [Fact]
         public void RegressionTest4()
         {
             XslCompiledTransform xslt = new XslCompiledTransform();
@@ -3414,8 +3385,7 @@ param2 (correct answer is 'local-param2-arg'): local-param2-arg
         }
 
         //[Variation("Bug423641 - XslCompiledTransform.Load() [debug] throws a NullReferenceException when scripts are prohibited")]
-        [InlineData()]
-        [Theory]
+        [Fact]
         public void RegressionTest5()
         {
             XslCompiledTransform xslt = new XslCompiledTransform(true);
@@ -3425,8 +3395,7 @@ param2 (correct answer is 'local-param2-arg'): local-param2-arg
         }
 
         //[Variation("Bug469781 - Replace shouldn't relax original type 'assertion failure'")]
-        [InlineData()]
-        [Theory]
+        [Fact]
         public void RegressionTest7()
         {
             string xslString = "<xsl:stylesheet version=\"1.0\" xmlns:xsl=\"http://www.w3.org/1999/XSL/Transform\" xmlns:user=\"urn:user\">"
@@ -3454,8 +3423,7 @@ param2 (correct answer is 'local-param2-arg'): local-param2-arg
         }
 
         //[Variation("Bug737816 - Dynamic method will have declaring type == null")]
-        [InlineData()]
-        [Theory]
+        [Fact]
         public void RegressionTest8()
         {
             try

@@ -2,15 +2,9 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using System;
-using System.Collections;
 using System.IO;
-using System.Runtime.InteropServices;
-using System.Security;
-using System.Text;
 using System.Xml;
 using System.Xml.XPath;
-using System.Xml.Xsl;
 
 namespace System.Security.Cryptography.Xml
 {
@@ -18,8 +12,8 @@ namespace System.Security.Cryptography.Xml
 
     public class XmlDsigXPathTransform : Transform
     {
-        private Type[] _inputTypes = { typeof(Stream), typeof(XmlNodeList), typeof(XmlDocument) };
-        private Type[] _outputTypes = { typeof(XmlNodeList) };
+        private readonly Type[] _inputTypes = { typeof(Stream), typeof(XmlNodeList), typeof(XmlDocument) };
+        private readonly Type[] _outputTypes = { typeof(XmlNodeList) };
         private string _xpathexpr;
         private XmlDocument _document;
         private XmlNamespaceManager _nsm;
@@ -50,28 +44,39 @@ namespace System.Security.Cryptography.Xml
                 string prefix = null;
                 string namespaceURI = null;
                 XmlElement elem = node as XmlElement;
-                if ((elem != null) && (elem.LocalName == "XPath"))
+                if (elem != null)
                 {
-                    _xpathexpr = elem.InnerXml.Trim(null);
-                    XmlNodeReader nr = new XmlNodeReader(elem);
-                    XmlNameTable nt = nr.NameTable;
-                    _nsm = new XmlNamespaceManager(nt);
-                    // Look for a namespace in the attributes
-                    foreach (XmlAttribute attrib in elem.Attributes)
+                    if (elem.LocalName == "XPath")
                     {
-                        if (attrib.Prefix == "xmlns")
+                        _xpathexpr = elem.InnerXml.Trim(null);
+                        XmlNodeReader nr = new XmlNodeReader(elem);
+                        XmlNameTable nt = nr.NameTable;
+                        _nsm = new XmlNamespaceManager(nt);
+                        if (!Utils.VerifyAttributes(elem, (string)null))
                         {
-                            prefix = attrib.LocalName;
-                            namespaceURI = attrib.Value;
-                            if (prefix == null)
-                            {
-                                prefix = elem.Prefix;
-                                namespaceURI = elem.NamespaceURI;
-                            }
-                            _nsm.AddNamespace(prefix, namespaceURI);
+                            throw new CryptographicException(SR.Cryptography_Xml_UnknownTransform);
                         }
+                        // Look for a namespace in the attributes
+                        foreach (XmlAttribute attrib in elem.Attributes)
+                        {
+                            if (attrib.Prefix == "xmlns")
+                            {
+                                prefix = attrib.LocalName;
+                                namespaceURI = attrib.Value;
+                                if (prefix == null)
+                                {
+                                    prefix = elem.Prefix;
+                                    namespaceURI = elem.NamespaceURI;
+                                }
+                                _nsm.AddNamespace(prefix, namespaceURI);
+                            }
+                        }
+                        break;
                     }
-                    break;
+                    else
+                    {
+                        throw new CryptographicException(SR.Cryptography_Xml_UnknownTransform);
+                    }
                 }
             }
 

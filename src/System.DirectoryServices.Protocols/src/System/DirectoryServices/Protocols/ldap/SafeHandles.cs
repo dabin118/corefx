@@ -8,7 +8,6 @@ using System.Security;
 
 namespace System.DirectoryServices.Protocols
 {
-    [SuppressUnmanagedCodeSecurity]
     internal sealed class BerSafeHandle : SafeHandleZeroOrMinusOneIsInvalid
     {
         internal BerSafeHandle() : base(true)
@@ -29,14 +28,13 @@ namespace System.DirectoryServices.Protocols
             }
         }
 
-        override protected bool ReleaseHandle()
+        protected override bool ReleaseHandle()
         {
             Wldap32.ber_free(handle, 1);
             return true;
         }
     }
 
-    [SuppressUnmanagedCodeSecurity]
     internal sealed class HGlobalMemHandle : SafeHandleZeroOrMinusOneIsInvalid
     {
         internal HGlobalMemHandle(IntPtr value) : base(true)
@@ -44,14 +42,13 @@ namespace System.DirectoryServices.Protocols
             SetHandle(value);
         }
 
-        override protected bool ReleaseHandle()
+        protected override bool ReleaseHandle()
         {
             Marshal.FreeHGlobal(handle);
             return true;
         }
     }
 
-    [SuppressUnmanagedCodeSecurity]
     internal sealed class ConnectionHandle : SafeHandleZeroOrMinusOneIsInvalid
     {
         internal bool _needDispose = false;
@@ -96,7 +93,7 @@ namespace System.DirectoryServices.Protocols
                 SetHandle(value);
             }
         }
-        override protected bool ReleaseHandle()
+        protected override bool ReleaseHandle()
         {
             if (handle != IntPtr.Zero)
             {

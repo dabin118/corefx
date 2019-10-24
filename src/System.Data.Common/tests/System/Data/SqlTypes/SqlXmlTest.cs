@@ -9,10 +9,10 @@
 // distribute, sublicense, and/or sell copies of the Software, and to
 // permit persons to whom the Software is furnished to do so, subject to
 // the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be
 // included in all copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
 // EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
 // MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
@@ -31,21 +31,8 @@ using Xunit;
 
 namespace System.Data.Tests.SqlTypes
 {
-    public class SqlXmlTest : IDisposable
+    public class SqlXmlTest
     {
-        private CultureInfo _originalCulture;
-
-        public SqlXmlTest()
-        {
-            _originalCulture = CultureInfo.CurrentCulture; ;
-            CultureInfo.CurrentCulture = new CultureInfo("en-US");
-        }
-
-        public void Dispose()
-        {
-            CultureInfo.CurrentCulture = _originalCulture;
-        }
-
         // Test constructor
         [Fact] // .ctor (Stream)
                //[Category ("NotDotNet")] // Name cannot begin with the '.' character, hexadecimal value 0x00. Line 1, position 2
@@ -155,7 +142,7 @@ namespace System.Data.Tests.SqlTypes
 
             XmlReader xrdr = xmlSql.CreateReader();
 
-            Assert.Equal(false, xrdr.Read());
+            Assert.False(xrdr.Read());
         }
 
         [Fact]
@@ -169,7 +156,7 @@ namespace System.Data.Tests.SqlTypes
 
             XmlReader xrdr = xmlSql.CreateReader();
 
-            Assert.Equal(false, xrdr.Read());
+            Assert.False(xrdr.Read());
         }
 
         [Fact]

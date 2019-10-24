@@ -15,8 +15,8 @@ namespace MS.Internal.Xml.XPath
 {
     internal sealed class StringFunctions : ValueQuery
     {
-        private Function.FunctionType _funcType;
-        private IList<Query> _argList;
+        private readonly Function.FunctionType _funcType;
+        private readonly IList<Query> _argList;
 
         public StringFunctions(Function.FunctionType funcType, IList<Query> argList)
         {
@@ -45,23 +45,21 @@ namespace MS.Internal.Xml.XPath
             }
         }
 
-        public override object Evaluate(XPathNodeIterator nodeIterator)
-        {
-            switch (_funcType)
+        public override object Evaluate(XPathNodeIterator nodeIterator) =>
+            _funcType switch
             {
-                case Function.FunctionType.FuncString: return toString(nodeIterator);
-                case Function.FunctionType.FuncConcat: return Concat(nodeIterator);
-                case Function.FunctionType.FuncStartsWith: return StartsWith(nodeIterator);
-                case Function.FunctionType.FuncContains: return Contains(nodeIterator);
-                case Function.FunctionType.FuncSubstringBefore: return SubstringBefore(nodeIterator);
-                case Function.FunctionType.FuncSubstringAfter: return SubstringAfter(nodeIterator);
-                case Function.FunctionType.FuncSubstring: return Substring(nodeIterator);
-                case Function.FunctionType.FuncStringLength: return StringLength(nodeIterator);
-                case Function.FunctionType.FuncNormalize: return Normalize(nodeIterator);
-                case Function.FunctionType.FuncTranslate: return Translate(nodeIterator);
-            }
-            return string.Empty;
-        }
+                Function.FunctionType.FuncString => toString(nodeIterator),
+                Function.FunctionType.FuncConcat => Concat(nodeIterator),
+                Function.FunctionType.FuncStartsWith => StartsWith(nodeIterator),
+                Function.FunctionType.FuncContains => Contains(nodeIterator),
+                Function.FunctionType.FuncSubstringBefore => SubstringBefore(nodeIterator),
+                Function.FunctionType.FuncSubstringAfter => SubstringAfter(nodeIterator),
+                Function.FunctionType.FuncSubstring => Substring(nodeIterator),
+                Function.FunctionType.FuncStringLength => StringLength(nodeIterator),
+                Function.FunctionType.FuncNormalize => Normalize(nodeIterator),
+                Function.FunctionType.FuncTranslate => Translate(nodeIterator),
+                _ => string.Empty,
+            };
 
         internal static string toString(double num)
         {
@@ -167,14 +165,14 @@ namespace MS.Internal.Xml.XPath
             string str1 = _argList[0].Evaluate(nodeIterator).ToString();
             double num = XmlConvert.XPathRound(XmlConvert.ToXPathDouble(_argList[1].Evaluate(nodeIterator))) - 1;
 
-            if (Double.IsNaN(num) || str1.Length <= num)
+            if (double.IsNaN(num) || str1.Length <= num)
             {
                 return string.Empty;
             }
             if (_argList.Count == 3)
             {
                 double num1 = XmlConvert.XPathRound(XmlConvert.ToXPathDouble(_argList[2].Evaluate(nodeIterator)));
-                if (Double.IsNaN(num1))
+                if (double.IsNaN(num1))
                 {
                     return string.Empty;
                 }
@@ -202,7 +200,7 @@ namespace MS.Internal.Xml.XPath
             return str1.Substring((int)num);
         }
 
-        private Double StringLength(XPathNodeIterator nodeIterator)
+        private double StringLength(XPathNodeIterator nodeIterator)
         {
             if (_argList.Count > 0)
             {

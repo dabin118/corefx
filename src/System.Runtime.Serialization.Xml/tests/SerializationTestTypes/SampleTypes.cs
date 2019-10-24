@@ -1,3 +1,7 @@
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
+
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -457,11 +461,10 @@ namespace SerializationTestTypes
             this.List.Add(new Guid("00000000-0000-0000-0000-000000000008"), new PrivateDCStruct(true));
             this.List.Add(new Guid("00000000-0000-0000-0000-000000000009"), new PrivateDefaultCtorIXmlSerializables(true));
             this.List.Add(new Guid("00000000-0000-0000-0000-000000000010"), new PrivateIXmlSerializables());
-            //this.List.Add(new Guid("0c9e174e-cdd8-4b68-a70d-aaeb26c7deeb"), new DCExplicitInterfaceIObjRefReturnsPrivate());
             this.List.Add(new Guid("00000000-0000-0000-0000-000000000011"), new Derived_Override_Prop_GetPrivate_Private(true));
             this.List.Add(new Guid("00000000-0000-0000-0000-000000000012"), new DerivedFromPriC(100));
 
-            this.List.Add(String.Empty, String.Empty);
+            this.List.Add(string.Empty, string.Empty);
             this.List.Add("null", null);
             this.List.Add(double.MaxValue, double.MinValue);
             this.List.Add(new DateTime(), DateTime.MaxValue);
@@ -585,21 +588,21 @@ namespace SerializationTestTypes
     public class SimpleBase
     {
         [DataMember]
-        public string BaseData = String.Empty;
+        public string BaseData = string.Empty;
     }
 
     [DataContract(IsReference = true)]
     public class SimpleBaseDerived : SimpleBase
     {
         [DataMember]
-        public string DerivedData = String.Empty;
+        public string DerivedData = string.Empty;
     }
 
     [DataContract(IsReference = true)]
     public class SimpleBaseDerived2 : SimpleBase
     {
         [DataMember]
-        public string DerivedData = String.Empty;
+        public string DerivedData = string.Empty;
     }
 
     [DataContract(IsReference = true)]
@@ -660,106 +663,6 @@ namespace SerializationTestTypes
         }
     }
 
-    [DataContract(IsReference = true)]
-    internal class SamplePrivateListImplicitWithDC : IList
-    {
-        private List<object> _internalList = new List<object>();
-
-        public SamplePrivateListImplicitWithDC() { }
-
-        public SamplePrivateListImplicitWithDC(bool init)
-        {
-            _internalList.Add(new DateTime());
-            _internalList.Add(TimeSpan.MaxValue);
-            _internalList.Add(String.Empty);
-            _internalList.Add(Double.MaxValue);
-            _internalList.Add(Double.NegativeInfinity);
-            _internalList.Add(new Guid("0c9e174e-cdd8-4b68-a70d-aaeb26c7deeb"));
-        }
-
-        public int Add(object value)
-        {
-            _internalList.Add(value);
-            return _internalList.Count;
-        }
-
-        public void Clear()
-        {
-            _internalList.Clear();
-        }
-
-        public bool Contains(object value)
-        {
-            return _internalList.Contains(value);
-        }
-
-        public int IndexOf(object value)
-        {
-            return _internalList.IndexOf(value);
-        }
-
-        public void Insert(int index, object value)
-        {
-            _internalList.Insert(index, value);
-        }
-
-        public bool IsFixedSize
-        {
-            get { return false; }
-        }
-
-        public bool IsReadOnly
-        {
-            get { return false; }
-        }
-
-        public void Remove(object value)
-        {
-            _internalList.Remove(value);
-        }
-
-        public void RemoveAt(int index)
-        {
-            _internalList.Remove(index);
-        }
-
-        public object this[int index]
-        {
-            get
-            {
-                return _internalList[index];
-            }
-            set
-            {
-                _internalList[index] = value;
-            }
-        }
-
-        public void CopyTo(Array array, int index)
-        {
-        }
-
-        public int Count
-        {
-            get { return _internalList.Count; }
-        }
-
-        public bool IsSynchronized
-        {
-            get { return false; }
-        }
-
-        public object SyncRoot
-        {
-            get { throw new Exception("The method or operation is not implemented."); }
-        }
-
-        public IEnumerator GetEnumerator()
-        {
-            return _internalList.GetEnumerator();
-        }
-    }
-
     [CollectionDataContract(Name = "SampleListImplicitWithDC")]
     [KnownType(typeof(SimpleDCWithRef))]
     public class SampleListImplicitWithDC : IList
@@ -772,9 +675,9 @@ namespace SerializationTestTypes
         {
             _internalList.Add(new DateTime());
             _internalList.Add(TimeSpan.MaxValue);
-            _internalList.Add(String.Empty);
-            _internalList.Add(Double.MaxValue);
-            _internalList.Add(Double.NegativeInfinity);
+            _internalList.Add(string.Empty);
+            _internalList.Add(double.MaxValue);
+            _internalList.Add(double.NegativeInfinity);
             _internalList.Add(new Guid("0c9e174e-cdd8-4b68-a70d-aaeb26c7deeb"));
             _internalList.Add(new SimpleDCWithRef(true));
         }
@@ -873,9 +776,9 @@ namespace SerializationTestTypes
         {
             _internalList.Add(new DateTime());
             _internalList.Add(TimeSpan.MaxValue);
-            _internalList.Add(String.Empty);
-            _internalList.Add(Double.MaxValue);
-            _internalList.Add(Double.NegativeInfinity);
+            _internalList.Add(string.Empty);
+            _internalList.Add(double.MaxValue);
+            _internalList.Add(double.NegativeInfinity);
             _internalList.Add(new Guid("899288c9-8bee-41c1-a6d4-13c477ec1b29"));
         }
 
@@ -973,9 +876,9 @@ namespace SerializationTestTypes
         {
             _internalList.Add(new DateTime());
             _internalList.Add(TimeSpan.MaxValue);
-            _internalList.Add(String.Empty);
-            _internalList.Add(Double.MaxValue);
-            _internalList.Add(Double.NegativeInfinity);
+            _internalList.Add(string.Empty);
+            _internalList.Add(double.MaxValue);
+            _internalList.Add(double.NegativeInfinity);
             _internalList.Add(new Guid("0c9e174e-cdd8-4b68-a70d-aaeb26c7deeb"));
         }
 
@@ -1071,9 +974,9 @@ namespace SerializationTestTypes
         {
             _internalList.Add(new DateTime());
             _internalList.Add(TimeSpan.MaxValue);
-            _internalList.Add(String.Empty);
-            _internalList.Add(Double.MaxValue);
-            _internalList.Add(Double.NegativeInfinity);
+            _internalList.Add(string.Empty);
+            _internalList.Add(double.MaxValue);
+            _internalList.Add(double.NegativeInfinity);
             _internalList.Add(new Guid("0c9e174e-cdd8-4b68-a70d-aaeb26c7deeb"));
         }
 
@@ -1170,9 +1073,9 @@ namespace SerializationTestTypes
         {
             _internalList.Add(new DateTime());
             _internalList.Add(TimeSpan.MaxValue);
-            _internalList.Add(String.Empty);
-            _internalList.Add(Double.MaxValue);
-            _internalList.Add(Double.NegativeInfinity);
+            _internalList.Add(string.Empty);
+            _internalList.Add(double.MaxValue);
+            _internalList.Add(double.NegativeInfinity);
             _internalList.Add(new Guid("0c9e174e-cdd8-4b68-a70d-aaeb26c7deeb"));
         }
 
@@ -1268,9 +1171,9 @@ namespace SerializationTestTypes
         {
             _internalList.Add(new DateTime());
             _internalList.Add(TimeSpan.MaxValue);
-            _internalList.Add(String.Empty);
-            _internalList.Add(Double.MaxValue);
-            _internalList.Add(Double.NegativeInfinity);
+            _internalList.Add(string.Empty);
+            _internalList.Add(double.MaxValue);
+            _internalList.Add(double.NegativeInfinity);
             _internalList.Add(new Guid("0c9e174e-cdd8-4b68-a70d-aaeb26c7deeb"));
         }
 
@@ -1367,9 +1270,9 @@ namespace SerializationTestTypes
         {
             _internalList.Add(new DateTime());
             _internalList.Add(TimeSpan.MaxValue);
-            _internalList.Add(String.Empty);
-            _internalList.Add(Double.MaxValue);
-            _internalList.Add(Double.NegativeInfinity);
+            _internalList.Add(string.Empty);
+            _internalList.Add(double.MaxValue);
+            _internalList.Add(double.NegativeInfinity);
             _internalList.Add(new Guid("0c9e174e-cdd8-4b68-a70d-aaeb26c7deeb"));
             _internalList.Add(new PrivateDC());
         }
@@ -1449,192 +1352,6 @@ namespace SerializationTestTypes
         object ICollection.SyncRoot
         {
             get { throw new Exception("The method or operation is not implemented."); }
-        }
-
-        IEnumerator IEnumerable.GetEnumerator()
-        {
-            return _internalList.GetEnumerator();
-        }
-    }
-
-    [CollectionDataContract(IsReference = true, Name = "SamplePrivateListExplicitWithCDC", Namespace = "Test", ItemName = "Item")]
-    internal class SamplePrivateListExplicitWithCDC : IList
-    {
-        private List<object> _internalList = new List<object>();
-
-        public SamplePrivateListExplicitWithCDC() { }
-        public SamplePrivateListExplicitWithCDC(bool init)
-        {
-            _internalList.Add(new DateTime());
-            _internalList.Add(TimeSpan.MaxValue);
-            _internalList.Add(String.Empty);
-            _internalList.Add(Double.MaxValue);
-            _internalList.Add(Double.NegativeInfinity);
-            _internalList.Add(new Guid("0c9e174e-cdd8-4b68-a70d-aaeb26c7deeb"));
-        }
-
-        int IList.Add(object value)
-        {
-            _internalList.Add(value);
-            return _internalList.Count;
-        }
-
-        void IList.Clear()
-        {
-            _internalList.Clear();
-        }
-
-        bool IList.Contains(object value)
-        {
-            return _internalList.Contains(value);
-        }
-
-        int IList.IndexOf(object value)
-        {
-            return _internalList.IndexOf(value);
-        }
-
-        void IList.Insert(int index, object value)
-        {
-            _internalList.Insert(index, value);
-        }
-
-        bool IList.IsFixedSize
-        {
-            get { return false; }
-        }
-
-        bool IList.IsReadOnly
-        {
-            get { return false; }
-        }
-
-        void IList.Remove(object value)
-        {
-            _internalList.Remove(value);
-        }
-
-        void IList.RemoveAt(int index)
-        {
-            _internalList.Remove(index);
-        }
-
-        object IList.this[int index]
-        {
-            get
-            {
-                return _internalList[index];
-            }
-            set
-            {
-                _internalList[index] = value;
-            }
-        }
-
-        void ICollection.CopyTo(Array array, int index)
-        {
-        }
-
-        int ICollection.Count
-        {
-            get { return _internalList.Count; }
-        }
-
-        bool ICollection.IsSynchronized
-        {
-            get { return false; }
-        }
-
-        object ICollection.SyncRoot
-        {
-            get { throw new Exception("The method or operation is not implemented."); }
-        }
-
-        IEnumerator IEnumerable.GetEnumerator()
-        {
-            return _internalList.GetEnumerator();
-        }
-    }
-
-    [DataContract(IsReference = true)]
-    internal class SamplePrivateListTImplicitWithDC : IList<DC>
-    {
-        private List<DC> _internalList = new List<DC>();
-        public SamplePrivateListTImplicitWithDC() { }
-
-        public SamplePrivateListTImplicitWithDC(bool init)
-        {
-            DC dc1 = new DC();
-            _internalList.Add(dc1);
-            _internalList.Add(new DC());
-            _internalList.Add(dc1);
-        }
-
-        public int IndexOf(DC item)
-        {
-            return _internalList.IndexOf(item);
-        }
-
-        public void Insert(int index, DC item)
-        {
-            _internalList.Insert(index, item);
-        }
-
-        public void RemoveAt(int index)
-        {
-            _internalList.RemoveAt(index);
-        }
-
-        public DC this[int index]
-        {
-            get
-            {
-                return _internalList[index];
-            }
-            set
-            {
-                _internalList[index] = value;
-            }
-        }
-
-        public void Add(DC item)
-        {
-            _internalList.Add(item);
-        }
-
-        public void Clear()
-        {
-            _internalList.Clear();
-        }
-
-        public bool Contains(DC item)
-        {
-            return _internalList.Contains(item);
-        }
-
-        public void CopyTo(DC[] array, int arrayIndex)
-        {
-            _internalList.CopyTo(array, arrayIndex);
-        }
-
-        public int Count
-        {
-            get { return _internalList.Count; }
-        }
-
-        public bool IsReadOnly
-        {
-            get { return false; }
-        }
-
-        public bool Remove(DC item)
-        {
-            return _internalList.Remove(item); ;
-        }
-
-        public IEnumerator<DC> GetEnumerator()
-        {
-            return _internalList.GetEnumerator();
         }
 
         IEnumerator IEnumerable.GetEnumerator()
@@ -2332,152 +2049,6 @@ namespace SerializationTestTypes
         }
     }
 
-    [CollectionDataContract(IsReference = true, Name = "SamplePrivateListTExplicitWithCDC", Namespace = "Test", ItemName = "Item")]
-    internal class SamplePrivateListTExplicitWithCDC : IList<DC>
-    {
-        private List<DC> _internalList = new List<DC>();
-        public SamplePrivateListTExplicitWithCDC() { }
-        public SamplePrivateListTExplicitWithCDC(bool init)
-        {
-            DC dc1 = new DC();
-            _internalList.Add(dc1);
-            _internalList.Add(new DC());
-            _internalList.Add(dc1);
-        }
-
-        int IList<DC>.IndexOf(DC item)
-        {
-            return _internalList.IndexOf(item);
-        }
-
-        void IList<DC>.Insert(int index, DC item)
-        {
-            _internalList.Insert(index, item);
-        }
-
-        void IList<DC>.RemoveAt(int index)
-        {
-            _internalList.RemoveAt(index);
-        }
-
-        DC IList<DC>.this[int index]
-        {
-            get
-            {
-                return _internalList[index];
-            }
-            set
-            {
-                _internalList[index] = value;
-            }
-        }
-
-        void ICollection<DC>.Add(DC item)
-        {
-            _internalList.Add(item);
-        }
-
-        void ICollection<DC>.Clear()
-        {
-            _internalList.Clear();
-        }
-
-        bool ICollection<DC>.Contains(DC item)
-        {
-            return _internalList.Contains(item);
-        }
-
-        void ICollection<DC>.CopyTo(DC[] array, int arrayIndex)
-        {
-            _internalList.CopyTo(array, arrayIndex);
-        }
-
-        int ICollection<DC>.Count
-        {
-            get { return _internalList.Count; }
-        }
-
-        bool ICollection<DC>.IsReadOnly
-        {
-            get { return false; }
-        }
-
-        bool ICollection<DC>.Remove(DC item)
-        {
-            return _internalList.Remove(item); ;
-        }
-
-        IEnumerator<DC> IEnumerable<DC>.GetEnumerator()
-        {
-            return _internalList.GetEnumerator();
-        }
-
-        IEnumerator IEnumerable.GetEnumerator()
-        {
-            return _internalList.GetEnumerator();
-        }
-    }
-
-    [DataContract(IsReference = true)]
-    internal class SamplePrivateICollectionTImplicitWithDC : ICollection<DC>
-    {
-        private List<DC> _internalList = new List<DC>();
-        public SamplePrivateICollectionTImplicitWithDC() { }
-
-        public SamplePrivateICollectionTImplicitWithDC(bool init)
-        {
-            DC dc1 = new DC();
-            _internalList.Add(dc1);
-            _internalList.Add(new DC());
-            _internalList.Add(dc1);
-        }
-
-        public void Add(DC item)
-        {
-            _internalList.Add(item);
-        }
-
-        public void Clear()
-        {
-            _internalList.Clear();
-        }
-
-        public bool Contains(DC item)
-        {
-            return _internalList.Contains(item);
-        }
-
-        public void CopyTo(DC[] array, int arrayIndex)
-        {
-            _internalList.CopyTo(array, arrayIndex);
-        }
-
-        public int Count
-        {
-            get { return _internalList.Count; }
-        }
-
-        public bool IsReadOnly
-        {
-            get { return false; }
-        }
-
-        public bool Remove(DC item)
-        {
-            return _internalList.Remove(item); ;
-        }
-
-        public IEnumerator<DC> GetEnumerator()
-        {
-            return _internalList.GetEnumerator();
-        }
-
-        IEnumerator IEnumerable.GetEnumerator()
-        {
-            return _internalList.GetEnumerator();
-        }
-    }
-
     [DataContract(IsReference = true)]
     public class SampleICollectionTImplicitWithDC : ICollection<DC>
     {
@@ -2892,90 +2463,6 @@ namespace SerializationTestTypes
         }
     }
 
-    [CollectionDataContract(IsReference = true, Name = "SamplePrivateICollectionTExplicitWithCDC", Namespace = "Test", ItemName = "Item")]
-    internal class SamplePrivateICollectionTExplicitWithCDC : ICollection<DC>
-    {
-        private List<DC> _internalList = new List<DC>();
-        public SamplePrivateICollectionTExplicitWithCDC() { }
-        public SamplePrivateICollectionTExplicitWithCDC(bool init)
-        {
-            DC dc1 = new DC();
-            _internalList.Add(dc1);
-            _internalList.Add(new DC());
-            _internalList.Add(dc1);
-        }
-
-        void ICollection<DC>.Add(DC item)
-        {
-            _internalList.Add(item);
-        }
-
-        void ICollection<DC>.Clear()
-        {
-            _internalList.Clear();
-        }
-
-        bool ICollection<DC>.Contains(DC item)
-        {
-            return _internalList.Contains(item);
-        }
-
-        void ICollection<DC>.CopyTo(DC[] array, int arrayIndex)
-        {
-            _internalList.CopyTo(array, arrayIndex);
-        }
-
-        int ICollection<DC>.Count
-        {
-            get { return _internalList.Count; }
-        }
-
-        bool ICollection<DC>.IsReadOnly
-        {
-            get { return false; }
-        }
-
-        bool ICollection<DC>.Remove(DC item)
-        {
-            return _internalList.Remove(item); ;
-        }
-
-        IEnumerator<DC> IEnumerable<DC>.GetEnumerator()
-        {
-            return _internalList.GetEnumerator();
-        }
-
-        IEnumerator IEnumerable.GetEnumerator()
-        {
-            return _internalList.GetEnumerator();
-        }
-    }
-
-    [DataContract(IsReference = true)]
-    internal class SamplePrivateIEnumerableTImplicitWithDC : IEnumerable<DC>
-    {
-        private List<DC> _internalList = new List<DC>();
-        public SamplePrivateIEnumerableTImplicitWithDC() { }
-
-        public SamplePrivateIEnumerableTImplicitWithDC(bool init)
-        {
-            DC dc1 = new DC();
-            _internalList.Add(dc1);
-            _internalList.Add(new DC());
-            _internalList.Add(dc1);
-        }
-
-        public IEnumerator<DC> GetEnumerator()
-        {
-            return _internalList.GetEnumerator();
-        }
-
-        IEnumerator IEnumerable.GetEnumerator()
-        {
-            return _internalList.GetEnumerator();
-        }
-    }
-
     [DataContract(IsReference = true)]
     public class SampleIEnumerableTImplicitWithDC : IEnumerable<DC>
     {
@@ -3170,35 +2657,6 @@ namespace SerializationTestTypes
         }
     }
 
-    [CollectionDataContract(IsReference = true, Name = "SamplePrivateIEnumerableTExplicitWithCDC", Namespace = "Test", ItemName = "Item")]
-    internal class SamplePrivateIEnumerableTExplicitWithCDC : IEnumerable<DC>
-    {
-        private List<DC> _internalList = new List<DC>();
-        public SamplePrivateIEnumerableTExplicitWithCDC() { }
-        public SamplePrivateIEnumerableTExplicitWithCDC(bool init)
-        {
-            DC dc1 = new DC();
-            _internalList.Add(dc1);
-            _internalList.Add(new DC());
-            _internalList.Add(dc1);
-        }
-
-        public void Add(DC dc)
-        {
-            _internalList.Add(dc);
-        }
-
-        IEnumerator<DC> IEnumerable<DC>.GetEnumerator()
-        {
-            return _internalList.GetEnumerator();
-        }
-
-        IEnumerator IEnumerable.GetEnumerator()
-        {
-            return _internalList.GetEnumerator();
-        }
-    }
-
     [DataContract(IsReference = true)]
     public class SampleICollectionImplicitWithDC : ICollection
     {
@@ -3210,55 +2668,9 @@ namespace SerializationTestTypes
         {
             _internalList.Add(new DateTime());
             _internalList.Add(TimeSpan.MaxValue);
-            _internalList.Add(String.Empty);
-            _internalList.Add(Double.MaxValue);
-            _internalList.Add(Double.NegativeInfinity);
-            _internalList.Add(new Guid("0c9e174e-cdd8-4b68-a70d-aaeb26c7deeb"));
-        }
-        public int Add(object value)
-        {
-            _internalList.Add(value);
-            return _internalList.Count;
-        }
-
-        public void CopyTo(Array array, int index)
-        {
-        }
-
-        public int Count
-        {
-            get { return _internalList.Count; }
-        }
-
-        public bool IsSynchronized
-        {
-            get { return false; }
-        }
-
-        public object SyncRoot
-        {
-            get { throw new Exception("The method or operation is not implemented."); }
-        }
-
-        public IEnumerator GetEnumerator()
-        {
-            return _internalList.GetEnumerator();
-        }
-    }
-
-    [DataContract(IsReference = true)]
-    internal class SamplePrivateICollectionImplicitWithDC : ICollection
-    {
-        private List<object> _internalList = new List<object>();
-        public SamplePrivateICollectionImplicitWithDC() { }
-
-        public SamplePrivateICollectionImplicitWithDC(bool init)
-        {
-            _internalList.Add(new DateTime());
-            _internalList.Add(TimeSpan.MaxValue);
-            _internalList.Add(String.Empty);
-            _internalList.Add(Double.MaxValue);
-            _internalList.Add(Double.NegativeInfinity);
+            _internalList.Add(string.Empty);
+            _internalList.Add(double.MaxValue);
+            _internalList.Add(double.NegativeInfinity);
             _internalList.Add(new Guid("0c9e174e-cdd8-4b68-a70d-aaeb26c7deeb"));
         }
         public int Add(object value)
@@ -3302,9 +2714,9 @@ namespace SerializationTestTypes
         {
             _internalList.Add(new DateTime());
             _internalList.Add(TimeSpan.MaxValue);
-            _internalList.Add(String.Empty);
-            _internalList.Add(Double.MaxValue);
-            _internalList.Add(Double.NegativeInfinity);
+            _internalList.Add(string.Empty);
+            _internalList.Add(double.MaxValue);
+            _internalList.Add(double.NegativeInfinity);
             _internalList.Add(new Guid("0c9e174e-cdd8-4b68-a70d-aaeb26c7deeb"));
         }
         public int Add(object value)
@@ -3348,9 +2760,9 @@ namespace SerializationTestTypes
         {
             _internalList.Add(new DateTime());
             _internalList.Add(TimeSpan.MaxValue);
-            _internalList.Add(String.Empty);
-            _internalList.Add(Double.MaxValue);
-            _internalList.Add(Double.NegativeInfinity);
+            _internalList.Add(string.Empty);
+            _internalList.Add(double.MaxValue);
+            _internalList.Add(double.NegativeInfinity);
             _internalList.Add(new Guid("0c9e174e-cdd8-4b68-a70d-aaeb26c7deeb"));
         }
         public int Add(object value)
@@ -3393,9 +2805,9 @@ namespace SerializationTestTypes
         {
             _internalList.Add(new DateTime());
             _internalList.Add(TimeSpan.MaxValue);
-            _internalList.Add(String.Empty);
-            _internalList.Add(Double.MaxValue);
-            _internalList.Add(Double.NegativeInfinity);
+            _internalList.Add(string.Empty);
+            _internalList.Add(double.MaxValue);
+            _internalList.Add(double.NegativeInfinity);
             _internalList.Add(new Guid("0c9e174e-cdd8-4b68-a70d-aaeb26c7deeb"));
         }
         public int Add(object value)
@@ -3439,9 +2851,9 @@ namespace SerializationTestTypes
         {
             _internalList.Add(new DateTime());
             _internalList.Add(TimeSpan.MaxValue);
-            _internalList.Add(String.Empty);
-            _internalList.Add(Double.MaxValue);
-            _internalList.Add(Double.NegativeInfinity);
+            _internalList.Add(string.Empty);
+            _internalList.Add(double.MaxValue);
+            _internalList.Add(double.NegativeInfinity);
             _internalList.Add(new Guid("0c9e174e-cdd8-4b68-a70d-aaeb26c7deeb"));
         }
 
@@ -3485,9 +2897,9 @@ namespace SerializationTestTypes
         {
             _internalList.Add(new DateTime());
             _internalList.Add(TimeSpan.MaxValue);
-            _internalList.Add(String.Empty);
-            _internalList.Add(Double.MaxValue);
-            _internalList.Add(Double.NegativeInfinity);
+            _internalList.Add(string.Empty);
+            _internalList.Add(double.MaxValue);
+            _internalList.Add(double.NegativeInfinity);
             _internalList.Add(new Guid("0c9e174e-cdd8-4b68-a70d-aaeb26c7deeb"));
         }
 
@@ -3535,57 +2947,11 @@ namespace SerializationTestTypes
         {
             _internalList.Add(new DateTime());
             _internalList.Add(TimeSpan.MaxValue);
-            _internalList.Add(String.Empty);
-            _internalList.Add(Double.MaxValue);
-            _internalList.Add(Double.NegativeInfinity);
+            _internalList.Add(string.Empty);
+            _internalList.Add(double.MaxValue);
+            _internalList.Add(double.NegativeInfinity);
             _internalList.Add(new Guid("0c9e174e-cdd8-4b68-a70d-aaeb26c7deeb"));
             _internalList.Add(new PrivateDC());
-        }
-
-        public int Add(object value)
-        {
-            _internalList.Add(value);
-            return _internalList.Count;
-        }
-
-        void ICollection.CopyTo(Array array, int index)
-        {
-        }
-
-        int ICollection.Count
-        {
-            get { return _internalList.Count; }
-        }
-
-        bool ICollection.IsSynchronized
-        {
-            get { return false; }
-        }
-
-        object ICollection.SyncRoot
-        {
-            get { throw new Exception("The method or operation is not implemented."); }
-        }
-
-        IEnumerator IEnumerable.GetEnumerator()
-        {
-            return _internalList.GetEnumerator();
-        }
-    }
-
-    [CollectionDataContract(IsReference = true, Name = "SamplePrivateICollectionExplicitWithCDC", Namespace = "Test", ItemName = "Item")]
-    internal class SamplePrivateICollectionExplicitWithCDC : ICollection
-    {
-        private List<object> _internalList = new List<object>();
-        public SamplePrivateICollectionExplicitWithCDC() { }
-        public SamplePrivateICollectionExplicitWithCDC(bool init)
-        {
-            _internalList.Add(new DateTime());
-            _internalList.Add(TimeSpan.MaxValue);
-            _internalList.Add(String.Empty);
-            _internalList.Add(Double.MaxValue);
-            _internalList.Add(Double.NegativeInfinity);
-            _internalList.Add(new Guid("0c9e174e-cdd8-4b68-a70d-aaeb26c7deeb"));
         }
 
         public int Add(object value)
@@ -3630,37 +2996,9 @@ namespace SerializationTestTypes
         {
             _internalList.Add(new DateTime());
             _internalList.Add(TimeSpan.MaxValue);
-            _internalList.Add(String.Empty);
-            _internalList.Add(Double.MaxValue);
-            _internalList.Add(Double.NegativeInfinity);
-            _internalList.Add(new Guid("0c9e174e-cdd8-4b68-a70d-aaeb26c7deeb"));
-        }
-        public int Add(object value)
-        {
-            _internalList.Add(value);
-            return _internalList.Count;
-        }
-
-        public IEnumerator GetEnumerator()
-        {
-            return _internalList.GetEnumerator();
-        }
-    }
-
-    [DataContract(IsReference = true)]
-    internal class SamplePrivateIEnumerableImplicitWithDC : IEnumerable
-    {
-        private List<object> _internalList = new List<object>();
-
-        public SamplePrivateIEnumerableImplicitWithDC() { }
-
-        public SamplePrivateIEnumerableImplicitWithDC(bool init)
-        {
-            _internalList.Add(new DateTime());
-            _internalList.Add(TimeSpan.MaxValue);
-            _internalList.Add(String.Empty);
-            _internalList.Add(Double.MaxValue);
-            _internalList.Add(Double.NegativeInfinity);
+            _internalList.Add(string.Empty);
+            _internalList.Add(double.MaxValue);
+            _internalList.Add(double.NegativeInfinity);
             _internalList.Add(new Guid("0c9e174e-cdd8-4b68-a70d-aaeb26c7deeb"));
         }
         public int Add(object value)
@@ -3686,9 +3024,9 @@ namespace SerializationTestTypes
         {
             _internalList.Add(new DateTime());
             _internalList.Add(TimeSpan.MaxValue);
-            _internalList.Add(String.Empty);
-            _internalList.Add(Double.MaxValue);
-            _internalList.Add(Double.NegativeInfinity);
+            _internalList.Add(string.Empty);
+            _internalList.Add(double.MaxValue);
+            _internalList.Add(double.NegativeInfinity);
             _internalList.Add(new Guid("0c9e174e-cdd8-4b68-a70d-aaeb26c7deeb"));
         }
         public int Add(object value)
@@ -3713,9 +3051,9 @@ namespace SerializationTestTypes
         {
             _internalList.Add(new DateTime());
             _internalList.Add(TimeSpan.MaxValue);
-            _internalList.Add(String.Empty);
-            _internalList.Add(Double.MaxValue);
-            _internalList.Add(Double.NegativeInfinity);
+            _internalList.Add(string.Empty);
+            _internalList.Add(double.MaxValue);
+            _internalList.Add(double.NegativeInfinity);
             _internalList.Add(new Guid("0c9e174e-cdd8-4b68-a70d-aaeb26c7deeb"));
         }
 
@@ -3740,9 +3078,9 @@ namespace SerializationTestTypes
         {
             _internalList.Add(new DateTime());
             _internalList.Add(TimeSpan.MaxValue);
-            _internalList.Add(String.Empty);
-            _internalList.Add(Double.MaxValue);
-            _internalList.Add(Double.NegativeInfinity);
+            _internalList.Add(string.Empty);
+            _internalList.Add(double.MaxValue);
+            _internalList.Add(double.NegativeInfinity);
             _internalList.Add(new Guid("0c9e174e-cdd8-4b68-a70d-aaeb26c7deeb"));
         }
 
@@ -3767,9 +3105,9 @@ namespace SerializationTestTypes
         {
             _internalList.Add(new DateTime());
             _internalList.Add(TimeSpan.MaxValue);
-            _internalList.Add(String.Empty);
-            _internalList.Add(Double.MaxValue);
-            _internalList.Add(Double.NegativeInfinity);
+            _internalList.Add(string.Empty);
+            _internalList.Add(double.MaxValue);
+            _internalList.Add(double.NegativeInfinity);
             _internalList.Add(new Guid("0c9e174e-cdd8-4b68-a70d-aaeb26c7deeb"));
         }
 
@@ -3794,9 +3132,9 @@ namespace SerializationTestTypes
         {
             _internalList.Add(new DateTime());
             _internalList.Add(TimeSpan.MaxValue);
-            _internalList.Add(String.Empty);
-            _internalList.Add(Double.MaxValue);
-            _internalList.Add(Double.NegativeInfinity);
+            _internalList.Add(string.Empty);
+            _internalList.Add(double.MaxValue);
+            _internalList.Add(double.NegativeInfinity);
             _internalList.Add(new Guid("0c9e174e-cdd8-4b68-a70d-aaeb26c7deeb"));
         }
 
@@ -3822,38 +3160,11 @@ namespace SerializationTestTypes
         {
             _internalList.Add(new DateTime());
             _internalList.Add(TimeSpan.MaxValue);
-            _internalList.Add(String.Empty);
-            _internalList.Add(Double.MaxValue);
-            _internalList.Add(Double.NegativeInfinity);
+            _internalList.Add(string.Empty);
+            _internalList.Add(double.MaxValue);
+            _internalList.Add(double.NegativeInfinity);
             _internalList.Add(new Guid("0c9e174e-cdd8-4b68-a70d-aaeb26c7deeb"));
             _internalList.Add(new PrivateDC());
-        }
-
-        public int Add(object value)
-        {
-            _internalList.Add(value);
-            return _internalList.Count;
-        }
-
-        IEnumerator IEnumerable.GetEnumerator()
-        {
-            return _internalList.GetEnumerator();
-        }
-    }
-
-    [CollectionDataContract(IsReference = true, Name = "SamplePrivateIEnumerableExplicitWithCDC", Namespace = "Test", ItemName = "Item")]
-    internal class SamplePrivateIEnumerableExplicitWithCDC : IEnumerable
-    {
-        private List<object> _internalList = new List<object>();
-        public SamplePrivateIEnumerableExplicitWithCDC() { }
-        public SamplePrivateIEnumerableExplicitWithCDC(bool init)
-        {
-            _internalList.Add(new DateTime());
-            _internalList.Add(TimeSpan.MaxValue);
-            _internalList.Add(String.Empty);
-            _internalList.Add(Double.MaxValue);
-            _internalList.Add(Double.NegativeInfinity);
-            _internalList.Add(new Guid("0c9e174e-cdd8-4b68-a70d-aaeb26c7deeb"));
         }
 
         public int Add(object value)
@@ -4468,9 +3779,9 @@ namespace SerializationTestTypes
 
     [CollectionDataContract(IsReference = true, ItemName = "DictItem", KeyName = "DictKey", Name = "MyGenericIDictionaryKVContainsPrivateDC", Namespace = "MyDictNS", ValueName = "DictValue")]
     [KnownType(typeof(PrivateDC))]
-    public class MyGenericIDictionaryKVContainsPrivateDC : IDictionary<Object, Object>
+    public class MyGenericIDictionaryKVContainsPrivateDC : IDictionary<object, object>
     {
-        private Dictionary<Object, Object> _data = new Dictionary<Object, Object>();
+        private Dictionary<object, object> _data = new Dictionary<object, object>();
 
         public MyGenericIDictionaryKVContainsPrivateDC()
         {
@@ -4479,168 +3790,6 @@ namespace SerializationTestTypes
         public MyGenericIDictionaryKVContainsPrivateDC(bool init)
         {
             _data.Add(new PrivateDC(), new PrivateDC());
-        }
-
-        public void Add(Object key, Object value)
-        {
-            _data.Add(key, value);
-        }
-
-        public void Clear()
-        {
-            _data.Clear();
-        }
-
-        public bool Contains(Object key)
-        {
-            return _data.ContainsKey(key);
-        }
-
-        public IDictionaryEnumerator GetEnumerator()
-        {
-            return _data.GetEnumerator();
-        }
-
-        public bool IsFixedSize
-        {
-            get { return false; }
-        }
-
-        public bool IsReadOnly
-        {
-            get { return true; }
-        }
-
-        public ICollection Keys
-        {
-            get { return _data.Keys; }
-        }
-
-        public void Remove(Object key)
-        {
-            _data.Remove(key);
-        }
-
-        public ICollection Values
-        {
-            get { return _data.Keys; }
-        }
-
-        public Object this[Object key]
-        {
-            get
-            {
-                return _data[key];
-            }
-            set
-            {
-                _data[key] = value; ;
-            }
-        }
-
-        public void CopyTo(Array array, int index)
-        {
-            throw new Exception("TEST EXCEPTION!!!!: CopyTo method or operation is not implemented.");
-        }
-
-        public int Count
-        {
-            get { return _data.Count; }
-        }
-
-        public bool IsSynchronized
-        {
-            get { return false; }
-        }
-
-        public object SyncRoot
-        {
-            get { return this; }
-        }
-
-        IEnumerator IEnumerable.GetEnumerator()
-        {
-            return _data.GetEnumerator();
-        }
-
-        public bool ContainsKey(Object key)
-        {
-            return _data.ContainsKey(key);
-        }
-
-        ICollection<Object> IDictionary<Object, Object>.Keys
-        {
-            get { return _data.Keys; }
-        }
-
-        bool IDictionary<Object, Object>.Remove(Object key)
-        {
-            return _data.Remove(key);
-        }
-
-        public bool TryGetValue(Object key, out Object value)
-        {
-            return _data.TryGetValue(key, out value);
-        }
-
-        ICollection<Object> IDictionary<Object, Object>.Values
-        {
-            get { return _data.Values; }
-        }
-
-        Object IDictionary<Object, Object>.this[Object key]
-        {
-            get
-            {
-                return _data[key];
-            }
-            set
-            {
-                _data[key] = value;
-            }
-        }
-
-        public void Add(KeyValuePair<Object, Object> item)
-        {
-            _data.Add(item.Key, item.Value);
-        }
-
-        public bool Contains(KeyValuePair<Object, Object> item)
-        {
-            return _data.ContainsKey(item.Key);
-        }
-
-        public void CopyTo(KeyValuePair<Object, Object>[] array, int arrayIndex)
-        {
-            throw new Exception("TEST EXCEPTION!!: CopyTO: method or operation is not implemented.");
-        }
-
-        public bool Remove(KeyValuePair<Object, Object> item)
-        {
-            return _data.Remove(item.Key);
-        }
-
-        IEnumerator<KeyValuePair<Object, Object>> IEnumerable<KeyValuePair<Object, Object>>.GetEnumerator()
-        {
-            return _data.GetEnumerator();
-        }
-    }
-
-
-    [CollectionDataContract(IsReference = true, ItemName = "DictItem", KeyName = "DictKey", Name = "MyIDictionaryContainsPublicDC", Namespace = "MyDictNS", ValueName = "DictValue")]
-    [KnownType(typeof(PublicDC))]
-    internal class MyPrivateIDictionaryContainsPublicDC : IDictionary
-    {
-        private Dictionary<object, object> _data = new Dictionary<object, object>();
-
-        public MyPrivateIDictionaryContainsPublicDC()
-        {
-        }
-
-        public MyPrivateIDictionaryContainsPublicDC(bool init)
-        {
-            _data.Add(new PublicDC(), new PublicDC());
-            _data.Add(new PublicDC(), new PublicDC());
         }
 
         public void Add(object key, object value)
@@ -4724,133 +3873,33 @@ namespace SerializationTestTypes
         {
             return _data.GetEnumerator();
         }
-    }
 
-    [CollectionDataContract(Name = "MyPrivateGenericIDictionaryKVContainsPublicDC")]
-    internal class MyPrivateGenericIDictionaryKVContainsPublicDC : IDictionary<PublicDC, PublicDC>
-    {
-        private Dictionary<PublicDC, PublicDC> _data = new Dictionary<PublicDC, PublicDC>();
-
-        public MyPrivateGenericIDictionaryKVContainsPublicDC()
-        {
-        }
-        public MyPrivateGenericIDictionaryKVContainsPublicDC(bool init)
-        {
-            PublicDC dc = new PublicDC();
-            dc.Data = "hi";
-            _data.Add(new PublicDC(), dc);
-            _data.Add(new PublicDC(), new PublicDC());
-            _data.Add(dc, new PublicDC());
-        }
-
-        public void Add(PublicDC key, PublicDC value)
-        {
-            _data.Add(key, value);
-        }
-
-        public void Clear()
-        {
-            _data.Clear();
-        }
-
-        public bool Contains(PublicDC key)
+        public bool ContainsKey(object key)
         {
             return _data.ContainsKey(key);
         }
 
-        public IDictionaryEnumerator GetEnumerator()
-        {
-            return _data.GetEnumerator();
-        }
-
-        public bool IsFixedSize
-        {
-            get { return false; }
-        }
-
-        public bool IsReadOnly
-        {
-            get { return true; }
-        }
-
-        public ICollection Keys
+        ICollection<object> IDictionary<object, object>.Keys
         {
             get { return _data.Keys; }
         }
 
-        public void Remove(PublicDC key)
-        {
-            _data.Remove(key);
-        }
-
-        public ICollection Values
-        {
-            get { return _data.Keys; }
-        }
-
-        public PublicDC this[PublicDC key]
-        {
-            get
-            {
-                return _data[key];
-            }
-            set
-            {
-                _data[key] = value; ;
-            }
-        }
-
-        public void CopyTo(Array array, int index)
-        {
-            throw new Exception("TEST EXCEPTION!!!!: CopyTo method or operation is not implemented.");
-        }
-
-        public int Count
-        {
-            get { return _data.Count; }
-        }
-
-        public bool IsSynchronized
-        {
-            get { return false; }
-        }
-
-        public object SyncRoot
-        {
-            get { return this; }
-        }
-
-        IEnumerator IEnumerable.GetEnumerator()
-        {
-            return _data.GetEnumerator();
-        }
-
-        public bool ContainsKey(PublicDC key)
-        {
-            return _data.ContainsKey(key);
-        }
-
-        ICollection<PublicDC> IDictionary<PublicDC, PublicDC>.Keys
-        {
-            get { return _data.Keys; }
-        }
-
-        bool IDictionary<PublicDC, PublicDC>.Remove(PublicDC key)
+        bool IDictionary<object, object>.Remove(object key)
         {
             return _data.Remove(key);
         }
 
-        public bool TryGetValue(PublicDC key, out PublicDC value)
+        public bool TryGetValue(object key, out object value)
         {
             return _data.TryGetValue(key, out value);
         }
 
-        ICollection<PublicDC> IDictionary<PublicDC, PublicDC>.Values
+        ICollection<object> IDictionary<object, object>.Values
         {
             get { return _data.Values; }
         }
 
-        PublicDC IDictionary<PublicDC, PublicDC>.this[PublicDC key]
+        object IDictionary<object, object>.this[object key]
         {
             get
             {
@@ -4862,190 +3911,27 @@ namespace SerializationTestTypes
             }
         }
 
-        public void Add(KeyValuePair<PublicDC, PublicDC> item)
+        public void Add(KeyValuePair<object, object> item)
         {
             _data.Add(item.Key, item.Value);
         }
 
-        public bool Contains(KeyValuePair<PublicDC, PublicDC> item)
+        public bool Contains(KeyValuePair<object, object> item)
         {
             return _data.ContainsKey(item.Key);
         }
 
-        public void CopyTo(KeyValuePair<PublicDC, PublicDC>[] array, int arrayIndex)
+        public void CopyTo(KeyValuePair<object, object>[] array, int arrayIndex)
         {
             throw new Exception("TEST EXCEPTION!!: CopyTO: method or operation is not implemented.");
         }
 
-        public bool Remove(KeyValuePair<PublicDC, PublicDC> item)
+        public bool Remove(KeyValuePair<object, object> item)
         {
             return _data.Remove(item.Key);
         }
 
-        IEnumerator<KeyValuePair<PublicDC, PublicDC>> IEnumerable<KeyValuePair<PublicDC, PublicDC>>.GetEnumerator()
-        {
-            return _data.GetEnumerator();
-        }
-    }
-
-    [CollectionDataContract(IsReference = true, ItemName = "DictItem", KeyName = "DictKey", Name = "MyPrivateGenericIDictionaryKVContainsPrivateDC", Namespace = "MyDictNS", ValueName = "DictValue")]
-    [KnownType(typeof(PrivateDC))]
-    internal class MyPrivateGenericIDictionaryKVContainsPrivateDC : IDictionary<Object, Object>
-    {
-        private Dictionary<Object, Object> _data = new Dictionary<Object, Object>();
-
-        public MyPrivateGenericIDictionaryKVContainsPrivateDC()
-        {
-        }
-
-        public MyPrivateGenericIDictionaryKVContainsPrivateDC(bool init)
-        {
-            PrivateDC dc = new PrivateDC();
-
-            _data.Add(new PrivateDC(), dc);
-            _data.Add(dc, new PrivateDC());
-        }
-
-        public void Add(Object key, Object value)
-        {
-            _data.Add(key, value);
-        }
-
-        public void Clear()
-        {
-            _data.Clear();
-        }
-
-        public bool Contains(Object key)
-        {
-            return _data.ContainsKey(key);
-        }
-
-        public IDictionaryEnumerator GetEnumerator()
-        {
-            return _data.GetEnumerator();
-        }
-
-        public bool IsFixedSize
-        {
-            get { return false; }
-        }
-
-        public bool IsReadOnly
-        {
-            get { return true; }
-        }
-
-        public ICollection Keys
-        {
-            get { return _data.Keys; }
-        }
-
-        public void Remove(Object key)
-        {
-            _data.Remove(key);
-        }
-
-        public ICollection Values
-        {
-            get { return _data.Keys; }
-        }
-
-        public Object this[Object key]
-        {
-            get
-            {
-                return _data[key];
-            }
-            set
-            {
-                _data[key] = value; ;
-            }
-        }
-
-        public void CopyTo(Array array, int index)
-        {
-            throw new Exception("TEST EXCEPTION!!!!: CopyTo method or operation is not implemented.");
-        }
-
-        public int Count
-        {
-            get { return _data.Count; }
-        }
-
-        public bool IsSynchronized
-        {
-            get { return false; }
-        }
-
-        public object SyncRoot
-        {
-            get { return this; }
-        }
-
-        IEnumerator IEnumerable.GetEnumerator()
-        {
-            return _data.GetEnumerator();
-        }
-
-        public bool ContainsKey(Object key)
-        {
-            return _data.ContainsKey(key);
-        }
-
-        ICollection<Object> IDictionary<Object, Object>.Keys
-        {
-            get { return _data.Keys; }
-        }
-
-        bool IDictionary<Object, Object>.Remove(Object key)
-        {
-            return _data.Remove(key);
-        }
-
-        public bool TryGetValue(Object key, out Object value)
-        {
-            return _data.TryGetValue(key, out value);
-        }
-
-        ICollection<Object> IDictionary<Object, Object>.Values
-        {
-            get { return _data.Values; }
-        }
-
-        Object IDictionary<Object, Object>.this[Object key]
-        {
-            get
-            {
-                return _data[key];
-            }
-            set
-            {
-                _data[key] = value;
-            }
-        }
-
-        public void Add(KeyValuePair<Object, Object> item)
-        {
-            _data.Add(item.Key, item.Value);
-        }
-
-        public bool Contains(KeyValuePair<Object, Object> item)
-        {
-            return _data.ContainsKey(item.Key);
-        }
-
-        public void CopyTo(KeyValuePair<Object, Object>[] array, int arrayIndex)
-        {
-            throw new Exception("TEST EXCEPTION!!: CopyTO: method or operation is not implemented.");
-        }
-
-        public bool Remove(KeyValuePair<Object, Object> item)
-        {
-            return _data.Remove(item.Key);
-        }
-
-        IEnumerator<KeyValuePair<Object, Object>> IEnumerable<KeyValuePair<Object, Object>>.GetEnumerator()
+        IEnumerator<KeyValuePair<object, object>> IEnumerable<KeyValuePair<object, object>>.GetEnumerator()
         {
             return _data.GetEnumerator();
         }
@@ -5079,25 +3965,8 @@ namespace SerializationTestTypes
 
         public DCDictionaryMixedKTContainer1()
         {
-            //DictData.Add(new PublicDC(), new PublicDC());
             DictData.Add(new PrivateDC(), new PublicDC());
             DictData.Add(new PublicDC(), new PrivateDC());
-            //DictData.Add(new PrivateDC(), new PrivateDC());
-
-            //DictData.Add(new PublicDCDerivedPublic(), new PublicDCDerivedPublic());
-            //DictData.Add(new PublicDCDerivedPrivate(), new PublicDCDerivedPublic());
-            //DictData.Add(new PublicDCDerivedPublic(), new PublicDCDerivedPrivate());
-            //DictData.Add(new PublicDCDerivedPrivate(), new PublicDCDerivedPrivate());
-
-            //DictData.Add(new PublicDC(), new PublicDCDerivedPublic());
-            //DictData.Add(new PublicDC(), new PublicDCDerivedPrivate());
-            //DictData.Add(new PrivateDC(), new PublicDCDerivedPublic());
-            //DictData.Add(new PrivateDC(), new PublicDCDerivedPrivate());
-
-            //DictData.Add(new PublicDCDerivedPublic(), new PublicDC());
-            //DictData.Add(new PublicDCDerivedPrivate(), new PublicDC());
-            //DictData.Add(new PublicDCDerivedPublic(), new PrivateDC());
-            //DictData.Add(new PublicDCDerivedPrivate(), new PrivateDC());
         }
 
         public static DCDictionaryMixedKTContainer1 CreateInstance()
@@ -5221,7 +4090,7 @@ namespace SerializationTestTypes
         {
             PrivateDC other = obj as PrivateDC;
             if (other == null) return false;
-            if (String.IsNullOrEmpty(other.Data) && String.IsNullOrEmpty(Data)) { return true; }
+            if (string.IsNullOrEmpty(other.Data) && string.IsNullOrEmpty(Data)) { return true; }
             return other.Data.Equals(Data);
         }
         public override int GetHashCode()
@@ -5241,7 +4110,7 @@ namespace SerializationTestTypes
         {
             PublicDC other = obj as PublicDC;
             if (other == null) return false;
-            if (String.IsNullOrEmpty(other.Data) && String.IsNullOrEmpty(Data)) { return true; }
+            if (string.IsNullOrEmpty(other.Data) && string.IsNullOrEmpty(Data)) { return true; }
             return other.Data.Equals(Data);
         }
         public override int GetHashCode()
@@ -5549,34 +4418,8 @@ namespace SerializationTestTypes
         [DataMember]
         private string _data;
 
-        public PrivateDCClassPrivateDM() { _data = String.Empty; }
+        public PrivateDCClassPrivateDM() { _data = string.Empty; }
         public PrivateDCClassPrivateDM(bool init) { _data = "No change"; }
-    }
-
-    [DataContract(IsReference = true)]
-    internal class PrivateDCClassInternalDM
-    {
-        [DataMember]
-        internal string Data;
-
-        public PrivateDCClassInternalDM() { }
-        public PrivateDCClassInternalDM(bool init) { Data = "No change"; }
-    }
-
-    [DataContract(IsReference = true)]
-    internal class PrivateDCClassMixedDM
-    {
-        [DataMember]
-        public string Data1;
-
-        [DataMember]
-        private string _data2 = String.Empty;
-
-        [DataMember]
-        internal string Data3 = String.Empty;
-
-        public PrivateDCClassMixedDM() { }
-        public PrivateDCClassMixedDM(bool init) { Data1 = "No change"; }
     }
 
     [DataContract(IsReference = true)]
@@ -5595,7 +4438,7 @@ namespace SerializationTestTypes
         [DataMember]
         private string _data;
 
-        public PublicDCClassPrivateDM() { _data = String.Empty; }
+        public PublicDCClassPrivateDM() { _data = string.Empty; }
         public PublicDCClassPrivateDM(bool init) { _data = "No change"; }
     }
 
@@ -5613,13 +4456,13 @@ namespace SerializationTestTypes
     public class PublicDCClassMixedDM
     {
         [DataMember]
-        public string Data1 = String.Empty;
+        public string Data1 = string.Empty;
 
         [DataMember]
-        private string _data2 = String.Empty;
+        private string _data2 = string.Empty;
 
         [DataMember]
-        internal string Data3 = String.Empty;
+        internal string Data3 = string.Empty;
 
         public PublicDCClassMixedDM() { }
         public PublicDCClassMixedDM(bool init) { Data1 = "No change"; }
@@ -5632,11 +4475,6 @@ namespace SerializationTestTypes
 
     [DataContract(IsReference = true)]
     public class PublicDCClassPublicDM_DerivedDCClassPublic : PublicDCClassPublicDM
-    {
-    }
-
-    [DataContract(IsReference = true)]
-    internal class PublicDCClassPrivateDM_DerivedDCClassPrivate : PublicDCClassPrivateDM
     {
     }
 
@@ -5661,7 +4499,7 @@ namespace SerializationTestTypes
 
         public PublicDCClassPublicDM_DerivedDCClassPublicContainsPrivateDM()
         {
-            _derivedData1 = String.Empty;
+            _derivedData1 = string.Empty;
         }
     }
 
@@ -5742,53 +4580,6 @@ namespace SerializationTestTypes
     }
 
     [DataContract(IsReference = true)]
-    internal class Prop_PrivateDCClassInternalDM
-    {
-        private string _data;
-        [DataMember]
-        internal string Data
-        {
-            get { return _data; }
-            set { _data = value; }
-        }
-
-        public Prop_PrivateDCClassInternalDM() { }
-        public Prop_PrivateDCClassInternalDM(bool init) { Data = "No change"; }
-    }
-
-    [DataContract(IsReference = true)]
-    internal class Prop_PrivateDCClassMixedDM
-    {
-        private string _data1;
-        private string _data2;
-        private string _data3;
-
-        [DataMember]
-        public string Data1
-        {
-            get { return _data1; }
-            set { _data1 = value; }
-        }
-
-        [DataMember]
-        private string Data2
-        {
-            get { return _data2; }
-            set { _data2 = value; }
-        }
-
-        [DataMember]
-        internal string Data3
-        {
-            get { return _data3; }
-            set { _data3 = value; }
-        }
-
-        public Prop_PrivateDCClassMixedDM() { }
-        public Prop_PrivateDCClassMixedDM(bool init) { Data1 = "No change"; }
-    }
-
-    [DataContract(IsReference = true)]
     public class Prop_PublicDCClassPublicDM
     {
         private string _data;
@@ -5866,17 +4657,7 @@ namespace SerializationTestTypes
     }
 
     [DataContract(IsReference = true)]
-    internal class Prop_PublicDCClassPublicDM_DerivedDCClassPrivate : Prop_PublicDCClassPublicDM
-    {
-    }
-
-    [DataContract(IsReference = true)]
     public class Prop_PublicDCClassPublicDM_DerivedDCClassPublic : Prop_PublicDCClassPublicDM
-    {
-    }
-
-    [DataContract(IsReference = true)]
-    internal class Prop_PublicDCClassPrivateDM_DerivedDCClassPrivate : Prop_PublicDCClassPrivateDM
     {
     }
 
@@ -5886,15 +4667,10 @@ namespace SerializationTestTypes
     }
 
     [DataContract(IsReference = true)]
-    internal class Prop_PrivateDCClassPublicDM_DerivedDCClassPrivate : Prop_PrivateDCClassPublicDM
-    {
-    }
-
-    [DataContract(IsReference = true)]
     public class Prop_PublicDCClassPublicDM_DerivedDCClassPublicContainsPrivateDM : Prop_PublicDCClassPublicDM
     {
         [DataMember]
-        private string _derivedData1 = String.Empty;
+        private string _derivedData1 = string.Empty;
 
         [DataMember]
         public string DerivedData2;
@@ -5991,11 +4767,6 @@ namespace SerializationTestTypes
     {
     }
 
-    [DataContract(Name = "DC1_Version2")]
-    internal class DC1_Version2
-    {
-    }
-
     [DataContract(Name = "DC2_Version1")]
     public class DC2_Version1
     {
@@ -6003,25 +4774,11 @@ namespace SerializationTestTypes
         public string Data;
     }
 
-    [DataContract(Name = "DC2_Version2")]
-    internal class DC2_Version2
-    {
-        [DataMember]
-        public string Data = String.Empty;
-    }
-
-    [DataContract(Name = "DC2_Version3")]
-    internal class DC2_Version3
-    {
-        [DataMember]
-        private string _data = String.Empty;
-    }
-
     [DataContract(Name = "DC2_Version4")]
     public class DC2_Version4
     {
         [DataMember]
-        private string _data = String.Empty;
+        private string _data = string.Empty;
     }
 
     [DataContract(Name = "DC2_Version5")]
@@ -6183,56 +4940,6 @@ namespace SerializationTestTypes
     }
 
     [DataContract(IsReference = true)]
-    internal class PrivateCallBackSample_OnSerializing_Public
-    {
-        [DataMember]
-        public string Data = "Data";
-
-        [OnSerializing]
-        public void OnSerializing(System.Runtime.Serialization.StreamingContext context) { }
-    }
-
-    [DataContract(IsReference = true)]
-    internal class PrivateCallBackSample_OnSerialized_Public
-    {
-        [DataMember]
-        public string Data = "Data";
-
-        [OnSerialized]
-        public void OnSerialized(System.Runtime.Serialization.StreamingContext context) { }
-    }
-
-    [DataContract(IsReference = true)]
-    internal class PrivateCallBackSample_OnDeserializing_Public
-    {
-        [DataMember]
-        public string Data = "Data";
-
-        [OnDeserializing]
-        public void OnDeserializing(System.Runtime.Serialization.StreamingContext context) { }
-    }
-
-    [DataContract(IsReference = true)]
-    internal class PrivateCallBackSample_OnDeserialized_Public
-    {
-        [DataMember]
-        public string Data = "Data";
-
-        [OnDeserialized]
-        public void OnDeserialized(System.Runtime.Serialization.StreamingContext context) { }
-    }
-
-    [DataContract(IsReference = true)]
-    internal class PrivateCallBackSample_OnSerializing
-    {
-        [DataMember]
-        public string Data = "Data";
-
-        [OnSerializing]
-        private void OnSerializing(System.Runtime.Serialization.StreamingContext context) { }
-    }
-
-    [DataContract(IsReference = true)]
     internal class PrivateCallBackSample_OnSerialized
     {
         [DataMember]
@@ -6240,17 +4947,6 @@ namespace SerializationTestTypes
 
         [OnSerialized]
         internal void OnSerialized(System.Runtime.Serialization.StreamingContext context) { }
-    }
-
-
-    [DataContract(IsReference = true)]
-    internal class PrivateCallBackSample_OnDeserializing
-    {
-        [DataMember]
-        public string Data = "Data";
-
-        [OnDeserializing]
-        private void OnDeserializing(System.Runtime.Serialization.StreamingContext context) { }
     }
 
     [DataContract(IsReference = true)]
@@ -6270,17 +4966,6 @@ namespace SerializationTestTypes
         public string Data = "Data";
 
         public void OnDeserialization(object sender)
-        {
-        }
-    }
-
-    [DataContract(IsReference = true)]
-    internal class PrivateCallBackSample_IDeserializationCallback_Explicit : IDeserializationCallback
-    {
-        [DataMember]
-        public string Data = "Data";
-
-        void IDeserializationCallback.OnDeserialization(object sender)
         {
         }
     }
@@ -6568,7 +5253,7 @@ namespace SerializationTestTypes
     }
 
     [CollectionDataContract(IsReference = true)]
-    internal class CDC_Private : IList<string>
+    public class Base_Possitive_VirtualAdd : IEnumerable<string>
     {
         private List<string> _innerList = new List<string>();
 
@@ -6599,85 +5284,7 @@ namespace SerializationTestTypes
             }
         }
 
-        public void Add(string item)
-        {
-            _innerList.Add(item);
-        }
-
-        public void Clear()
-        {
-            _innerList.Clear();
-        }
-
-        public bool Contains(string item)
-        {
-            return _innerList.Contains(item);
-        }
-
-        public void CopyTo(string[] array, int arrayIndex)
-        {
-            _innerList.CopyTo(array, arrayIndex);
-        }
-
-        public int Count
-        {
-            get { return _innerList.Count; }
-        }
-
-        public bool IsReadOnly
-        {
-            get { return false; }
-        }
-
-        public bool Remove(string item)
-        {
-            return _innerList.Remove(item);
-        }
-
-        public IEnumerator<string> GetEnumerator()
-        {
-            return _innerList.GetEnumerator();
-        }
-
-        IEnumerator IEnumerable.GetEnumerator()
-        {
-            return _innerList.GetEnumerator();
-        }
-    }
-
-    [CollectionDataContract(IsReference = true)]
-    public class Base_Possitive_VirtualAdd : IEnumerable<String>
-    {
-        private List<string> _innerList = new List<string>();
-
-        public int IndexOf(string item)
-        {
-            return _innerList.IndexOf(item);
-        }
-
-        public void Insert(int index, string item)
-        {
-            _innerList.Insert(index, item);
-        }
-
-        public void RemoveAt(int index)
-        {
-            _innerList.RemoveAt(index);
-        }
-
-        public string this[int index]
-        {
-            get
-            {
-                return _innerList[index];
-            }
-            set
-            {
-                _innerList[index] = value;
-            }
-        }
-
-        public virtual void Add(String item)
+        public virtual void Add(string item)
         {
             _innerList.Add(item.ToString());
         }
@@ -6734,12 +5341,12 @@ namespace SerializationTestTypes
     [CollectionDataContract(IsReference = true)]
     public class CDC_NewAddToPrivate : Base_Possitive_VirtualAdd
     {
-        private new void Add(String item)
+        private new void Add(string item)
         {
             base.Add(item.ToString());
         }
 
-        public new static CDC_NewAddToPrivate CreateInstance()
+        public static new CDC_NewAddToPrivate CreateInstance()
         {
             CDC_NewAddToPrivate list = new CDC_NewAddToPrivate();
             list.Insert(0, "223213");
@@ -6942,60 +5549,6 @@ namespace SerializationTestTypes
         }
     }
 
-    internal class PrivateSerSurrogate : ISerializationSurrogate
-    {
-        public void GetObjectData(object obj, SerializationInfo info, StreamingContext context)
-        {
-            if (obj is NonDCPerson)
-            {
-                info.AddValue("data", new PersonSurrogated(obj as NonDCPerson));
-            }
-        }
-
-        public object SetObjectData(object obj, SerializationInfo info, StreamingContext context, ISurrogateSelector selector)
-        {
-            if (obj is PersonSurrogated)
-            {
-                return new NonDCPerson(obj as PersonSurrogated);
-            }
-            else if (obj is NonDCPerson)
-            {
-                return new NonDCPerson(info.GetValue("data", typeof(PersonSurrogated)) as PersonSurrogated);
-            }
-            else
-            {
-                return obj;
-            }
-        }
-    }
-
-    internal class PrivateSerSurrogateExplicit : ISerializationSurrogate
-    {
-        void ISerializationSurrogate.GetObjectData(object obj, SerializationInfo info, StreamingContext context)
-        {
-            if (obj is NonDCPerson)
-            {
-                info.AddValue("data", new PersonSurrogated(obj as NonDCPerson));
-            }
-        }
-
-        object ISerializationSurrogate.SetObjectData(object obj, SerializationInfo info, StreamingContext context, ISurrogateSelector selector)
-        {
-            if (obj is PersonSurrogated)
-            {
-                return new NonDCPerson(obj as PersonSurrogated);
-            }
-            else if (obj is NonDCPerson)
-            {
-                return new NonDCPerson(info.GetValue("data", typeof(PersonSurrogated)) as PersonSurrogated);
-            }
-            else
-            {
-                return obj;
-            }
-        }
-    }
-
     public class DCSurrogateReturnPrivate
     {
         public object GetCustomDataToExport(Type clrType, Type dataContractType)
@@ -7095,28 +5648,6 @@ namespace SerializationTestTypes
         }
     }
 
-    [DataContract(IsReference = true)]
-    internal class PrivateNullableContainerContainsValue
-    {
-        [DataMember]
-        public Nullable<PublicDCStruct> Data = new PublicDCStruct(true);
-
-        public PrivateNullableContainerContainsValue()
-        {
-        }
-    }
-
-    [DataContract(IsReference = true)]
-    internal class PrivateNullableContainerContainsNull
-    {
-        [DataMember]
-        public Nullable<PublicDCStruct> Data = null;
-
-        public PrivateNullableContainerContainsNull()
-        {
-        }
-    }
-
     [DataContract]
     public struct PublicDCStruct
     {
@@ -7152,28 +5683,6 @@ namespace SerializationTestTypes
         }
     }
 
-    [DataContract(IsReference = true)]
-    internal class PrivateNullablePrivateContainerContainsValue
-    {
-        [DataMember]
-        public Nullable<PrivateDCStruct> Data = new PrivateDCStruct(true);
-
-        public PrivateNullablePrivateContainerContainsValue()
-        {
-        }
-    }
-
-    [DataContract(IsReference = true)]
-    internal class PrivateNullablePrivateContainerContainsNull
-    {
-        [DataMember]
-        public Nullable<PrivateDCStruct> Data = null;
-
-        public PrivateNullablePrivateContainerContainsNull()
-        {
-        }
-    }
-
     [DataContract]
     internal struct PrivateDCStruct
     {
@@ -7205,28 +5714,6 @@ namespace SerializationTestTypes
         public object Data = new Nullable<PublicDCStructContainsPrivateDataInDM>(new PublicDCStructContainsPrivateDataInDM(true));
 
         public NullablePrivateDataInDMContainerContainsNull()
-        {
-        }
-    }
-
-    [DataContract(IsReference = true)]
-    internal class PrivateNullablePrivateDataInDMContainerContainsValue
-    {
-        [DataMember]
-        public Nullable<PublicDCStructContainsPrivateDataInDM> Data = new PublicDCStructContainsPrivateDataInDM(true);
-
-        public PrivateNullablePrivateDataInDMContainerContainsValue()
-        {
-        }
-    }
-
-    [DataContract(IsReference = true)]
-    internal class PrivateNullablePrivateDataInDMContainerContainsNull
-    {
-        [DataMember]
-        public Nullable<PublicDCStructContainsPrivateDataInDM> Data = null;
-
-        public PrivateNullablePrivateDataInDMContainerContainsNull()
         {
         }
     }
@@ -7360,109 +5847,6 @@ namespace SerializationTestTypes
             DataRow row2 = dataTable.NewRow();
             row2[dc2] = "Testing";
             dataTable.Rows.Add(row2);
-        }
-    }
-
-    [DataContract(IsReference = true)]
-    internal class DCPrivateDatasetPublic
-    {
-        [DataMember]
-        public DataSet dataSet;
-
-        [DataMember]
-        public DataTable dataTable;
-
-        public DCPrivateDatasetPublic()
-        {
-        }
-
-        public DCPrivateDatasetPublic(bool init)
-        {
-            dataSet = new DataSet("MyData");
-            dataTable = new DataTable("MyTable");
-            DataColumn dc1 = new DataColumn("Data", typeof(string));
-            dataTable.Columns.Add(dc1);
-            DataRow row1 = dataTable.NewRow();
-            row1[dc1] = new DateTime().ToLongTimeString();
-            dataTable.Rows.Add(row1);
-            dataSet.Tables.Add(dataTable);
-        }
-    }
-
-    [DataContract(IsReference = true)]
-    internal class DCPrivateDatasetPrivate
-    {
-        [DataMember]
-        private DataSet _dataSet;
-
-        [DataMember]
-        public DataTable dataTable;
-
-        public DCPrivateDatasetPrivate()
-        {
-        }
-
-        public DCPrivateDatasetPrivate(bool init)
-        {
-            _dataSet = new DataSet("MyData");
-            dataTable = new DataTable("MyTable");
-            DataColumn dc1 = new DataColumn("Data", typeof(string));
-            dataTable.Columns.Add(dc1);
-            DataRow row1 = dataTable.NewRow();
-            row1[dc1] = new DateTime().ToLongTimeString();
-            dataTable.Rows.Add(row1);
-            _dataSet.Tables.Add(dataTable);
-        }
-    }
-
-    [Serializable]
-    internal class SerPrivateDatasetPublic
-    {
-        public DataSet dataSet;
-
-        [DataMember]
-        public DataTable dataTable;
-
-        public SerPrivateDatasetPublic()
-        {
-        }
-
-        public SerPrivateDatasetPublic(bool init)
-        {
-            dataSet = new DataSet("MyData");
-            dataTable = new DataTable("MyTable");
-            DataColumn dc1 = new DataColumn("Data", typeof(string));
-            dataTable.Columns.Add(dc1);
-            DataRow row1 = dataTable.NewRow();
-            row1[dc1] = new DateTime().ToLongTimeString();
-            dataTable.Rows.Add(row1);
-            dataSet.Tables.Add(dataTable);
-        }
-    }
-
-
-    [Serializable]
-    internal class SerPrivateDatasetPrivate
-    {
-        private DataSet _dataSet;
-
-        [DataMember]
-        public DataTable dataTable;
-
-        public SerPrivateDatasetPrivate()
-        {
-        }
-
-        public SerPrivateDatasetPrivate(bool init)
-        {
-            _dataSet = new DataSet("MyData");
-            dataTable = new DataTable("MyTable");
-            DataColumn dc1 = new DataColumn("Data", typeof(string));
-            dataTable.Columns.Add(dc1);
-            DataRow row1 = dataTable.NewRow();
-            row1[dc1] = new DateTime().ToLongTimeString();
-            dataTable.Rows.Add(row1);
-            _dataSet.Tables.Add(dataTable);
         }
     }
 

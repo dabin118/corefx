@@ -13,7 +13,7 @@ namespace System.Linq
         {
             if (source == null)
             {
-                throw Error.ArgumentNull(nameof(source));
+                ThrowHelper.ThrowArgumentNullException(ExceptionArgument.source);
             }
 
             if (count <= 0)
@@ -32,24 +32,19 @@ namespace System.Linq
                 return partition.Skip(count);
             }
 
-            if (source is IList<TSource> sourceList)
-            {
-                return new ListPartition<TSource>(sourceList, count, int.MaxValue);
-            }
-
-            return new EnumerablePartition<TSource>(source, count, -1);
+            return SkipIterator(source, count);
         }
 
         public static IEnumerable<TSource> SkipWhile<TSource>(this IEnumerable<TSource> source, Func<TSource, bool> predicate)
         {
             if (source == null)
             {
-                throw Error.ArgumentNull(nameof(source));
+                ThrowHelper.ThrowArgumentNullException(ExceptionArgument.source);
             }
 
             if (predicate == null)
             {
-                throw Error.ArgumentNull(nameof(predicate));
+                ThrowHelper.ThrowArgumentNullException(ExceptionArgument.predicate);
             }
 
             return SkipWhileIterator(source, predicate);
@@ -80,12 +75,12 @@ namespace System.Linq
         {
             if (source == null)
             {
-                throw Error.ArgumentNull(nameof(source));
+                ThrowHelper.ThrowArgumentNullException(ExceptionArgument.source);
             }
 
             if (predicate == null)
             {
-                throw Error.ArgumentNull(nameof(predicate));
+                ThrowHelper.ThrowArgumentNullException(ExceptionArgument.predicate);
             }
 
             return SkipWhileIterator(source, predicate);
@@ -122,15 +117,12 @@ namespace System.Linq
         {
             if (source == null)
             {
-                throw Error.ArgumentNull(nameof(source));
+                ThrowHelper.ThrowArgumentNullException(ExceptionArgument.source);
             }
 
-            if (count <= 0)
-            {
-                return source.Skip(0);
-            }
-
-            return SkipLastIterator(source, count);
+            return count <= 0 ?
+                source.Skip(0) :
+                SkipLastEnumerableFactory(source, count);
         }
 
         private static IEnumerable<TSource> SkipLastIterator<TSource>(IEnumerable<TSource> source, int count)

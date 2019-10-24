@@ -5,6 +5,7 @@
 using System.Collections.Immutable;
 using System.IO;
 using System.Reflection.Metadata.Ecma335;
+using System.Runtime.CompilerServices;
 using System.Text;
 using Xunit;
 
@@ -30,7 +31,7 @@ namespace System.Reflection.Metadata.Tests
         {
             Assert.Throws<ArgumentNullException>(() => MetadataReaderProvider.FromMetadataImage(null, 10));
 
-            Assert.Throws<ArgumentOutOfRangeException>(() => 
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
             {
                 fixed (byte* p = new byte[] { 0 }) MetadataReaderProvider.FromMetadataImage(p, -1);
             });
@@ -97,7 +98,7 @@ namespace System.Reflection.Metadata.Tests
             var reader1 = provider.GetMetadataReader(MetadataReaderOptions.None, decoder);
             Assert.Equal("str", reader1.MetadataVersion);
             Assert.Same(reader1.UTF8Decoder, decoder);
-            Assert.Equal(reader1.Options, MetadataReaderOptions.None);
+            Assert.Equal(MetadataReaderOptions.None, reader1.Options);
 
             var reader2 = provider.GetMetadataReader(MetadataReaderOptions.None, decoder);
             Assert.Same(reader1, reader2);
@@ -106,7 +107,7 @@ namespace System.Reflection.Metadata.Tests
             Assert.NotSame(reader2, reader3);
             Assert.Equal("v9.9.9.9", reader3.MetadataVersion);
             Assert.Same(reader3.UTF8Decoder, MetadataStringDecoder.DefaultUTF8);
-            Assert.Equal(reader3.Options, MetadataReaderOptions.None);
+            Assert.Equal(MetadataReaderOptions.None, reader3.Options);
 
             var reader4 = provider.GetMetadataReader(MetadataReaderOptions.None);
             Assert.Same(reader3, reader4);
@@ -115,7 +116,7 @@ namespace System.Reflection.Metadata.Tests
             Assert.NotSame(reader4, reader5);
             Assert.Equal("v9.9.9.9", reader5.MetadataVersion);
             Assert.Same(reader5.UTF8Decoder, MetadataStringDecoder.DefaultUTF8);
-            Assert.Equal(reader5.Options, MetadataReaderOptions.ApplyWindowsRuntimeProjections);
+            Assert.Equal(MetadataReaderOptions.ApplyWindowsRuntimeProjections, reader5.Options);
 
             provider.Dispose();
             Assert.Throws<ObjectDisposedException>(() => provider.GetMetadataReader(MetadataReaderOptions.ApplyWindowsRuntimeProjections));
@@ -145,6 +146,21 @@ namespace System.Reflection.Metadata.Tests
             Assert.Equal(PortablePdbs.DocumentsPdb.Length, PortablePdbReader2.GetMetadataReader().Block.Length);
             var reader2 = PortablePdbReader2.GetMetadataReader();
             Assert.Equal(13, reader2.Documents.Count);
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static MetadataReader GetMetadataReaderFromProvider()
+            => MetadataReaderProvider.FromMetadataImage(PortablePdbs.DocumentsPdb.ToImmutableArray()).GetMetadataReader();
+
+        [Fact, MethodImpl(MethodImplOptions.NoOptimization)]
+        public void KeepMetadataAlive()
+        {
+            var reader = GetMetadataReaderFromProvider();
+
+            GC.Collect(GC.MaxGeneration, GCCollectionMode.Forced, blocking: true, compacting: true);
+            GC.WaitForPendingFinalizers();
+
+            Assert.Equal(@"C:\Documents.cs", reader.GetString(reader.GetDocument(MetadataTokens.DocumentHandle(1)).Name));
         }
     }
 }

@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using System.Runtime.InteropServices;
 using Xunit;
 
 namespace System.IO.Tests
@@ -19,7 +20,7 @@ namespace System.IO.Tests
         [PlatformSpecific(TestPlatforms.AnyUnix)]  // Expected WatcherChangeTypes are different based on OS
         public void Unix_File_Move_To_Same_Directory()
         {
-            FileMove_SameDirectory(WatcherChangeTypes.Created | WatcherChangeTypes.Deleted);
+            FileMove_SameDirectory(WatcherChangeTypes.Renamed);
         }
 
         [Fact]
@@ -39,7 +40,7 @@ namespace System.IO.Tests
         [PlatformSpecific(TestPlatforms.OSX)]  // Expected WatcherChangeTypes are different based on OS
         public void OSX_File_Move_To_Different_Watched_Directory()
         {
-            FileMove_DifferentWatchedDirectory(WatcherChangeTypes.Changed);
+            FileMove_DifferentWatchedDirectory(0);
         }
 
         [Fact]
@@ -52,7 +53,11 @@ namespace System.IO.Tests
         [Fact]
         public void File_Move_From_Unwatched_To_Watched()
         {
-            FileMove_FromUnwatchedToWatched(WatcherChangeTypes.Created);
+            // TODO remove OS version check after https://github.com/dotnet/corefx/issues/40034 fixed
+            if (!RuntimeInformation.IsOSPlatform(OSPlatform.OSX) || Environment.OSVersion.Version.Major < 19)
+            {
+                FileMove_FromUnwatchedToWatched(WatcherChangeTypes.Created);
+            }
         }
 
         [Theory]
@@ -70,7 +75,7 @@ namespace System.IO.Tests
         [PlatformSpecific(TestPlatforms.AnyUnix)]  // Expected WatcherChangeTypes are different based on OS
         public void Unix_File_Move_In_Nested_Directory(bool includeSubdirectories)
         {
-            FileMove_NestedDirectory(includeSubdirectories ? WatcherChangeTypes.Created | WatcherChangeTypes.Deleted : 0, includeSubdirectories);
+            FileMove_NestedDirectory(includeSubdirectories ? WatcherChangeTypes.Renamed : 0, includeSubdirectories);
         }
 
         [Fact]
@@ -84,7 +89,7 @@ namespace System.IO.Tests
         [PlatformSpecific(TestPlatforms.AnyUnix)]  // Expected WatcherChangeTypes are different based on OS
         public void Unix_File_Move_With_Set_NotifyFilter()
         {
-            FileMove_WithNotifyFilter(WatcherChangeTypes.Deleted);
+            FileMove_WithNotifyFilter(WatcherChangeTypes.Renamed);
         }
 
         #region Test Helpers
@@ -128,7 +133,7 @@ namespace System.IO.Tests
                 ExpectEvent(watcher, eventType, action, cleanup, new string[] { dir.Path, dir_adjacent.Path });
             }
         }
-        
+
         private void FileMove_FromWatchedToUnwatched(WatcherChangeTypes eventType)
         {
             using (var testDirectory = new TempDirectory(GetTestFilePath()))

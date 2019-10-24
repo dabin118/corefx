@@ -22,7 +22,7 @@ namespace System
         }
 
         //
-        // Check if highSurr and lowSurr are a surrogate pair then 
+        // Check if highSurr and lowSurr are a surrogate pair then
         // it checks if the combined char is in the range
         // Takes in isQuery because iri restrictions for query are different
         //
@@ -36,7 +36,7 @@ namespace System
             if (char.IsSurrogatePair(highSurr, lowSurr))
             {
                 surrogatePair = true;
-                char[] chars = new char[2] { highSurr, lowSurr };
+                ReadOnlySpan<char> chars = stackalloc char[2] { highSurr, lowSurr };
                 string surrPair = new string(chars);
                 if (((string.CompareOrdinal(surrPair, "\U00010000") >= 0)
                         && (string.CompareOrdinal(surrPair, "\U0001FFFD") <= 0)) ||
@@ -95,11 +95,12 @@ namespace System
             {
                 return (component == (UriComponents)0) ? UriHelper.IsGenDelim(ch) : false;
             }
-            else
+            else if (UriParser.DontEnableStrictRFC3986ReservedCharacterSets)
             {
+                // Since we aren't enabling strict RFC 3986 reserved sets, we stick with the old behavior
+                // (for app-compat) which was a broken mix of RFCs 2396 and 3986.
                 switch (component)
                 {
-                    // Reserved chars according to RFC 3987
                     case UriComponents.UserInfo:
                         if (ch == '/' || ch == '?' || ch == '#' || ch == '[' || ch == ']' || ch == '@')
                             return true;
@@ -125,16 +126,20 @@ namespace System
                 }
                 return false;
             }
+            else
+            {
+                return (UriHelper.RFC3986ReservedMarks.IndexOf(ch) >= 0);
+            }
         }
 
         //
-        // IRI normalization for strings containing characters that are not allowed or 
+        // IRI normalization for strings containing characters that are not allowed or
         // escaped characters that should be unescaped in the context of the specified Uri component.
         //
         internal static unsafe string EscapeUnescapeIri(char* pInput, int start, int end, UriComponents component)
         {
             char[] dest = new char[end - start];
-            byte[] bytes = null;
+            byte[]? bytes = null;
 
             // Pin the array to do pointer accesses
             GCHandle destHandle = GCHandle.Alloc(dest, GCHandleType.Pinned);
@@ -193,7 +198,7 @@ namespace System
                             int startSeq = next;
                             int byteCount = 1;
                             // lazy initialization of max size, will reuse the array for next sequences
-                            if ((object)bytes == null)
+                            if ((object?)bytes == null)
                                 bytes = new byte[end - next];
 
                             bytes[0] = (byte)ch;
@@ -237,7 +242,7 @@ namespace System
 
                             if (charCount != 0)
                             {
-                                // If invalid sequences were present in the original escaped string, we need to 
+                                // If invalid sequences were present in the original escaped string, we need to
                                 // copy the escaped versions of those sequences.
                                 // Decoded Unicode values will be kept only when they are allowed by the URI/IRI RFC
                                 // rules.
@@ -284,7 +289,7 @@ namespace System
                     {
                         if (CheckIriUnicodeRange(ch, component == UriComponents.Query))
                         {
-                            if (!UriHelper.IsBidiControlCharacter(ch))
+                            if (!UriHelper.IsBidiControlCharacter(ch) || !UriParser.DontKeepUnicodeBidiFormattingCharacters)
                             {
                                 // copy it
                                 Debug.Assert(dest.Length > destOffset, "Destination length exceeded destination offset.");

@@ -3,6 +3,7 @@
 // See the LICENSE file in the project root for more information.
 
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 
 namespace System.Linq
 {
@@ -12,7 +13,7 @@ namespace System.Linq
         {
             if (source == null)
             {
-                throw Error.ArgumentNull(nameof(source));
+                ThrowHelper.ThrowArgumentNullException(ExceptionArgument.source);
             }
 
             int value;
@@ -20,7 +21,7 @@ namespace System.Linq
             {
                 if (!e.MoveNext())
                 {
-                    throw Error.NoElements();
+                    ThrowHelper.ThrowNoElementsException();
                 }
 
                 value = e.Current;
@@ -41,7 +42,7 @@ namespace System.Linq
         {
             if (source == null)
             {
-                throw Error.ArgumentNull(nameof(source));
+                ThrowHelper.ThrowArgumentNullException(ExceptionArgument.source);
             }
 
             int? value = null;
@@ -85,7 +86,7 @@ namespace System.Linq
         {
             if (source == null)
             {
-                throw Error.ArgumentNull(nameof(source));
+                ThrowHelper.ThrowArgumentNullException(ExceptionArgument.source);
             }
 
             long value;
@@ -93,7 +94,7 @@ namespace System.Linq
             {
                 if (!e.MoveNext())
                 {
-                    throw Error.NoElements();
+                    ThrowHelper.ThrowNoElementsException();
                 }
 
                 value = e.Current;
@@ -114,7 +115,7 @@ namespace System.Linq
         {
             if (source == null)
             {
-                throw Error.ArgumentNull(nameof(source));
+                ThrowHelper.ThrowArgumentNullException(ExceptionArgument.source);
             }
 
             long? value = null;
@@ -154,7 +155,7 @@ namespace System.Linq
         {
             if (source == null)
             {
-                throw Error.ArgumentNull(nameof(source));
+                ThrowHelper.ThrowArgumentNullException(ExceptionArgument.source);
             }
 
             float value;
@@ -162,10 +163,15 @@ namespace System.Linq
             {
                 if (!e.MoveNext())
                 {
-                    throw Error.NoElements();
+                    ThrowHelper.ThrowNoElementsException();
                 }
 
                 value = e.Current;
+                if (float.IsNaN(value))
+                {
+                    return value;
+                }
+
                 while (e.MoveNext())
                 {
                     float x = e.Current;
@@ -196,7 +202,7 @@ namespace System.Linq
         {
             if (source == null)
             {
-                throw Error.ArgumentNull(nameof(source));
+                ThrowHelper.ThrowArgumentNullException(ExceptionArgument.source);
             }
 
             float? value = null;
@@ -214,6 +220,11 @@ namespace System.Linq
                 while (!value.HasValue);
 
                 float valueVal = value.GetValueOrDefault();
+                if (float.IsNaN(valueVal))
+                {
+                    return value;
+                }
+
                 while (e.MoveNext())
                 {
                     float? cur = e.Current;
@@ -240,7 +251,7 @@ namespace System.Linq
         {
             if (source == null)
             {
-                throw Error.ArgumentNull(nameof(source));
+                ThrowHelper.ThrowArgumentNullException(ExceptionArgument.source);
             }
 
             double value;
@@ -248,10 +259,15 @@ namespace System.Linq
             {
                 if (!e.MoveNext())
                 {
-                    throw Error.NoElements();
+                    ThrowHelper.ThrowNoElementsException();
                 }
 
                 value = e.Current;
+                if (double.IsNaN(value))
+                {
+                    return value;
+                }
+
                 while (e.MoveNext())
                 {
                     double x = e.Current;
@@ -273,7 +289,7 @@ namespace System.Linq
         {
             if (source == null)
             {
-                throw Error.ArgumentNull(nameof(source));
+                ThrowHelper.ThrowArgumentNullException(ExceptionArgument.source);
             }
 
             double? value = null;
@@ -291,6 +307,11 @@ namespace System.Linq
                 while (!value.HasValue);
 
                 double valueVal = value.GetValueOrDefault();
+                if (double.IsNaN(valueVal))
+                {
+                    return value;
+                }
+
                 while (e.MoveNext())
                 {
                     double? cur = e.Current;
@@ -317,7 +338,7 @@ namespace System.Linq
         {
             if (source == null)
             {
-                throw Error.ArgumentNull(nameof(source));
+                ThrowHelper.ThrowArgumentNullException(ExceptionArgument.source);
             }
 
             decimal value;
@@ -325,7 +346,7 @@ namespace System.Linq
             {
                 if (!e.MoveNext())
                 {
-                    throw Error.NoElements();
+                    ThrowHelper.ThrowNoElementsException();
                 }
 
                 value = e.Current;
@@ -346,7 +367,7 @@ namespace System.Linq
         {
             if (source == null)
             {
-                throw Error.ArgumentNull(nameof(source));
+                ThrowHelper.ThrowArgumentNullException(ExceptionArgument.source);
             }
 
             decimal? value = null;
@@ -379,15 +400,16 @@ namespace System.Linq
             return value;
         }
 
+        [return: MaybeNull]
         public static TSource Min<TSource>(this IEnumerable<TSource> source)
         {
             if (source == null)
             {
-                throw Error.ArgumentNull(nameof(source));
+                ThrowHelper.ThrowArgumentNullException(ExceptionArgument.source);
             }
 
             Comparer<TSource> comparer = Comparer<TSource>.Default;
-            TSource value = default(TSource);
+            TSource value = default!;
             if (value == null)
             {
                 using (IEnumerator<TSource> e = source.GetEnumerator())
@@ -419,7 +441,7 @@ namespace System.Linq
                 {
                     if (!e.MoveNext())
                     {
-                        throw Error.NoElements();
+                        ThrowHelper.ThrowNoElementsException();
                     }
 
                     value = e.Current;
@@ -441,12 +463,12 @@ namespace System.Linq
         {
             if (source == null)
             {
-                throw Error.ArgumentNull(nameof(source));
+                ThrowHelper.ThrowArgumentNullException(ExceptionArgument.source);
             }
 
             if (selector == null)
             {
-                throw Error.ArgumentNull(nameof(selector));
+                ThrowHelper.ThrowArgumentNullException(ExceptionArgument.selector);
             }
 
             int value;
@@ -454,7 +476,7 @@ namespace System.Linq
             {
                 if (!e.MoveNext())
                 {
-                    throw Error.NoElements();
+                    ThrowHelper.ThrowNoElementsException();
                 }
 
                 value = selector(e.Current);
@@ -475,12 +497,12 @@ namespace System.Linq
         {
             if (source == null)
             {
-                throw Error.ArgumentNull(nameof(source));
+                ThrowHelper.ThrowArgumentNullException(ExceptionArgument.source);
             }
 
             if (selector == null)
             {
-                throw Error.ArgumentNull(nameof(selector));
+                ThrowHelper.ThrowArgumentNullException(ExceptionArgument.selector);
             }
 
             int? value = null;
@@ -524,12 +546,12 @@ namespace System.Linq
         {
             if (source == null)
             {
-                throw Error.ArgumentNull(nameof(source));
+                ThrowHelper.ThrowArgumentNullException(ExceptionArgument.source);
             }
 
             if (selector == null)
             {
-                throw Error.ArgumentNull(nameof(selector));
+                ThrowHelper.ThrowArgumentNullException(ExceptionArgument.selector);
             }
 
             long value;
@@ -537,7 +559,7 @@ namespace System.Linq
             {
                 if (!e.MoveNext())
                 {
-                    throw Error.NoElements();
+                    ThrowHelper.ThrowNoElementsException();
                 }
 
                 value = selector(e.Current);
@@ -558,12 +580,12 @@ namespace System.Linq
         {
             if (source == null)
             {
-                throw Error.ArgumentNull(nameof(source));
+                ThrowHelper.ThrowArgumentNullException(ExceptionArgument.source);
             }
 
             if (selector == null)
             {
-                throw Error.ArgumentNull(nameof(selector));
+                ThrowHelper.ThrowArgumentNullException(ExceptionArgument.selector);
             }
 
             long? value = null;
@@ -603,12 +625,12 @@ namespace System.Linq
         {
             if (source == null)
             {
-                throw Error.ArgumentNull(nameof(source));
+                ThrowHelper.ThrowArgumentNullException(ExceptionArgument.source);
             }
 
             if (selector == null)
             {
-                throw Error.ArgumentNull(nameof(selector));
+                ThrowHelper.ThrowArgumentNullException(ExceptionArgument.selector);
             }
 
             float value;
@@ -616,10 +638,15 @@ namespace System.Linq
             {
                 if (!e.MoveNext())
                 {
-                    throw Error.NoElements();
+                    ThrowHelper.ThrowNoElementsException();
                 }
 
                 value = selector(e.Current);
+                if (float.IsNaN(value))
+                {
+                    return value;
+                }
+
                 while (e.MoveNext())
                 {
                     float x = selector(e.Current);
@@ -650,12 +677,12 @@ namespace System.Linq
         {
             if (source == null)
             {
-                throw Error.ArgumentNull(nameof(source));
+                ThrowHelper.ThrowArgumentNullException(ExceptionArgument.source);
             }
 
             if (selector == null)
             {
-                throw Error.ArgumentNull(nameof(selector));
+                ThrowHelper.ThrowArgumentNullException(ExceptionArgument.selector);
             }
 
             float? value = null;
@@ -673,6 +700,11 @@ namespace System.Linq
                 while (!value.HasValue);
 
                 float valueVal = value.GetValueOrDefault();
+                if (float.IsNaN(valueVal))
+                {
+                    return value;
+                }
+
                 while (e.MoveNext())
                 {
                     float? cur = selector(e.Current);
@@ -699,12 +731,12 @@ namespace System.Linq
         {
             if (source == null)
             {
-                throw Error.ArgumentNull(nameof(source));
+                ThrowHelper.ThrowArgumentNullException(ExceptionArgument.source);
             }
 
             if (selector == null)
             {
-                throw Error.ArgumentNull(nameof(selector));
+                ThrowHelper.ThrowArgumentNullException(ExceptionArgument.selector);
             }
 
             double value;
@@ -712,10 +744,15 @@ namespace System.Linq
             {
                 if (!e.MoveNext())
                 {
-                    throw Error.NoElements();
+                    ThrowHelper.ThrowNoElementsException();
                 }
 
                 value = selector(e.Current);
+                if (double.IsNaN(value))
+                {
+                    return value;
+                }
+
                 while (e.MoveNext())
                 {
                     double x = selector(e.Current);
@@ -737,12 +774,12 @@ namespace System.Linq
         {
             if (source == null)
             {
-                throw Error.ArgumentNull(nameof(source));
+                ThrowHelper.ThrowArgumentNullException(ExceptionArgument.source);
             }
 
             if (selector == null)
             {
-                throw Error.ArgumentNull(nameof(selector));
+                ThrowHelper.ThrowArgumentNullException(ExceptionArgument.selector);
             }
 
             double? value = null;
@@ -760,6 +797,11 @@ namespace System.Linq
                 while (!value.HasValue);
 
                 double valueVal = value.GetValueOrDefault();
+                if (double.IsNaN(valueVal))
+                {
+                    return value;
+                }
+
                 while (e.MoveNext())
                 {
                     double? cur = selector(e.Current);
@@ -786,12 +828,12 @@ namespace System.Linq
         {
             if (source == null)
             {
-                throw Error.ArgumentNull(nameof(source));
+                ThrowHelper.ThrowArgumentNullException(ExceptionArgument.source);
             }
 
             if (selector == null)
             {
-                throw Error.ArgumentNull(nameof(selector));
+                ThrowHelper.ThrowArgumentNullException(ExceptionArgument.selector);
             }
 
             decimal value;
@@ -799,7 +841,7 @@ namespace System.Linq
             {
                 if (!e.MoveNext())
                 {
-                    throw Error.NoElements();
+                    ThrowHelper.ThrowNoElementsException();
                 }
 
                 value = selector(e.Current);
@@ -820,12 +862,12 @@ namespace System.Linq
         {
             if (source == null)
             {
-                throw Error.ArgumentNull(nameof(source));
+                ThrowHelper.ThrowArgumentNullException(ExceptionArgument.source);
             }
 
             if (selector == null)
             {
-                throw Error.ArgumentNull(nameof(selector));
+                ThrowHelper.ThrowArgumentNullException(ExceptionArgument.selector);
             }
 
             decimal? value = null;
@@ -858,20 +900,21 @@ namespace System.Linq
             return value;
         }
 
+        [return: MaybeNull]
         public static TResult Min<TSource, TResult>(this IEnumerable<TSource> source, Func<TSource, TResult> selector)
         {
             if (source == null)
             {
-                throw Error.ArgumentNull(nameof(source));
+                ThrowHelper.ThrowArgumentNullException(ExceptionArgument.source);
             }
 
             if (selector == null)
             {
-                throw Error.ArgumentNull(nameof(selector));
+                ThrowHelper.ThrowArgumentNullException(ExceptionArgument.selector);
             }
 
             Comparer<TResult> comparer = Comparer<TResult>.Default;
-            TResult value = default(TResult);
+            TResult value = default!;
             if (value == null)
             {
                 using (IEnumerator<TSource> e = source.GetEnumerator())
@@ -903,7 +946,7 @@ namespace System.Linq
                 {
                     if (!e.MoveNext())
                     {
-                        throw Error.NoElements();
+                        ThrowHelper.ThrowNoElementsException();
                     }
 
                     value = selector(e.Current);

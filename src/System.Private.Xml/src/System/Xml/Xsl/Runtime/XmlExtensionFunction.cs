@@ -18,7 +18,7 @@ namespace System.Xml.Xsl.Runtime
     /// </summary>
     internal class XmlExtensionFunctionTable
     {
-        private Dictionary<XmlExtensionFunction, XmlExtensionFunction> _table;
+        private readonly Dictionary<XmlExtensionFunction, XmlExtensionFunction> _table;
         private XmlExtensionFunction _funcCached;
 
         public XmlExtensionFunctionTable()
@@ -331,7 +331,7 @@ namespace System.Xml.Xsl.Runtime
         }
 
         /// <summary>
-        /// Infer an Xml type from a Clr type using Xslt infererence rules
+        /// Infer an Xml type from a Clr type using Xslt inference rules
         /// </summary>
         private XmlQueryType InferXmlType(Type clrType)
         {

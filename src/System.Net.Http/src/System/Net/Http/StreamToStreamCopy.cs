@@ -19,21 +19,45 @@ namespace System.Net.Http
         /// <summary>Copies the source stream from its current position to the destination stream at its current position.</summary>
         /// <param name="source">The source stream from which to copy.</param>
         /// <param name="destination">The destination stream to which to copy.</param>
-        /// <param name="bufferSize">The size of the buffer to allocate if one needs to be allocated.</param>
+        /// <param name="bufferSize">The size of the buffer to allocate if one needs to be allocated. If zero, use the default buffer size.</param>
         /// <param name="disposeSource">Whether to dispose of the source stream after the copy has finished successfully.</param>
         /// <param name="cancellationToken">CancellationToken used to cancel the copy operation.</param>
         public static Task CopyAsync(Stream source, Stream destination, int bufferSize, bool disposeSource, CancellationToken cancellationToken = default(CancellationToken))
         {
             Debug.Assert(source != null);
             Debug.Assert(destination != null);
-            Debug.Assert(bufferSize > 0);
+            Debug.Assert(bufferSize >= 0);
 
             try
             {
-                Task copyTask = source.CopyToAsync(destination, bufferSize, cancellationToken);
-                return disposeSource ?
-                    DisposeSourceWhenCompleteAsync(copyTask, source) :
-                    copyTask;
+                Task copyTask = bufferSize == 0 ?
+                    source.CopyToAsync(destination, cancellationToken) :
+                    source.CopyToAsync(destination, bufferSize, cancellationToken);
+
+                if (!disposeSource)
+                {
+                    return copyTask;
+                }
+
+                switch (copyTask.Status)
+                {
+                    case TaskStatus.RanToCompletion:
+                        DisposeSource(source);
+                        return Task.CompletedTask;
+
+                    case TaskStatus.Faulted:
+                    case TaskStatus.Canceled:
+                        return copyTask;
+
+                    default:
+                        return DisposeSourceAsync(copyTask, source);
+
+                        static async Task DisposeSourceAsync(Task copyTask, Stream source)
+                        {
+                            await copyTask.ConfigureAwait(false);
+                            DisposeSource(source);
+                        }
+                }
             }
             catch (Exception e)
             {
@@ -43,29 +67,7 @@ namespace System.Net.Http
             }
         }
 
-        private static Task DisposeSourceWhenCompleteAsync(Task task, Stream source)
-        {
-            switch (task.Status)
-            {
-                case TaskStatus.RanToCompletion:
-                    DisposeSource(source);
-                    return Task.CompletedTask;
-
-                case TaskStatus.Faulted:
-                case TaskStatus.Canceled:
-                    return task;
-
-                default:
-                    return task.ContinueWith((completed, innerSource) =>
-                    {
-                        completed.GetAwaiter().GetResult(); // propagate any exceptions
-                        DisposeSource((Stream)innerSource);
-                    },
-                    source, CancellationToken.None, TaskContinuationOptions.ExecuteSynchronously | TaskContinuationOptions.DenyChildAttach, TaskScheduler.Default);
-            }
-        }
-
-        /// <summary>Disposes the source stream if <paramref name="disposeSource"/> is true.</summary>
+        /// <summary>Disposes the source stream.</summary>
         private static void DisposeSource(Stream source)
         {
             try

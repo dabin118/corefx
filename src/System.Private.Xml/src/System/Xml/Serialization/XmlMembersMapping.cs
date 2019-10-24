@@ -7,11 +7,7 @@ using System;
 using System.Text;
 
 
-#if XMLSERIALIZERGENERATOR
-namespace Microsoft.XmlSerializer.Generator
-#else
 namespace System.Xml.Serialization
-#endif
 {
     ///<internalonly/>
     /// <devdoc>
@@ -19,7 +15,7 @@ namespace System.Xml.Serialization
     /// </devdoc>
     public class XmlMembersMapping : XmlMapping
     {
-        private XmlMemberMapping[] _mappings;
+        private readonly XmlMemberMapping[] _mappings;
 
         internal XmlMembersMapping(TypeScope scope, ElementAccessor accessor, XmlMappingAccess access) : base(scope, accessor, access)
         {

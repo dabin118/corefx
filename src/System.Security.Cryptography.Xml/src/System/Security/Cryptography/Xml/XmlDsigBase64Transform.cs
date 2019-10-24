@@ -1,24 +1,18 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using System;
-using System.Collections;
 using System.IO;
-using System.Runtime.InteropServices;
-using System.Security;
 using System.Text;
 using System.Xml;
-using System.Xml.XPath;
-using System.Xml.Xsl;
 
 namespace System.Security.Cryptography.Xml
 {
     // A class representing conversion from Base64 using CryptoStream
     public class XmlDsigBase64Transform : Transform
     {
-        private Type[] _inputTypes = { typeof(Stream), typeof(XmlNodeList), typeof(XmlDocument) };
-        private Type[] _outputTypes = { typeof(Stream) };
+        private readonly Type[] _inputTypes = { typeof(Stream), typeof(XmlNodeList), typeof(XmlDocument) };
+        private readonly Type[] _outputTypes = { typeof(Stream) };
         private CryptoStream _cs = null;
 
         public XmlDsigBase64Transform()
@@ -77,11 +71,11 @@ namespace System.Security.Cryptography.Xml
                 {
                     int i = 0;
                     int j = 0;
-                    while ((j < bytesRead) && (!Char.IsWhiteSpace((char)buffer[j]))) j++;
+                    while ((j < bytesRead) && (!char.IsWhiteSpace((char)buffer[j]))) j++;
                     i = j; j++;
                     while (j < bytesRead)
                     {
-                        if (!Char.IsWhiteSpace((char)buffer[j]))
+                        if (!char.IsWhiteSpace((char)buffer[j]))
                         {
                             buffer[i] = buffer[j];
                             i++;
@@ -108,11 +102,11 @@ namespace System.Security.Cryptography.Xml
             byte[] buffer = utf8.GetBytes(sb.ToString());
             int i = 0;
             int j = 0;
-            while ((j < buffer.Length) && (!Char.IsWhiteSpace((char)buffer[j]))) j++;
+            while ((j < buffer.Length) && (!char.IsWhiteSpace((char)buffer[j]))) j++;
             i = j; j++;
             while (j < buffer.Length)
             {
-                if (!Char.IsWhiteSpace((char)buffer[j]))
+                if (!char.IsWhiteSpace((char)buffer[j]))
                 {
                     buffer[i] = buffer[j];
                     i++;

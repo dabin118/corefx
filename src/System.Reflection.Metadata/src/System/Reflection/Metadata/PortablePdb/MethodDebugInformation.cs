@@ -12,7 +12,7 @@ namespace System.Reflection.Metadata
     /// <remarks>
     /// See https://github.com/dotnet/corefx/blob/master/src/System.Reflection.Metadata/specs/PortablePdb-Metadata.md#methoddebuginformation-table-0x31.
     /// </remarks>
-    public struct MethodDebugInformation
+    public readonly struct MethodDebugInformation
     {
         private readonly MetadataReader _reader;
 
@@ -37,7 +37,7 @@ namespace System.Reflection.Metadata
         public BlobHandle SequencePointsBlob => _reader.MethodDebugInformationTable.GetSequencePoints(Handle);
 
         /// <summary>
-        /// Handle of the single document containing all sequence points of the method, 
+        /// Handle of the single document containing all sequence points of the method,
         /// or nil if the method doesn't have sequence points or spans multiple documents.
         /// </summary>
         public DocumentHandle Document => _reader.MethodDebugInformationTable.GetDocument(Handle);
@@ -57,7 +57,7 @@ namespace System.Reflection.Metadata
                 return StandaloneSignatureHandle.FromRowId(_reader.GetBlobReader(SequencePointsBlob).ReadCompressedInteger());
             }
         }
-        
+
         /// <summary>
         /// Returns a collection of sequence points decoded from <see cref="SequencePointsBlob"/>.
         /// </summary>

@@ -8,7 +8,7 @@ using System.Reflection.Internal;
 
 namespace System.Reflection.Metadata
 {
-    public struct BlobContentId : IEquatable<BlobContentId>
+    public readonly struct BlobContentId : IEquatable<BlobContentId>
     {
         private const int Size = BlobUtilities.SizeOfGuid + sizeof(uint);
 
@@ -21,7 +21,7 @@ namespace System.Reflection.Metadata
             Stamp = stamp;
         }
 
-        public BlobContentId(ImmutableArray<byte> id) 
+        public BlobContentId(ImmutableArray<byte> id)
             : this(ImmutableByteArrayInterop.DangerousGetUnderlyingArray(id))
         {
         }

@@ -6,9 +6,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Linq.Expressions.Tests;
-using System.Reflection;
-using System.Reflection.Emit;
-using System.Runtime.CompilerServices;
 using Microsoft.CSharp.RuntimeBinder;
 using Xunit;
 
@@ -31,15 +28,15 @@ namespace System.Dynamic.Tests
 
         private static readonly int[] SomeInt32 = {0, 1, 2, -1, int.MinValue, int.MaxValue, int.MaxValue - 1};
 
-        private static IEnumerable<object[]> CrossJoinInt32()
+        public static IEnumerable<object[]> CrossJoinInt32()
             => from i in SomeInt32 from j in SomeInt32 select new object[] {i, j};
 
         private static readonly double[] SomeDouble = {0.0, 1.0, 2.0, -1.0, double.PositiveInfinity, double.NaN};
 
-        private static IEnumerable<object[]> CrossJoinDouble()
+        public static IEnumerable<object[]> CrossJoinDouble()
             => from i in SomeDouble from j in SomeDouble select new object[] {i, j};
 
-        private static IEnumerable<object[]> BinaryExpressionTypes()
+        public static IEnumerable<object[]> BinaryExpressionTypes()
         {
             yield return new object[] {ExpressionType.Add};
             yield return new object[] {ExpressionType.And};
@@ -72,7 +69,7 @@ namespace System.Dynamic.Tests
             yield return new object[] {ExpressionType.SubtractAssign};
         }
 
-        private static IEnumerable<object[]> NonBinaryExpressionTypes()
+        public static IEnumerable<object[]> NonBinaryExpressionTypes()
         {
             yield return new object[] {ExpressionType.AddChecked};
             yield return new object[] {ExpressionType.AndAlso};
@@ -747,27 +744,6 @@ namespace System.Dynamic.Tests
             Func<object> func = Expression.Lambda<Func<object>>(expression).Compile(useInterpreter);
             Assert.Equal("42", func().ToString());
         }
-
-#if FEATURE_COMPILE // We're not testing compilation, but we do need Reflection.Emit for the test
-        [Fact]
-        public void OperationOnTwoObjectsDifferentTypesOfSameName()
-        {
-            object objX = Activator.CreateInstance(
-                AssemblyBuilder.DefineDynamicAssembly(new AssemblyName("TestAssembly"), AssemblyBuilderAccess.Run)
-                    .DefineDynamicModule("TestModule").DefineType("TestType", TypeAttributes.Public).CreateType());
-            object objY = Activator.CreateInstance(
-                AssemblyBuilder.DefineDynamicAssembly(new AssemblyName("TestAssembly"), AssemblyBuilderAccess.Run)
-                    .DefineDynamicModule("TestModule").DefineType("TestType", TypeAttributes.Public).CreateType());
-
-            CallSiteBinder binder =
-                Microsoft.CSharp.RuntimeBinder.Binder.BinaryOperation(
-                    CSharpBinderFlags.None, ExpressionType.Equal,
-                    GetType(), new[] { CSharpArgumentInfo.Create(CSharpArgumentInfoFlags.None, null), CSharpArgumentInfo.Create(CSharpArgumentInfoFlags.None, null) });
-            var cs = CallSite<Func<CallSite, object, object, object>>.Create(binder);
-            var t = cs.Target;
-            Assert.Throws<RuntimeBinderException>(() => t(cs, objX, objY));
-        }
-#endif
 
         private class BinaryCallSiteBinder : BinaryOperationBinder
         {

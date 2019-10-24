@@ -3,6 +3,7 @@
 // See the LICENSE file in the project root for more information.
 
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 
 namespace System.Linq
 {
@@ -13,7 +14,7 @@ namespace System.Linq
             TSource last = source.TryGetLast(out bool found);
             if (!found)
             {
-                throw Error.NoElements();
+                ThrowHelper.ThrowNoElementsException();
             }
 
             return last;
@@ -24,23 +25,26 @@ namespace System.Linq
             TSource last = source.TryGetLast(predicate, out bool found);
             if (!found)
             {
-                throw Error.NoMatch();
+                ThrowHelper.ThrowNoMatchException();
             }
 
             return last;
         }
 
+        [return: MaybeNull]
         public static TSource LastOrDefault<TSource>(this IEnumerable<TSource> source) =>
             source.TryGetLast(out bool _);
 
+        [return: MaybeNull]
         public static TSource LastOrDefault<TSource>(this IEnumerable<TSource> source, Func<TSource, bool> predicate) =>
             source.TryGetLast(predicate, out bool _);
 
+        [return: MaybeNull]
         private static TSource TryGetLast<TSource>(this IEnumerable<TSource> source, out bool found)
         {
             if (source == null)
             {
-                throw Error.ArgumentNull(nameof(source));
+                ThrowHelper.ThrowArgumentNullException(ExceptionArgument.source);
             }
 
             if (source is IPartition<TSource> partition)
@@ -77,19 +81,20 @@ namespace System.Linq
             }
 
             found = false;
-            return default(TSource);
+            return default!;
         }
 
+        [return: MaybeNull]
         private static TSource TryGetLast<TSource>(this IEnumerable<TSource> source, Func<TSource, bool> predicate, out bool found)
         {
             if (source == null)
             {
-                throw Error.ArgumentNull(nameof(source));
+                ThrowHelper.ThrowArgumentNullException(ExceptionArgument.source);
             }
 
             if (predicate == null)
             {
-                throw Error.ArgumentNull(nameof(predicate));
+                ThrowHelper.ThrowArgumentNullException(ExceptionArgument.predicate);
             }
 
             if (source is OrderedEnumerable<TSource> ordered)
@@ -135,7 +140,7 @@ namespace System.Linq
             }
 
             found = false;
-            return default(TSource);
+            return default!;
         }
     }
 }

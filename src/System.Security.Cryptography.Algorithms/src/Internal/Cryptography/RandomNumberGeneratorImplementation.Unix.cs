@@ -6,11 +6,10 @@ using System.Diagnostics;
 
 namespace System.Security.Cryptography
 {
-    partial class RandomNumberGeneratorImplementation
+    internal partial class RandomNumberGeneratorImplementation
     {
-        private unsafe void GetBytes(byte* pbBuffer, int count)
+        private static unsafe void GetBytes(byte* pbBuffer, int count)
         {
-            Debug.Assert(pbBuffer != null);
             Debug.Assert(count > 0);
 
             if (!Interop.Crypto.GetRandomBytes(pbBuffer, count))

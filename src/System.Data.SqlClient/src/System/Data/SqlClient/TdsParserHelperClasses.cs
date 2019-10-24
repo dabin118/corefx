@@ -6,13 +6,16 @@
 
 //------------------------------------------------------------------------------
 
+using System.Buffers;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Data.Common;
 using System.Data.SqlTypes;
 using System.Diagnostics;
+using System.Security;
 using System.Text;
-
+using System.Threading;
+using Microsoft.SqlServer.Server;
 
 namespace System.Data.SqlClient
 {
@@ -45,6 +48,7 @@ namespace System.Data.SqlClient
         THREADID,
         MARS,
         TRACEID,
+        FEDAUTHREQUIRED,
         NUMOPT,
         LASTOPT = 255
     }
@@ -65,7 +69,17 @@ namespace System.Data.SqlClient
         Broken,
     }
 
-    sealed internal class SqlCollation
+    /// <summary>
+    /// Struct encapsulating the data to be sent to the server as part of Federated Authentication Feature Extension.
+    /// </summary>
+    internal struct FederatedAuthenticationFeatureExtensionData
+    {
+        internal TdsEnums.FedAuthLibrary libraryType;
+        internal bool fedAuthRequiredPreLoginResponse;
+        internal byte[] accessToken;
+    }
+
+    internal sealed class SqlCollation
     {
         // First 20 bits of info field represent the lcid, bits 21-25 are compare options
         private const uint IgnoreCase = 1 << 20; // bit 21 - IgnoreCase
@@ -82,58 +96,56 @@ namespace System.Data.SqlClient
         internal uint info;
         internal byte sortId;
 
-        private static int FirstSupportedCollationVersion(int lcid)
-        {
+        private static int FirstSupportedCollationVersion(int lcid) =>
             // NOTE: switch-case works ~3 times faster in this case than search with Dictionary
-            switch (lcid)
+            lcid switch
             {
-                case 1044: return 2; // Norwegian_100_BIN
-                case 1047: return 2; // Romansh_100_BIN
-                case 1056: return 2; // Urdu_100_BIN
-                case 1065: return 2; // Persian_100_BIN
-                case 1068: return 2; // Azeri_Latin_100_BIN
-                case 1070: return 2; // Upper_Sorbian_100_BIN
-                case 1071: return 1; // Macedonian_FYROM_90_BIN
-                case 1081: return 1; // Indic_General_90_BIN
-                case 1082: return 2; // Maltese_100_BIN
-                case 1083: return 2; // Sami_Norway_100_BIN
-                case 1087: return 1; // Kazakh_90_BIN
-                case 1090: return 2; // Turkmen_100_BIN
-                case 1091: return 1; // Uzbek_Latin_90_BIN
-                case 1092: return 1; // Tatar_90_BIN
-                case 1093: return 2; // Bengali_100_BIN
-                case 1101: return 2; // Assamese_100_BIN
-                case 1105: return 2; // Tibetan_100_BIN
-                case 1106: return 2; // Welsh_100_BIN
-                case 1107: return 2; // Khmer_100_BIN
-                case 1108: return 2; // Lao_100_BIN
-                case 1114: return 1; // Syriac_90_BIN
-                case 1121: return 2; // Nepali_100_BIN
-                case 1122: return 2; // Frisian_100_BIN
-                case 1123: return 2; // Pashto_100_BIN
-                case 1125: return 1; // Divehi_90_BIN
-                case 1133: return 2; // Bashkir_100_BIN
-                case 1146: return 2; // Mapudungan_100_BIN
-                case 1148: return 2; // Mohawk_100_BIN
-                case 1150: return 2; // Breton_100_BIN
-                case 1152: return 2; // Uighur_100_BIN
-                case 1153: return 2; // Maori_100_BIN
-                case 1155: return 2; // Corsican_100_BIN
-                case 1157: return 2; // Yakut_100_BIN
-                case 1164: return 2; // Dari_100_BIN
-                case 2074: return 2; // Serbian_Latin_100_BIN
-                case 2092: return 2; // Azeri_Cyrillic_100_BIN
-                case 2107: return 2; // Sami_Sweden_Finland_100_BIN
-                case 2143: return 2; // Tamazight_100_BIN
-                case 3076: return 1; // Chinese_Hong_Kong_Stroke_90_BIN
-                case 3098: return 2; // Serbian_Cyrillic_100_BIN
-                case 5124: return 2; // Chinese_Traditional_Pinyin_100_BIN
-                case 5146: return 2; // Bosnian_Latin_100_BIN
-                case 8218: return 2; // Bosnian_Cyrillic_100_BIN
+                1044 => 2, // Norwegian_100_BIN
+                1047 => 2, // Romansh_100_BIN
+                1056 => 2, // Urdu_100_BIN
+                1065 => 2, // Persian_100_BIN
+                1068 => 2, // Azeri_Latin_100_BIN
+                1070 => 2, // Upper_Sorbian_100_BIN
+                1071 => 1, // Macedonian_FYROM_90_BIN
+                1081 => 1, // Indic_General_90_BIN
+                1082 => 2, // Maltese_100_BIN
+                1083 => 2, // Sami_Norway_100_BIN
+                1087 => 1, // Kazakh_90_BIN
+                1090 => 2, // Turkmen_100_BIN
+                1091 => 1, // Uzbek_Latin_90_BIN
+                1092 => 1, // Tatar_90_BIN
+                1093 => 2, // Bengali_100_BIN
+                1101 => 2, // Assamese_100_BIN
+                1105 => 2, // Tibetan_100_BIN
+                1106 => 2, // Welsh_100_BIN
+                1107 => 2, // Khmer_100_BIN
+                1108 => 2, // Lao_100_BIN
+                1114 => 1, // Syriac_90_BIN
+                1121 => 2, // Nepali_100_BIN
+                1122 => 2, // Frisian_100_BIN
+                1123 => 2, // Pashto_100_BIN
+                1125 => 1, // Divehi_90_BIN
+                1133 => 2, // Bashkir_100_BIN
+                1146 => 2, // Mapudungan_100_BIN
+                1148 => 2, // Mohawk_100_BIN
+                1150 => 2, // Breton_100_BIN
+                1152 => 2, // Uighur_100_BIN
+                1153 => 2, // Maori_100_BIN
+                1155 => 2, // Corsican_100_BIN
+                1157 => 2, // Yakut_100_BIN
+                1164 => 2, // Dari_100_BIN
+                2074 => 2, // Serbian_Latin_100_BIN
+                2092 => 2, // Azeri_Cyrillic_100_BIN
+                2107 => 2, // Sami_Sweden_Finland_100_BIN
+                2143 => 2, // Tamazight_100_BIN
+                3076 => 1, // Chinese_Hong_Kong_Stroke_90_BIN
+                3098 => 2, // Serbian_Cyrillic_100_BIN
+                5124 => 2, // Chinese_Traditional_Pinyin_100_BIN
+                5146 => 2, // Bosnian_Latin_100_BIN
+                8218 => 2, // Bosnian_Cyrillic_100_BIN
 
-                default: return 0;   // other LCIDs have collation with version 0
-            }
-        }
+                _ => 0,   // other LCIDs have collation with version 0
+            };
 
         internal int LCID
         {
@@ -209,10 +221,10 @@ namespace System.Data.SqlClient
     internal class RoutingInfo
     {
         internal byte Protocol { get; private set; }
-        internal UInt16 Port { get; private set; }
+        internal ushort Port { get; private set; }
         internal string ServerName { get; private set; }
 
-        internal RoutingInfo(byte protocol, UInt16 port, string servername)
+        internal RoutingInfo(byte protocol, ushort port, string servername)
         {
             Protocol = protocol;
             Port = port;
@@ -220,7 +232,7 @@ namespace System.Data.SqlClient
         }
     }
 
-    sealed internal class SqlEnvChange
+    internal sealed class SqlEnvChange
     {
         internal byte type;
         internal byte oldLength;
@@ -228,16 +240,63 @@ namespace System.Data.SqlClient
         internal int length;
         internal string newValue;
         internal string oldValue;
+        /// <summary>
+        /// contains binary data, before using this field check newBinRented to see if you can take the field array or whether you should allocate and copy
+        /// </summary>
         internal byte[] newBinValue;
+        /// <summary>
+        /// contains binary data, before using this field check newBinRented to see if you can take the field array or whether you should allocate and copy
+        /// </summary>
         internal byte[] oldBinValue;
         internal long newLongValue;
         internal long oldLongValue;
         internal SqlCollation newCollation;
         internal SqlCollation oldCollation;
         internal RoutingInfo newRoutingInfo;
+        internal bool newBinRented;
+        internal bool oldBinRented;
+
+        internal SqlEnvChange Next;
+
+        internal void Clear()
+        {
+            type = 0;
+            oldLength = 0;
+            newLength = 0;
+            length = 0;
+            newValue = null;
+            oldValue = null;
+            if (newBinValue != null)
+            {
+                Array.Clear(newBinValue, 0, newBinValue.Length);
+                if (newBinRented)
+                {
+                    ArrayPool<byte>.Shared.Return(newBinValue);
+                }
+
+                newBinValue = null;
+            }
+            if (oldBinValue != null)
+            {
+                Array.Clear(oldBinValue, 0, oldBinValue.Length);
+                if (oldBinRented)
+                {
+                    ArrayPool<byte>.Shared.Return(oldBinValue);
+                }
+                oldBinValue = null;
+            }
+            newBinRented = false;
+            oldBinRented = false;
+            newLongValue = 0;
+            oldLongValue = 0;
+            newCollation = null;
+            oldCollation = null;
+            newRoutingInfo = null;
+            Next = null;
+        }
     }
 
-    sealed internal class SqlLogin
+    internal sealed class SqlLogin
     {
         internal int timeout;                                                       // login timeout
         internal bool userInstance = false;                                   // user instance
@@ -250,35 +309,50 @@ namespace System.Data.SqlClient
         internal string database = "";                                      // initial database
         internal string attachDBFilename = "";                                      // DB filename to be attached
         internal bool useReplication = false;                                   // user login for replication
+        internal string newPassword = "";                                   // new password for reset password
         internal bool useSSPI = false;                                   // use integrated security
         internal int packetSize = SqlConnectionString.DEFAULT.Packet_Size; // packet size
         internal bool readOnlyIntent = false;                                   // read-only intent
+        internal SqlCredential credential;                                      // user id and password in SecureString
+        internal SecureString newSecurePassword;
     }
 
-    sealed internal class SqlLoginAck
+    internal sealed class SqlLoginAck
     {
         internal byte majorVersion;
         internal byte minorVersion;
         internal short buildNum;
-        internal UInt32 tdsVersion;
+        internal uint tdsVersion;
     }
 
-    sealed internal class _SqlMetaData : SqlMetaDataPriv
+    internal sealed class _SqlMetaData : SqlMetaDataPriv
     {
+        [Flags]
+        private enum _SqlMetadataFlags : int
+        {
+            None = 0,
+
+            Updatable = 1 << 0,
+            UpdateableUnknown = 1 << 1,
+            IsDifferentName = 1 << 2,
+            IsKey = 1 << 3,
+            IsHidden = 1 << 4,
+            IsExpression = 1 << 5,
+            IsIdentity = 1 << 6,
+            IsColumnSet = 1 << 7,
+
+            IsReadOnlyMask = (Updatable | UpdateableUnknown) // two bit field (0 is read only, 1 is updatable, 2 is updatability unknown)
+        }
+
         internal string column;
         internal string baseColumn;
         internal MultiPartTableName multiPartTableName;
         internal readonly int ordinal;
-        internal byte updatability;     // two bit field (0 is read only, 1 is updatable, 2 is updatability unknown)
         internal byte tableNum;
-        internal bool isDifferentName;
-        internal bool isKey;
-        internal bool isHidden;
-        internal bool isExpression;
-        internal bool isIdentity;
-        internal bool isColumnSet;
         internal byte op;        // for altrow-columns only
         internal ushort operand; // for altrow-columns only
+        private _SqlMetadataFlags flags;
+
 
         internal _SqlMetaData(int ordinal) : base()
         {
@@ -314,6 +388,59 @@ namespace System.Data.SqlClient
             }
         }
 
+
+        public byte Updatability
+        {
+            get => (byte)(flags & _SqlMetadataFlags.IsReadOnlyMask);
+            set => flags = (_SqlMetadataFlags)((value & 0x3) | ((int)flags & ~0x03));
+        }
+
+        public bool IsReadOnly
+        {
+            get => flags.HasFlag(_SqlMetadataFlags.IsReadOnlyMask);
+        }
+
+        public bool IsDifferentName
+        {
+            get => flags.HasFlag(_SqlMetadataFlags.IsDifferentName);
+            set => Set(_SqlMetadataFlags.IsDifferentName, value);
+        }
+
+        public bool IsKey
+        {
+            get => flags.HasFlag(_SqlMetadataFlags.IsKey);
+            set => Set(_SqlMetadataFlags.IsKey, value);
+        }
+
+        public bool IsHidden
+        {
+            get => flags.HasFlag(_SqlMetadataFlags.IsHidden);
+            set => Set(_SqlMetadataFlags.IsHidden, value);
+        }
+
+        public bool IsExpression
+        {
+            get => flags.HasFlag(_SqlMetadataFlags.IsExpression);
+            set => Set(_SqlMetadataFlags.IsExpression, value);
+        }
+
+        public bool IsIdentity
+        {
+            get => flags.HasFlag(_SqlMetadataFlags.IsIdentity);
+            set => Set(_SqlMetadataFlags.IsIdentity, value);
+        }
+
+        public bool IsColumnSet
+        {
+            get => flags.HasFlag(_SqlMetadataFlags.IsColumnSet);
+            set => Set(_SqlMetadataFlags.IsColumnSet, value);
+        }
+
+        private void Set(_SqlMetadataFlags flag, bool value)
+        {
+            flags = value ? flags | flag : flags & ~flag;
+        }
+
         internal bool IsNewKatmaiDateTimeType
         {
             get
@@ -326,7 +453,7 @@ namespace System.Data.SqlClient
         {
             get
             {
-                return type == SqlDbType.Udt && length == Int32.MaxValue;
+                return type == SqlDbType.Udt && length == int.MaxValue;
             }
         }
 
@@ -337,21 +464,15 @@ namespace System.Data.SqlClient
             result.column = column;
             result.baseColumn = baseColumn;
             result.multiPartTableName = multiPartTableName;
-            result.updatability = updatability;
             result.tableNum = tableNum;
-            result.isDifferentName = isDifferentName;
-            result.isKey = isKey;
-            result.isHidden = isHidden;
-            result.isExpression = isExpression;
-            result.isIdentity = isIdentity;
-            result.isColumnSet = isColumnSet;
+            result.flags = flags;
             result.op = op;
             result.operand = operand;
             return result;
         }
     }
 
-    sealed internal class _SqlMetaDataSet
+    internal sealed class _SqlMetaDataSet
     {
         internal ushort id;             // for altrow-columns only
         internal int[] indexMap;
@@ -417,7 +538,7 @@ namespace System.Data.SqlClient
         }
     }
 
-    sealed internal class _SqlMetaDataSetCollection
+    internal sealed class _SqlMetaDataSetCollection
     {
         private readonly List<_SqlMetaDataSet> _altMetaDataSetArray;
         internal _SqlMetaDataSet metaDataSet;
@@ -454,7 +575,7 @@ namespace System.Data.SqlClient
                     return altMetaDataSet;
                 }
             }
-            Debug.Assert(false, "Can't match up altMetaDataSet with given id");
+            Debug.Fail("Can't match up altMetaDataSet with given id");
             return null;
         }
 
@@ -472,33 +593,46 @@ namespace System.Data.SqlClient
 
     internal class SqlMetaDataPriv
     {
+        [Flags]
+        private enum SqlMetaDataPrivFlags : byte
+        {
+            None = 0,
+            IsNullable = 1 << 1,
+            IsMultiValued = 1 << 2
+        }
+
         internal SqlDbType type;    // SqlDbType enum value
         internal byte tdsType; // underlying tds type
         internal byte precision = TdsEnums.UNKNOWN_PRECISION_SCALE; // give default of unknown (-1)
         internal byte scale = TdsEnums.UNKNOWN_PRECISION_SCALE; // give default of unknown (-1)
+        private SqlMetaDataPrivFlags flags;
         internal int length;
         internal SqlCollation collation;
         internal int codePage;
         internal Encoding encoding;
-        internal bool isNullable;
-
-        // UDT specific metadata
-        // server metadata info
-        // additional temporary UDT meta data
-        internal string udtDatabaseName;
-        internal string udtSchemaName;
-        internal string udtTypeName;
-        internal string udtAssemblyQualifiedName;
-        
-        // Xml specific metadata
-        internal string xmlSchemaCollectionDatabase;
-        internal string xmlSchemaCollectionOwningSchema;
-        internal string xmlSchemaCollectionName;
         internal MetaType metaType; // cached metaType
-
+        public SqlMetaDataUdt udt;
+        public SqlMetaDataXmlSchemaCollection xmlSchemaCollection;
 
         internal SqlMetaDataPriv()
         {
+        }
+
+        public bool IsNullable
+        {
+            get => flags.HasFlag(SqlMetaDataPrivFlags.IsNullable);
+            set => Set(SqlMetaDataPrivFlags.IsNullable, value);
+        }
+
+        public bool IsMultiValued
+        {
+            get => flags.HasFlag(SqlMetaDataPrivFlags.IsMultiValued);
+            set => Set(SqlMetaDataPrivFlags.IsMultiValued, value);
+        }
+
+        private void Set(SqlMetaDataPrivFlags flag, bool value)
+        {
+            flags = value ? flags | flag : flags & ~flag;
         }
 
         internal virtual void CopyFrom(SqlMetaDataPriv original)
@@ -511,24 +645,74 @@ namespace System.Data.SqlClient
             this.collation = original.collation;
             this.codePage = original.codePage;
             this.encoding = original.encoding;
-            this.isNullable = original.isNullable;
-            this.udtDatabaseName = original.udtDatabaseName;
-            this.udtSchemaName = original.udtSchemaName;
-            this.udtTypeName = original.udtTypeName;
-            this.udtAssemblyQualifiedName = original.udtAssemblyQualifiedName;
-            this.xmlSchemaCollectionDatabase = original.xmlSchemaCollectionDatabase;
-            this.xmlSchemaCollectionOwningSchema = original.xmlSchemaCollectionOwningSchema;
-            this.xmlSchemaCollectionName = original.xmlSchemaCollectionName;
             this.metaType = original.metaType;
+            this.flags = original.flags;
+
+            if (original.udt != null)
+            {
+                udt = new SqlMetaDataUdt();
+                udt.CopyFrom(original.udt);
+            }
+
+            if (original.xmlSchemaCollection != null)
+            {
+                xmlSchemaCollection = new SqlMetaDataXmlSchemaCollection();
+                xmlSchemaCollection.CopyFrom(original.xmlSchemaCollection);
+            }
         }
     }
-    sealed internal class _SqlRPC
+
+    internal sealed class SqlMetaDataXmlSchemaCollection
+    {
+        internal string Database;
+        internal string OwningSchema;
+        internal string Name;
+
+        public void CopyFrom(SqlMetaDataXmlSchemaCollection original)
+        {
+            if (original != null)
+            {
+                Database = original.Database;
+                OwningSchema = original.OwningSchema;
+                Name = original.Name;
+            }
+        }
+    }
+
+    internal sealed class SqlMetaDataUdt
+    {
+        internal Type Type;
+        internal string DatabaseName;
+        internal string SchemaName;
+        internal string TypeName;
+        internal string AssemblyQualifiedName;
+
+        public void CopyFrom(SqlMetaDataUdt original)
+        {
+            if (original != null)
+            {
+                Type = original.Type;
+                DatabaseName = original.DatabaseName;
+                SchemaName = original.SchemaName;
+                TypeName = original.TypeName;
+                AssemblyQualifiedName = original.AssemblyQualifiedName;
+            }
+        }
+    }
+
+    internal sealed class _SqlRPC
     {
         internal string rpcName;
         internal ushort ProcID;       // Used instead of name
         internal ushort options;
-        internal SqlParameter[] parameters;
-        internal byte[] paramoptions;
+
+        internal SqlParameter[] systemParams;
+        internal byte[] systemParamOptions;
+        internal int systemParamCount;
+
+        internal SqlParameterCollection userParams;
+        internal long[] userParamMap;
+        internal int userParamCount;
 
         internal int? recordsAffected;
         internal int cumulativeRecordsAffected;
@@ -541,21 +725,27 @@ namespace System.Data.SqlClient
         internal int warningsIndexEnd;
         internal SqlErrorCollection warnings;
 
-        internal string GetCommandTextOrRpcName()
+        internal SqlParameter GetParameterByIndex(int index, out byte options)
         {
-            if (TdsEnums.RPC_PROCID_EXECUTESQL == ProcID)
+            options = 0;
+            SqlParameter retval = null;
+            if (index < systemParamCount)
             {
-                // Param 0 is the actual sql executing
-                return (string)parameters[0].Value;
+                retval = systemParams[index];
+                options = systemParamOptions[index];
             }
             else
             {
-                return rpcName;
+                long data = userParamMap[index - systemParamCount];
+                int paramIndex = (int)(data & int.MaxValue);
+                options = (byte)((data >> 32) & 0xFF);
+                retval = userParams[paramIndex];
             }
+            return retval;
         }
     }
 
-    sealed internal class SqlReturnValue : SqlMetaDataPriv
+    internal sealed class SqlReturnValue : SqlMetaDataPriv
     {
         internal string parameter;
         internal readonly SqlBuffer value;

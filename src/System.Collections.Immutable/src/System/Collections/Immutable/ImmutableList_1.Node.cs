@@ -46,7 +46,7 @@ namespace System.Collections.Immutable
             /// The number of elements contained by this subtree starting at this node.
             /// </summary>
             /// <remarks>
-            /// If this node would benefit from saving 4 bytes, we could have only a few nodes 
+            /// If this node would benefit from saving 4 bytes, we could have only a few nodes
             /// scattered throughout the graph actually record the count of nodes beneath them.
             /// Those without the count could query their descendants, which would often short-circuit
             /// when they hit a node that *does* include a count field.
@@ -69,8 +69,8 @@ namespace System.Collections.Immutable
             /// </summary>
             private Node()
             {
-                Contract.Ensures(this.IsEmpty);
                 _frozen = true; // the empty node is *always* frozen.
+                Debug.Assert(this.IsEmpty);
             }
 
             /// <summary>
@@ -86,7 +86,6 @@ namespace System.Collections.Immutable
                 Requires.NotNull(left, nameof(left));
                 Requires.NotNull(right, nameof(right));
                 Debug.Assert(!frozen || (left._frozen && right._frozen));
-                Contract.Ensures(!this.IsEmpty);
 
                 _key = key;
                 _left = left;
@@ -94,6 +93,8 @@ namespace System.Collections.Immutable
                 _height = ParentHeight(left, right);
                 _count = ParentCount(left, right);
                 _frozen = frozen;
+
+                Debug.Assert(!this.IsEmpty);
             }
 
             /// <summary>
@@ -106,7 +107,6 @@ namespace System.Collections.Immutable
             {
                 get
                 {
-                    Contract.Ensures(Contract.Result<bool>() == (_left == null));
                     Debug.Assert(!(_left == null ^ _right == null));
                     return _left == null;
                 }
@@ -186,6 +186,30 @@ namespace System.Collections.Immutable
                     return _key;
                 }
             }
+
+#if !NETSTANDARD1_0
+            /// <summary>
+            /// Gets a read-only reference to the element of the set at the given index.
+            /// </summary>
+            /// <param name="index">The 0-based index of the element in the set to return.</param>
+            /// <returns>A read-only reference to the element at the given position.</returns>
+            internal ref readonly T ItemRef(int index)
+            {
+                Requires.Range(index >= 0 && index < this.Count, nameof(index));
+
+                if (index < _left._count)
+                {
+                    return ref _left.ItemRef(index);
+                }
+
+                if (index > _left._count)
+                {
+                    return ref _right.ItemRef(index - _left._count - 1);
+                }
+
+                return ref _key;
+            }
+#endif
 
             #region IEnumerable<T> Members
 
@@ -360,7 +384,7 @@ namespace System.Collections.Immutable
                 Node result = this;
                 if (index == _left._count)
                 {
-                    // We have a match. If this is a leaf, just remove it 
+                    // We have a match. If this is a leaf, just remove it
                     // by returning Empty.  If we have only one child,
                     // replace the node with the child.
                     if (_right.IsEmpty && _left.IsEmpty)
@@ -417,7 +441,6 @@ namespace System.Collections.Immutable
             internal Node RemoveAll(Predicate<T> match)
             {
                 Requires.NotNull(match, nameof(match));
-                Contract.Ensures(Contract.Result<Node>() != null);
 
                 var result = this;
                 var enumerator = new Enumerator(result);
@@ -443,6 +466,7 @@ namespace System.Collections.Immutable
                     enumerator.Dispose();
                 }
 
+                Debug.Assert(result != null);
                 return result;
             }
 
@@ -460,7 +484,7 @@ namespace System.Collections.Immutable
                 Node result = this;
                 if (index == _left._count)
                 {
-                    // We have a match. 
+                    // We have a match.
                     result = this.MutateKey(value);
                 }
                 else if (index < _left._count)
@@ -487,7 +511,7 @@ namespace System.Collections.Immutable
             /// Reverses the order of the elements in the specified range.
             /// </summary>
             /// <param name="index">The zero-based starting index of the range to reverse.</param>
-            /// <param name="count">The number of elements in the range to reverse.</param> 
+            /// <param name="count">The number of elements in the range to reverse.</param>
             /// <returns>The reversed list.</returns>
             internal Node Reverse(int index, int count)
             {
@@ -500,8 +524,13 @@ namespace System.Collections.Immutable
                 int end = index + count - 1;
                 while (start < end)
                 {
+#if !NETSTANDARD1_0
+                    T a = result.ItemRef(start);
+                    T b = result.ItemRef(end);
+#else
                     T a = result[start];
                     T b = result[end];
+#endif
                     result = result
                         .ReplaceAt(end, a)
                         .ReplaceAt(start, b);
@@ -529,7 +558,6 @@ namespace System.Collections.Immutable
             internal Node Sort(Comparison<T> comparison)
             {
                 Requires.NotNull(comparison, nameof(comparison));
-                Contract.Ensures(Contract.Result<Node>() != null);
 
                 // PERF: Eventually this might be reimplemented in a way that does not require allocating an array.
                 var array = new T[this.Count];
@@ -630,7 +658,7 @@ namespace System.Collections.Immutable
                     return result < 0 ? result - offset : result + offset;
                 }
 
-                // We're definitely in the caller's designated range now. 
+                // We're definitely in the caller's designated range now.
                 // Any possible match will be a descendant of this node (or this immediate one).
                 // Some descendants may not be in range, but if we hit any it means no match was found,
                 // and a negative response would come back from the above code to the below code.
@@ -675,6 +703,22 @@ namespace System.Collections.Immutable
             /// </returns>
             [Pure]
             internal int IndexOf(T item, IEqualityComparer<T> equalityComparer) => this.IndexOf(item, 0, this.Count, equalityComparer);
+
+            /// <summary>
+            /// Searches for the specified object and returns <c>true</c> if it is found, <c>false</c> otherwise.
+            /// </summary>
+            /// <param name="item">
+            /// The object to locate in the <see cref="ImmutableList{T}"/>. The value
+            /// can be null for reference types.
+            /// </param>
+            /// <param name="equalityComparer">
+            /// The equality comparer to use for testing the match of two elements.
+            /// </param>
+            /// <returns>
+            /// <c>true</c> if it is found, <c>false</c> otherwise.
+            /// </returns>
+            [Pure]
+            internal bool Contains(T item, IEqualityComparer<T> equalityComparer) => Contains(this, item, equalityComparer);
 
             /// <summary>
             /// Searches for the specified object and returns the zero-based index of the
@@ -780,7 +824,7 @@ namespace System.Collections.Immutable
             internal void CopyTo(T[] array)
             {
                 Requires.NotNull(array, nameof(array));
-                Requires.Argument(array.Length >= this.Count);
+                Requires.Range(array.Length >= this.Count, nameof(array));
 
                 int index = 0;
                 foreach (var element in this)
@@ -805,8 +849,7 @@ namespace System.Collections.Immutable
             {
                 Requires.NotNull(array, nameof(array));
                 Requires.Range(arrayIndex >= 0, nameof(arrayIndex));
-                Requires.Range(arrayIndex <= array.Length, nameof(arrayIndex));
-                Requires.Argument(arrayIndex + this.Count <= array.Length);
+                Requires.Range(array.Length >= arrayIndex + this.Count, nameof(arrayIndex));
 
                 foreach (var element in this)
                 {
@@ -906,6 +949,8 @@ namespace System.Collections.Immutable
             /// </returns>
             internal bool TrueForAll(Predicate<T> match)
             {
+                Requires.NotNull(match, nameof(match));
+
                 foreach (var item in this)
                 {
                     if (!match(item))
@@ -988,7 +1033,6 @@ namespace System.Collections.Immutable
             internal ImmutableList<T> FindAll(Predicate<T> match)
             {
                 Requires.NotNull(match, nameof(match));
-                Contract.Ensures(Contract.Result<ImmutableList<T>>() != null);
 
                 if (this.IsEmpty)
                 {
@@ -1030,7 +1074,6 @@ namespace System.Collections.Immutable
             internal int FindIndex(Predicate<T> match)
             {
                 Requires.NotNull(match, nameof(match));
-                Contract.Ensures(Contract.Result<int>() >= -1);
 
                 return this.FindIndex(0, _count, match);
             }
@@ -1049,9 +1092,8 @@ namespace System.Collections.Immutable
             /// </returns>
             internal int FindIndex(int startIndex, Predicate<T> match)
             {
-                Requires.Range(startIndex >= 0, nameof(startIndex));
-                Requires.Range(startIndex <= this.Count, nameof(startIndex));
                 Requires.NotNull(match, nameof(match));
+                Requires.Range(startIndex >= 0 && startIndex <= this.Count, nameof(startIndex));
 
                 return this.FindIndex(startIndex, this.Count - startIndex, match);
             }
@@ -1071,10 +1113,10 @@ namespace System.Collections.Immutable
             /// </returns>
             internal int FindIndex(int startIndex, int count, Predicate<T> match)
             {
+                Requires.NotNull(match, nameof(match));
                 Requires.Range(startIndex >= 0, nameof(startIndex));
                 Requires.Range(count >= 0, nameof(count));
-                Requires.Argument(startIndex + count <= this.Count);
-                Requires.NotNull(match, nameof(match));
+                Requires.Range(startIndex + count <= this.Count, nameof(count));
 
                 using (var enumerator = new Enumerator(this, startIndex: startIndex, count: count))
                 {
@@ -1139,14 +1181,8 @@ namespace System.Collections.Immutable
             internal int FindLastIndex(Predicate<T> match)
             {
                 Requires.NotNull(match, nameof(match));
-                Contract.Ensures(Contract.Result<int>() >= -1);
 
-                if (this.IsEmpty)
-                {
-                    return -1;
-                }
-
-                return this.FindLastIndex(this.Count - 1, this.Count, match);
+                return this.IsEmpty ? -1 : this.FindLastIndex(this.Count - 1, this.Count, match);
             }
 
             /// <summary>
@@ -1168,12 +1204,7 @@ namespace System.Collections.Immutable
                 Requires.Range(startIndex >= 0, nameof(startIndex));
                 Requires.Range(startIndex == 0 || startIndex < this.Count, nameof(startIndex));
 
-                if (this.IsEmpty)
-                {
-                    return -1;
-                }
-
-                return this.FindLastIndex(startIndex, startIndex + 1, match);
+                return this.IsEmpty ? -1 : this.FindLastIndex(startIndex, startIndex + 1, match);
             }
 
             /// <summary>
@@ -1197,7 +1228,7 @@ namespace System.Collections.Immutable
                 Requires.NotNull(match, nameof(match));
                 Requires.Range(startIndex >= 0, nameof(startIndex));
                 Requires.Range(count <= this.Count, nameof(count));
-                Requires.Argument(startIndex - count + 1 >= 0);
+                Requires.Range(startIndex - count + 1 >= 0, nameof(startIndex));
 
                 using (var enumerator = new Enumerator(this, startIndex: startIndex, count: count, reversed: true))
                 {
@@ -1240,7 +1271,6 @@ namespace System.Collections.Immutable
             {
                 Debug.Assert(!this.IsEmpty);
                 Debug.Assert(!_right.IsEmpty);
-                Contract.Ensures(Contract.Result<Node>() != null);
 
                 return _right.MutateLeft(this.MutateRight(_right._left));
             }
@@ -1253,7 +1283,6 @@ namespace System.Collections.Immutable
             {
                 Debug.Assert(!this.IsEmpty);
                 Debug.Assert(!_left.IsEmpty);
-                Contract.Ensures(Contract.Result<Node>() != null);
 
                 return _left.MutateRight(this.MutateLeft(_left._right));
             }
@@ -1267,7 +1296,6 @@ namespace System.Collections.Immutable
                 Debug.Assert(!this.IsEmpty);
                 Debug.Assert(!_right.IsEmpty);
                 Debug.Assert(!_right._left.IsEmpty);
-                Contract.Ensures(Contract.Result<Node>() != null);
 
                 // The following is an optimized version of rotating the right child right, then rotating the parent left.
                 Node right = _right;
@@ -1286,7 +1314,6 @@ namespace System.Collections.Immutable
                 Debug.Assert(!this.IsEmpty);
                 Debug.Assert(!_left.IsEmpty);
                 Debug.Assert(!_left._right.IsEmpty);
-                Contract.Ensures(Contract.Result<Node>() != null);
 
                 // The following is an optimized version of rotating the left child left, then rotating the parent right.
                 Node left = _left;
@@ -1531,6 +1558,22 @@ namespace System.Collections.Immutable
             /// <param name="key">The leaf node's key.</param>
             /// <returns>The leaf node.</returns>
             private static Node CreateLeaf(T key) => new Node(key, left: EmptyNode, right: EmptyNode);
+
+            /// <summary>
+            /// Traverses the node tree looking for a node with the provided value. The provided node will be checked
+            /// then we will recursively check it's left and right nodes.
+            /// </summary>
+            /// <param name="node">
+            /// The node to check.
+            /// </param>
+            /// <param name="value">
+            /// The value to check for.
+            /// </param>
+            /// <param name="equalityComparer">
+            /// The equality comparer to use for testing the node and value.
+            /// </param>
+            /// <returns></returns>
+            private static bool Contains(Node node, T value, IEqualityComparer<T> equalityComparer) => !node.IsEmpty && (equalityComparer.Equals(value, node._key) || Contains(node._left, value, equalityComparer) || Contains(node._right, value, equalityComparer));
         }
     }
 }

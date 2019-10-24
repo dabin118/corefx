@@ -2,6 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
@@ -21,7 +23,7 @@ namespace System.IO.Tests
             // The purpose of this method is to try and ensure that a task does a particular
             // piece of work (like return a result or throw) synchronously.
 
-            // We cannot use Task's IAsyncResult implementation since it doesn't set 
+            // We cannot use Task's IAsyncResult implementation since it doesn't set
             // CompletedSynchronously to anything but false.
 
             TaskStatus status = task.Status;
@@ -61,6 +63,11 @@ namespace System.IO.Tests
             OperationCanceledException tce = Assert.ThrowsAny<OperationCanceledException>(() => task.GetAwaiter().GetResult());
             Assert.NotNull(tce);
             Assert.Equal(ct, tce.CancellationToken);
+        }
+
+        public static void EqualWhenOrdered<T>(IEnumerable<T> expected, IEnumerable<T> actual)
+        {
+            Assert.Equal(expected.OrderBy(e => e).Select(o => o), actual.OrderBy(a => a).Select(o => o));
         }
     }
 }

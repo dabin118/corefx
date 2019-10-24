@@ -22,23 +22,22 @@ namespace System.Net.Mail
     {
         private static readonly ContextCallback s_AuthenticateCallback = new ContextCallback(AuthenticateCallback);
 
-        private BufferBuilder _bufferBuilder = new BufferBuilder();
+        private readonly BufferBuilder _bufferBuilder = new BufferBuilder();
         private bool _isConnected;
         private bool _isClosed;
         private bool _isStreamOpen;
-        private EventHandler _onCloseHandler;
+        private readonly EventHandler _onCloseHandler;
         internal SmtpTransport _parent;
-        private SmtpClient _client;
+        private readonly SmtpClient _client;
         private NetworkStream _networkStream;
         internal TcpClient _tcpClient;
         internal string _host = null;
         internal int _port = 0;
         private SmtpReplyReaderFactory _responseReader;
 
-        private ICredentialsByHost _credentials;
-        private int _timeout = 100000;
+        private readonly ICredentialsByHost _credentials;
         private string[] _extensions;
-        private ChannelBinding _channelBindingToken = null;
+        private readonly ChannelBinding _channelBindingToken = null;
         private bool _enableSsl;
         private X509CertificateCollection _clientCertificates;
 
@@ -71,19 +70,6 @@ namespace System.Net.Mail
                 _enableSsl = value;
             }
         }
-
-        internal int Timeout
-        {
-            get
-            {
-                return _timeout;
-            }
-            set
-            {
-                _timeout = value;
-            }
-        }
-
 
         internal X509CertificateCollection ClientCertificates
         {
@@ -152,7 +138,7 @@ namespace System.Net.Mail
                             _channelBindingToken.Close();
                         }
 
-                        _networkStream.Close();
+                        _networkStream?.Close();
                         _tcpClient.Dispose();
                     }
 
@@ -182,7 +168,7 @@ namespace System.Net.Mail
                         // DATA command or some similar situation.  This may send a RST
                         // but this is ok in this situation.  Do not reuse this connection
                         _tcpClient.LingerState = new LingerOption(true, 0);
-                        _networkStream.Close();
+                        _networkStream?.Close();
                         _tcpClient.Dispose();
                     }
                     _isClosed = true;
@@ -390,15 +376,15 @@ namespace System.Net.Mail
         private class ConnectAndHandshakeAsyncResult : LazyAsyncResult
         {
             private string _authResponse;
-            private SmtpConnection _connection;
+            private readonly SmtpConnection _connection;
             private int _currentModule = -1;
-            private int _port;
-            private static AsyncCallback s_handshakeCallback = new AsyncCallback(HandshakeCallback);
-            private static AsyncCallback s_sendEHelloCallback = new AsyncCallback(SendEHelloCallback);
-            private static AsyncCallback s_sendHelloCallback = new AsyncCallback(SendHelloCallback);
-            private static AsyncCallback s_authenticateCallback = new AsyncCallback(AuthenticateCallback);
-            private static AsyncCallback s_authenticateContinueCallback = new AsyncCallback(AuthenticateContinueCallback);
-            private string _host;
+            private readonly int _port;
+            private static readonly AsyncCallback s_handshakeCallback = new AsyncCallback(HandshakeCallback);
+            private static readonly AsyncCallback s_sendEHelloCallback = new AsyncCallback(SendEHelloCallback);
+            private static readonly AsyncCallback s_sendHelloCallback = new AsyncCallback(SendHelloCallback);
+            private static readonly AsyncCallback s_authenticateCallback = new AsyncCallback(AuthenticateCallback);
+            private static readonly AsyncCallback s_authenticateContinueCallback = new AsyncCallback(AuthenticateContinueCallback);
+            private readonly string _host;
 
             private readonly ContextAwareResult _outerResult;
 
@@ -439,11 +425,11 @@ namespace System.Net.Mail
                 IAsyncResult result = _connection.BeginInitializeConnection(_host, _port, InitializeConnectionCallback, this);
                 if (result.CompletedSynchronously)
                 {
-                    _connection.EndInitializeConnection(result);
-                    if (NetEventSource.IsEnabled) NetEventSource.Info(this, "Connect returned");
-
                     try
                     {
+                        _connection.EndInitializeConnection(result);
+                        if (NetEventSource.IsEnabled) NetEventSource.Info(this, "Connect returned");
+
                         Handshake();
                     }
                     catch (Exception e)
@@ -458,11 +444,11 @@ namespace System.Net.Mail
                 if (!result.CompletedSynchronously)
                 {
                     ConnectAndHandshakeAsyncResult thisPtr = (ConnectAndHandshakeAsyncResult)result.AsyncState;
-                    thisPtr._connection.EndInitializeConnection(result);
-                    if (NetEventSource.IsEnabled) NetEventSource.Info(null, $"Connect returned {thisPtr}");
-
                     try
                     {
+                        thisPtr._connection.EndInitializeConnection(result);
+                        if (NetEventSource.IsEnabled) NetEventSource.Info(null, $"Connect returned {thisPtr}");
+
                         thisPtr.Handshake();
                     }
                     catch (Exception e)
@@ -563,7 +549,7 @@ namespace System.Net.Mail
                             // Either TLS is already established or server does not support TLS
                             if (!(_connection._networkStream is TlsStream))
                             {
-                                throw new SmtpException(SR.Format(SR.MailServerDoesNotSupportStartTls));
+                                throw new SmtpException(SR.MailServerDoesNotSupportStartTls);
                             }
                         }
 
@@ -820,14 +806,14 @@ namespace System.Net.Mail
 
             private bool AuthenticateContinue()
             {
-                for (;;)
+                while (true)
                 {
                     // We don't need credential on the continued auth assuming they were captured on the first call.
                     // That should always work, otherwise what if a new credential has been returned?
                     Authorization auth = _connection._authenticationModules[_currentModule].Authenticate(_authResponse, null, _connection, _connection._client.TargetName, _connection._channelBindingToken);
                     if (auth == null)
                     {
-                        throw new SmtpException(SR.Format(SR.SmtpAuthenticationFailed));
+                        throw new SmtpException(SR.SmtpAuthenticationFailed);
                     }
 
                     IAsyncResult result = AuthCommand.BeginSend(_connection, auth.Message, s_authenticateContinueCallback, this);

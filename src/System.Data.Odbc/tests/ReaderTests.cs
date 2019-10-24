@@ -1,4 +1,8 @@
-﻿using Xunit;
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
+
+using Xunit;
 
 namespace System.Data.Odbc.Tests
 {
@@ -13,7 +17,7 @@ namespace System.Data.Odbc.Tests
             command.ExecuteNonQuery();
 
             command.CommandText =
-                @"SELECT 
+                @"SELECT
                     SomeString
                 FROM SomeTable";
             using (var reader = command.ExecuteReader())
@@ -57,7 +61,7 @@ namespace System.Data.Odbc.Tests
             command.ExecuteNonQuery();
 
             command.CommandText =
-                @"SELECT 
+                @"SELECT
                     SomeInt32,
                     SomeString
                 FROM SomeTable";
@@ -87,7 +91,7 @@ namespace System.Data.Odbc.Tests
             command.ExecuteNonQuery();
 
             command.CommandText =
-                @"SELECT 
+                @"SELECT
                     SomeInt64
                 FROM SomeTable";
             using (var reader = command.ExecuteReader())
@@ -122,7 +126,7 @@ namespace System.Data.Odbc.Tests
             command.ExecuteNonQuery();
 
             command.CommandText =
-                @"SELECT 
+                @"SELECT
                     SomeInt64
                 FROM SomeTable";
             using (var reader = command.ExecuteReader())
@@ -148,7 +152,7 @@ namespace System.Data.Odbc.Tests
             command.ExecuteNonQuery();
 
             command.CommandText =
-                @"SELECT 
+                @"SELECT
                     SomeInt64
                 FROM SomeTable";
             using (var reader = command.ExecuteReader())
@@ -179,7 +183,7 @@ namespace System.Data.Odbc.Tests
             command.ExecuteNonQuery();
 
             command.CommandText =
-                @"SELECT 
+                @"SELECT
                     SomeInt64
                 FROM SomeTable";
             using (var reader = command.ExecuteReader())
@@ -210,7 +214,7 @@ namespace System.Data.Odbc.Tests
             command.ExecuteNonQuery();
 
             command.CommandText =
-                @"SELECT 
+                @"SELECT
                     SomeString
                 FROM SomeTable";
             using (var reader = command.ExecuteReader())
@@ -242,7 +246,7 @@ namespace System.Data.Odbc.Tests
             command.ExecuteNonQuery();
 
             command.CommandText =
-                @"SELECT 
+                @"SELECT
                     SomeString
                 FROM SomeTable";
             using (var reader = command.ExecuteReader())

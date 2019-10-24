@@ -17,6 +17,7 @@ namespace System.Xml.Linq
     /// An XML attribute is a name/value pair associated with an XML element.
     /// </remarks>
     [SuppressMessage("Microsoft.Naming", "CA1711:IdentifiersShouldNotHaveIncorrectSuffix", Justification = "Reviewed.")]
+    [System.ComponentModel.TypeDescriptionProvider("MS.Internal.Xml.Linq.ComponentModel.XTypeDescriptionProvider`1[[System.Xml.Linq.XAttribute, System.Xml.Linq, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089]],System.ComponentModel.TypeConverter")]
     public class XAttribute : XObject
     {
         /// <summary>
@@ -227,7 +228,7 @@ namespace System.Xml.Linq
         /// The content of this <see cref="XAttribute"/> as a <see cref="string"/>.
         /// </returns>
         [CLSCompliant(false)]
-        public static explicit operator string (XAttribute attribute)
+        public static explicit operator string(XAttribute attribute)
         {
             if (attribute == null) return null;
             return attribute.value;
@@ -246,7 +247,7 @@ namespace System.Xml.Linq
         /// Thrown if the specified attribute is null.
         /// </exception>
         [CLSCompliant(false)]
-        public static explicit operator bool (XAttribute attribute)
+        public static explicit operator bool(XAttribute attribute)
         {
             if (attribute == null) throw new ArgumentNullException(nameof(attribute));
             return XmlConvert.ToBoolean(attribute.value.ToLowerInvariant());
@@ -262,7 +263,7 @@ namespace System.Xml.Linq
         /// The content of this <see cref="XAttribute"/> as a <see cref="bool"/>?.
         /// </returns>
         [CLSCompliant(false)]
-        public static explicit operator bool? (XAttribute attribute)
+        public static explicit operator bool?(XAttribute attribute)
         {
             if (attribute == null) return null;
             return XmlConvert.ToBoolean(attribute.value.ToLowerInvariant());
@@ -281,7 +282,7 @@ namespace System.Xml.Linq
         /// Thrown if the specified attribute is null.
         /// </exception>
         [CLSCompliant(false)]
-        public static explicit operator int (XAttribute attribute)
+        public static explicit operator int(XAttribute attribute)
         {
             if (attribute == null) throw new ArgumentNullException(nameof(attribute));
             return XmlConvert.ToInt32(attribute.value);
@@ -297,7 +298,7 @@ namespace System.Xml.Linq
         /// The content of this <see cref="XAttribute"/> as an <see cref="int"/>?.
         /// </returns>
         [CLSCompliant(false)]
-        public static explicit operator int? (XAttribute attribute)
+        public static explicit operator int?(XAttribute attribute)
         {
             if (attribute == null) return null;
             return XmlConvert.ToInt32(attribute.value);
@@ -316,7 +317,7 @@ namespace System.Xml.Linq
         /// Thrown if the specified attribute is null.
         /// </exception>
         [CLSCompliant(false)]
-        public static explicit operator uint (XAttribute attribute)
+        public static explicit operator uint(XAttribute attribute)
         {
             if (attribute == null) throw new ArgumentNullException(nameof(attribute));
             return XmlConvert.ToUInt32(attribute.value);
@@ -332,7 +333,7 @@ namespace System.Xml.Linq
         /// The content of this <see cref="XAttribute"/> as an <see cref="uint"/>?.
         /// </returns>
         [CLSCompliant(false)]
-        public static explicit operator uint? (XAttribute attribute)
+        public static explicit operator uint?(XAttribute attribute)
         {
             if (attribute == null) return null;
             return XmlConvert.ToUInt32(attribute.value);
@@ -351,7 +352,7 @@ namespace System.Xml.Linq
         /// Thrown if the specified attribute is null.
         /// </exception>
         [CLSCompliant(false)]
-        public static explicit operator long (XAttribute attribute)
+        public static explicit operator long(XAttribute attribute)
         {
             if (attribute == null) throw new ArgumentNullException(nameof(attribute));
             return XmlConvert.ToInt64(attribute.value);
@@ -367,7 +368,7 @@ namespace System.Xml.Linq
         /// The content of this <see cref="XAttribute"/> as a <see cref="long"/>?.
         /// </returns>
         [CLSCompliant(false)]
-        public static explicit operator long? (XAttribute attribute)
+        public static explicit operator long?(XAttribute attribute)
         {
             if (attribute == null) return null;
             return XmlConvert.ToInt64(attribute.value);
@@ -386,7 +387,7 @@ namespace System.Xml.Linq
         /// Thrown if the specified attribute is null.
         /// </exception>
         [CLSCompliant(false)]
-        public static explicit operator ulong (XAttribute attribute)
+        public static explicit operator ulong(XAttribute attribute)
         {
             if (attribute == null) throw new ArgumentNullException(nameof(attribute));
             return XmlConvert.ToUInt64(attribute.value);
@@ -402,7 +403,7 @@ namespace System.Xml.Linq
         /// The content of this <see cref="XAttribute"/> as an <see cref="ulong"/>?.
         /// </returns>
         [CLSCompliant(false)]
-        public static explicit operator ulong? (XAttribute attribute)
+        public static explicit operator ulong?(XAttribute attribute)
         {
             if (attribute == null) return null;
             return XmlConvert.ToUInt64(attribute.value);
@@ -421,7 +422,7 @@ namespace System.Xml.Linq
         /// Thrown if the specified attribute is null.
         /// </exception>
         [CLSCompliant(false)]
-        public static explicit operator float (XAttribute attribute)
+        public static explicit operator float(XAttribute attribute)
         {
             if (attribute == null) throw new ArgumentNullException(nameof(attribute));
             return XmlConvert.ToSingle(attribute.value);
@@ -437,7 +438,7 @@ namespace System.Xml.Linq
         /// The content of this <see cref="XAttribute"/> as a <see cref="float"/>?.
         /// </returns>
         [CLSCompliant(false)]
-        public static explicit operator float? (XAttribute attribute)
+        public static explicit operator float?(XAttribute attribute)
         {
             if (attribute == null) return null;
             return XmlConvert.ToSingle(attribute.value);
@@ -456,7 +457,7 @@ namespace System.Xml.Linq
         /// Thrown if the specified attribute is null.
         /// </exception>
         [CLSCompliant(false)]
-        public static explicit operator double (XAttribute attribute)
+        public static explicit operator double(XAttribute attribute)
         {
             if (attribute == null) throw new ArgumentNullException(nameof(attribute));
             return XmlConvert.ToDouble(attribute.value);
@@ -472,7 +473,7 @@ namespace System.Xml.Linq
         /// The content of this <see cref="XAttribute"/> as a <see cref="double"/>?.
         /// </returns>
         [CLSCompliant(false)]
-        public static explicit operator double? (XAttribute attribute)
+        public static explicit operator double?(XAttribute attribute)
         {
             if (attribute == null) return null;
             return XmlConvert.ToDouble(attribute.value);
@@ -491,7 +492,7 @@ namespace System.Xml.Linq
         /// Thrown if the specified attribute is null.
         /// </exception>
         [CLSCompliant(false)]
-        public static explicit operator decimal (XAttribute attribute)
+        public static explicit operator decimal(XAttribute attribute)
         {
             if (attribute == null) throw new ArgumentNullException(nameof(attribute));
             return XmlConvert.ToDecimal(attribute.value);
@@ -507,7 +508,7 @@ namespace System.Xml.Linq
         /// The content of this <see cref="XAttribute"/> as a <see cref="decimal"/>?.
         /// </returns>
         [CLSCompliant(false)]
-        public static explicit operator decimal? (XAttribute attribute)
+        public static explicit operator decimal?(XAttribute attribute)
         {
             if (attribute == null) return null;
             return XmlConvert.ToDecimal(attribute.value);
@@ -542,7 +543,7 @@ namespace System.Xml.Linq
         /// The content of this <see cref="XAttribute"/> as a <see cref="DateTime"/>?.
         /// </returns>
         [CLSCompliant(false)]
-        public static explicit operator DateTime? (XAttribute attribute)
+        public static explicit operator DateTime?(XAttribute attribute)
         {
             if (attribute == null) return null;
             return DateTime.Parse(attribute.value, CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.RoundtripKind);
@@ -577,7 +578,7 @@ namespace System.Xml.Linq
         /// The content of this <see cref="XAttribute"/> as a <see cref="DateTimeOffset"/>?.
         /// </returns>
         [CLSCompliant(false)]
-        public static explicit operator DateTimeOffset? (XAttribute attribute)
+        public static explicit operator DateTimeOffset?(XAttribute attribute)
         {
             if (attribute == null) return null;
             return XmlConvert.ToDateTimeOffset(attribute.value);
@@ -612,7 +613,7 @@ namespace System.Xml.Linq
         /// The content of this <see cref="XAttribute"/> as a <see cref="TimeSpan"/>?.
         /// </returns>
         [CLSCompliant(false)]
-        public static explicit operator TimeSpan? (XAttribute attribute)
+        public static explicit operator TimeSpan?(XAttribute attribute)
         {
             if (attribute == null) return null;
             return XmlConvert.ToTimeSpan(attribute.value);
@@ -647,7 +648,7 @@ namespace System.Xml.Linq
         /// The content of this <see cref="XAttribute"/> as a <see cref="Guid"/>?.
         /// </returns>
         [CLSCompliant(false)]
-        public static explicit operator Guid? (XAttribute attribute)
+        public static explicit operator Guid?(XAttribute attribute)
         {
             if (attribute == null) return null;
             return XmlConvert.ToGuid(attribute.value);
@@ -676,7 +677,7 @@ namespace System.Xml.Linq
             {
                 if (value.Length == 0)
                 {
-                    // The empty namespace name can only be declared by 
+                    // The empty namespace name can only be declared by
                     // the default namespace declaration
                     throw new ArgumentException(SR.Format(SR.Argument_NamespaceDeclarationPrefixed, name.LocalName));
                 }
@@ -697,13 +698,13 @@ namespace System.Xml.Linq
                     string localName = name.LocalName;
                     if (localName == "xml")
                     {
-                        // No other namespace name can be declared by the 'xml' 
-                        // prefix namespace declaration. 
+                        // No other namespace name can be declared by the 'xml'
+                        // prefix namespace declaration.
                         throw new ArgumentException(SR.Argument_NamespaceDeclarationXml);
                     }
                     else if (localName == "xmlns")
                     {
-                        // The 'xmlns' prefix must not be declared. 
+                        // The 'xmlns' prefix must not be declared.
                         throw new ArgumentException(SR.Argument_NamespaceDeclarationXmlns);
                     }
                 }

@@ -103,7 +103,7 @@ namespace System.Collections.Immutable
                         // truncation mode
                         // Clear the elements of the elements that are effectively removed.
 
-                        // PERF: Array.Clear works well for big arrays, 
+                        // PERF: Array.Clear works well for big arrays,
                         //       but may have too much overhead with small ones (which is the common case here)
                         if (_count - value > 64)
                         {
@@ -127,6 +127,8 @@ namespace System.Collections.Immutable
                 }
             }
 
+            private static void ThrowIndexOutOfRangeException() => throw new IndexOutOfRangeException();
+
             /// <summary>
             /// Gets or sets the element at the specified index.
             /// </summary>
@@ -140,7 +142,7 @@ namespace System.Collections.Immutable
                 {
                     if (index >= this.Count)
                     {
-                        throw new IndexOutOfRangeException();
+                        ThrowIndexOutOfRangeException();
                     }
 
                     return _elements[index];
@@ -150,12 +152,31 @@ namespace System.Collections.Immutable
                 {
                     if (index >= this.Count)
                     {
-                        throw new IndexOutOfRangeException();
+                        ThrowIndexOutOfRangeException();
                     }
 
                     _elements[index] = value;
                 }
             }
+
+#if !NETSTANDARD1_0
+            /// <summary>
+            /// Gets a read-only reference to the element at the specified index.
+            /// </summary>
+            /// <param name="index">The index.</param>
+            /// <returns></returns>
+            /// <exception cref="IndexOutOfRangeException">
+            /// </exception>
+            public ref readonly T ItemRef(int index)
+            {
+                if (index >= this.Count)
+                {
+                    ThrowIndexOutOfRangeException();
+                }
+
+                return ref this._elements[index];
+            }
+#endif
 
             /// <summary>
             /// Gets a value indicating whether the <see cref="ICollection{T}"/> is read-only.
@@ -177,10 +198,10 @@ namespace System.Collections.Immutable
             }
 
             /// <summary>
-            /// Extracts the internal array as an <see cref="ImmutableArray{T}"/> and replaces it 
+            /// Extracts the internal array as an <see cref="ImmutableArray{T}"/> and replaces it
             /// with a zero length array.
             /// </summary>
-            /// <exception cref="InvalidOperationException">When <see cref="ImmutableArray{T}.Builder.Count"/> doesn't 
+            /// <exception cref="InvalidOperationException">When <see cref="ImmutableArray{T}.Builder.Count"/> doesn't
             /// equal <see cref="ImmutableArray{T}.Builder.Capacity"/>.</exception>
             public ImmutableArray<T> MoveToImmutable()
             {
@@ -228,8 +249,10 @@ namespace System.Collections.Immutable
             /// <param name="item">The object to add to the <see cref="ICollection{T}"/>.</param>
             public void Add(T item)
             {
-                this.EnsureCapacity(this.Count + 1);
-                _elements[_count++] = item;
+                int newCount = _count + 1;
+                this.EnsureCapacity(newCount);
+                _elements[_count] = item;
+                _count = newCount;
             }
 
             /// <summary>

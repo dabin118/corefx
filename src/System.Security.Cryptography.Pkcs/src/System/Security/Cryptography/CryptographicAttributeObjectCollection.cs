@@ -72,6 +72,12 @@ namespace System.Security.Cryptography
             return indexOfNewItem;
         }
 
+        internal void AddWithoutMerge(CryptographicAttributeObject attribute)
+        {
+            Debug.Assert(attribute != null);
+            _list.Add(attribute);
+        }
+
         public void Remove(CryptographicAttributeObject attribute)
         {
             if (attribute == null)
@@ -93,6 +99,22 @@ namespace System.Security.Cryptography
             get
             {
                 return _list.Count;
+            }
+        }
+
+        public bool IsSynchronized
+        {
+            get
+            {
+                return false;
+            }
+        }
+
+        public object SyncRoot
+        {
+            get
+            {
+                return this;
             }
         }
 
@@ -136,23 +158,6 @@ namespace System.Security.Cryptography
             _list.CopyTo(array, index);
         }
 
-        bool ICollection.IsSynchronized
-        {
-            get
-            {
-                return false;
-            }
-        }
-
-        object ICollection.SyncRoot
-        {
-            get
-            {
-                return this;
-            }
-        }
-
         private readonly List<CryptographicAttributeObject> _list;
     }
 }
-

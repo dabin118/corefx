@@ -19,6 +19,7 @@ namespace Internal.Cryptography.Pal
             X509ChainStatusFlags.Revoked |
             X509ChainStatusFlags.OfflineRevocation;
 
+        private static readonly SafeCreateHandle s_emptyArray = Interop.CoreFoundation.CFArrayCreate(Array.Empty<IntPtr>(), UIntPtr.Zero);
         private Stack<SafeHandle> _extraHandles;
         private SafeX509ChainHandle _chainHandle;
         public X509ChainElement[] ChainElements { get; private set; }
@@ -36,11 +37,13 @@ namespace Internal.Cryptography.Pal
         internal void OpenTrustHandle(
             ICertificatePal leafCert,
             X509Certificate2Collection extraStore,
-            X509RevocationMode revocationMode)
+            X509RevocationMode revocationMode,
+            X509Certificate2Collection customTrustStore,
+            X509ChainTrustMode trustMode)
         {
             _revocationMode = revocationMode;
             SafeCreateHandle policiesArray = PreparePoliciesArray(revocationMode != X509RevocationMode.NoCheck);
-            SafeCreateHandle certsArray = PrepareCertsArray(leafCert, extraStore);
+            SafeCreateHandle certsArray = PrepareCertsArray(leafCert, extraStore, customTrustStore, trustMode);
 
             int osStatus;
 
@@ -53,6 +56,31 @@ namespace Internal.Cryptography.Pal
 
             if (ret == 1)
             {
+                if (trustMode == X509ChainTrustMode.CustomRootTrust)
+                {
+                    SafeCreateHandle customCertsArray = s_emptyArray;
+                    if (customTrustStore != null && customTrustStore.Count > 0)
+                    {
+                        customCertsArray = PrepareCustomCertsArray(customTrustStore);
+                    }
+
+                    try
+                    {
+                        int error = Interop.AppleCrypto.X509ChainSetTrustAnchorCertificates(chain, customCertsArray);
+                        if (error != 0)
+                        {
+                            throw Interop.AppleCrypto.CreateExceptionForOSStatus(error);
+                        }
+                    }
+                    finally
+                    {
+                        if (customCertsArray != s_emptyArray)
+                        {
+                            customCertsArray.Dispose();
+                        }
+                    }
+                }
+
                 _chainHandle = chain;
                 return;
             }
@@ -120,60 +148,81 @@ namespace Internal.Cryptography.Pal
             return policiesArray;
         }
 
-        private SafeCreateHandle PrepareCertsArray(ICertificatePal cert, X509Certificate2Collection extraStore)
+        private SafeCreateHandle PrepareCertsArray(
+            ICertificatePal cert,
+            X509Certificate2Collection extraStore,
+            X509Certificate2Collection customTrustStore,
+            X509ChainTrustMode trustMode)
         {
-            IntPtr[] ptrs = new IntPtr[1 + (extraStore?.Count ?? 0)];
-            SafeHandle[] safeHandles = new SafeHandle[ptrs.Length];
-
-            AppleCertificatePal applePal = (AppleCertificatePal)cert;
-
-            safeHandles[0] = applePal.CertificateHandle;
+            List<SafeHandle> safeHandles = new List<SafeHandle> { ((AppleCertificatePal)cert).CertificateHandle };
 
             if (extraStore != null)
             {
                 for (int i = 0; i < extraStore.Count; i++)
                 {
-                    AppleCertificatePal extraCertPal = (AppleCertificatePal)extraStore[i].Pal;
-
-                    safeHandles[i + 1] = extraCertPal.CertificateHandle;
+                    safeHandles.Add(((AppleCertificatePal)extraStore[i].Pal).CertificateHandle);
                 }
             }
 
+            if (trustMode == X509ChainTrustMode.CustomRootTrust && customTrustStore != null)
+            {
+                for (int i = 0; i < customTrustStore.Count; i++)
+                {
+                    // Only adds non self issued certs to the untrusted certs array. Trusted self signed
+                    // certs will be added to the custom certs array.
+                    if (!customTrustStore[i].SubjectName.RawData.ContentsEqual(customTrustStore[i].IssuerName.RawData))
+                    {
+                        safeHandles.Add(((AppleCertificatePal)customTrustStore[i].Pal).CertificateHandle);
+                    }
+                }
+            }
+
+            return GetCertsArray(safeHandles);
+        }
+
+        private SafeCreateHandle PrepareCustomCertsArray(X509Certificate2Collection customTrustStore)
+        {
+            List<SafeHandle> rootCertificates = new List<SafeHandle>();
+            foreach (X509Certificate2 cert in customTrustStore)
+            {
+                if (cert.SubjectName.RawData.ContentsEqual(cert.IssuerName.RawData))
+                {
+                    rootCertificates.Add(((AppleCertificatePal)cert.Pal).CertificateHandle);
+                }
+            }
+
+            return GetCertsArray(rootCertificates);
+        }
+
+        private SafeCreateHandle GetCertsArray(IList<SafeHandle> safeHandles)
+        {
             int idx = 0;
-            bool addedRef = false;
 
             try
             {
-                for (idx = 0; idx < safeHandles.Length; idx++)
+                int handlesCount = safeHandles.Count;
+                IntPtr[] ptrs = new IntPtr[handlesCount];
+                for (; idx < handlesCount; idx++)
                 {
                     SafeHandle handle = safeHandles[idx];
+                    bool addedRef = false;
                     handle.DangerousAddRef(ref addedRef);
                     ptrs[idx] = handle.DangerousGetHandle();
                 }
+
+                // Creating the array has the effect of calling CFRetain() on all of the pointers, so the native
+                // resource is safe even if we DangerousRelease=>ReleaseHandle them.
+                SafeCreateHandle certsArray = Interop.CoreFoundation.CFArrayCreate(ptrs, (UIntPtr)ptrs.Length);
+                _extraHandles.Push(certsArray);
+                return certsArray;
             }
-            catch
+            finally
             {
-                // If any DangerousAddRef failed, idx will be on the one that failed, so we'll start off
-                // by subtracing one.
                 for (idx--; idx >= 0; idx--)
                 {
                     safeHandles[idx].DangerousRelease();
                 }
-
-                throw;
             }
-
-            // Creating the array has the effect of calling CFRetain() on all of the pointers, so the native
-            // resource is safe even if we DangerousRelease=>ReleaseHandle them.
-            SafeCreateHandle certsArray = Interop.CoreFoundation.CFArrayCreate(ptrs, (UIntPtr)ptrs.Length);
-            _extraHandles.Push(certsArray);
-
-            for (idx = 0; idx < safeHandles.Length; idx++)
-            {
-                safeHandles[idx].DangerousRelease();
-            }
-
-            return certsArray;
         }
 
         internal void Execute(
@@ -212,11 +261,14 @@ namespace Internal.Cryptography.Pal
 
             if (!IsPolicyMatch(elements, applicationPolicy, certificatePolicy))
             {
-                Tuple<X509Certificate2, int> currentValue = elements[0];
+                for (int i = 0; i < elements.Length; i++)
+                {
+                    Tuple<X509Certificate2, int> currentValue = elements[i];
 
-                elements[0] = Tuple.Create(
-                    currentValue.Item1,
-                    currentValue.Item2 | (int)X509ChainStatusFlags.NotValidForUsage);
+                    elements[i] = Tuple.Create(
+                        currentValue.Item1,
+                        currentValue.Item2 | (int)X509ChainStatusFlags.NotValidForUsage);
+                }
             }
 
             FixupRevocationStatus(elements, revocationFlag);
@@ -413,9 +465,6 @@ namespace Internal.Cryptography.Pal
 
         private X509ChainElement BuildElement(X509Certificate2 cert, int dwStatus)
         {
-            const int errSecCertificateExpired = -67818;
-            const int errSecCertificateNotValidYet = -67819;
-
             if (dwStatus == 0)
             {
                 return new X509ChainElement(cert, Array.Empty<X509ChainStatus>(), "");
@@ -429,29 +478,30 @@ namespace Internal.Cryptography.Pal
                 if ((mapping.ChainStatusFlag & flags) == mapping.ChainStatusFlag)
                 {
                     int osStatus;
+                    string errorString;
 
                     // Disambiguate the NotTimeValid code to get the right string.
                     if (mapping.ChainStatusFlag == X509ChainStatusFlags.NotTimeValid)
                     {
-                        if (cert != null && cert.NotBefore > _verificationTime)
-                        {
-                            osStatus = errSecCertificateNotValidYet;
-                        }
-                        else
-                        {
-                            osStatus = errSecCertificateExpired;
-                        }
+                        const int errSecCertificateExpired = -67818;
+                        const int errSecCertificateNotValidYet = -67819;
+
+                        osStatus = cert != null && cert.NotBefore > _verificationTime ?
+                            errSecCertificateNotValidYet :
+                            errSecCertificateExpired;
+                        errorString = Interop.AppleCrypto.GetSecErrorString(osStatus);
                     }
                     else
                     {
                         osStatus = mapping.OSStatus;
+                        errorString = mapping.ErrorString;
                     }
 
                     statuses.Add(
                         new X509ChainStatus
                         {
                             Status = mapping.ChainStatusFlag,
-                            StatusInformation = Interop.AppleCrypto.GetSecErrorString(osStatus),
+                            StatusInformation = errorString
                         });
                 }
             }
@@ -459,44 +509,46 @@ namespace Internal.Cryptography.Pal
             return new X509ChainElement(cert, statuses.ToArray(), "");
         }
 
-        private struct X509ChainErrorMapping
+        private readonly struct X509ChainErrorMapping
         {
             internal static readonly X509ChainErrorMapping[] s_chainErrorMappings =
             {
                 new X509ChainErrorMapping(X509ChainStatusFlags.NotTimeValid),
-                new X509ChainErrorMapping(X509ChainStatusFlags.NotTimeNested), 
-                new X509ChainErrorMapping(X509ChainStatusFlags.Revoked), 
-                new X509ChainErrorMapping(X509ChainStatusFlags.NotSignatureValid), 
-                new X509ChainErrorMapping(X509ChainStatusFlags.NotValidForUsage), 
-                new X509ChainErrorMapping(X509ChainStatusFlags.UntrustedRoot), 
-                new X509ChainErrorMapping(X509ChainStatusFlags.RevocationStatusUnknown), 
-                new X509ChainErrorMapping(X509ChainStatusFlags.Cyclic), 
-                new X509ChainErrorMapping(X509ChainStatusFlags.InvalidExtension), 
-                new X509ChainErrorMapping(X509ChainStatusFlags.InvalidPolicyConstraints), 
-                new X509ChainErrorMapping(X509ChainStatusFlags.InvalidBasicConstraints), 
-                new X509ChainErrorMapping(X509ChainStatusFlags.InvalidNameConstraints), 
-                new X509ChainErrorMapping(X509ChainStatusFlags.HasNotSupportedNameConstraint), 
-                new X509ChainErrorMapping(X509ChainStatusFlags.HasNotDefinedNameConstraint), 
-                new X509ChainErrorMapping(X509ChainStatusFlags.HasNotPermittedNameConstraint), 
-                new X509ChainErrorMapping(X509ChainStatusFlags.HasExcludedNameConstraint), 
-                new X509ChainErrorMapping(X509ChainStatusFlags.PartialChain), 
-                new X509ChainErrorMapping(X509ChainStatusFlags.CtlNotTimeValid), 
-                new X509ChainErrorMapping(X509ChainStatusFlags.CtlNotSignatureValid), 
-                new X509ChainErrorMapping(X509ChainStatusFlags.CtlNotValidForUsage), 
-                new X509ChainErrorMapping(X509ChainStatusFlags.OfflineRevocation), 
-                new X509ChainErrorMapping(X509ChainStatusFlags.NoIssuanceChainPolicy), 
-                new X509ChainErrorMapping(X509ChainStatusFlags.ExplicitDistrust), 
-                new X509ChainErrorMapping(X509ChainStatusFlags.HasNotSupportedCriticalExtension), 
-                new X509ChainErrorMapping(X509ChainStatusFlags.HasWeakSignature), 
+                new X509ChainErrorMapping(X509ChainStatusFlags.NotTimeNested),
+                new X509ChainErrorMapping(X509ChainStatusFlags.Revoked),
+                new X509ChainErrorMapping(X509ChainStatusFlags.NotSignatureValid),
+                new X509ChainErrorMapping(X509ChainStatusFlags.NotValidForUsage),
+                new X509ChainErrorMapping(X509ChainStatusFlags.UntrustedRoot),
+                new X509ChainErrorMapping(X509ChainStatusFlags.RevocationStatusUnknown),
+                new X509ChainErrorMapping(X509ChainStatusFlags.Cyclic),
+                new X509ChainErrorMapping(X509ChainStatusFlags.InvalidExtension),
+                new X509ChainErrorMapping(X509ChainStatusFlags.InvalidPolicyConstraints),
+                new X509ChainErrorMapping(X509ChainStatusFlags.InvalidBasicConstraints),
+                new X509ChainErrorMapping(X509ChainStatusFlags.InvalidNameConstraints),
+                new X509ChainErrorMapping(X509ChainStatusFlags.HasNotSupportedNameConstraint),
+                new X509ChainErrorMapping(X509ChainStatusFlags.HasNotDefinedNameConstraint),
+                new X509ChainErrorMapping(X509ChainStatusFlags.HasNotPermittedNameConstraint),
+                new X509ChainErrorMapping(X509ChainStatusFlags.HasExcludedNameConstraint),
+                new X509ChainErrorMapping(X509ChainStatusFlags.PartialChain),
+                new X509ChainErrorMapping(X509ChainStatusFlags.CtlNotTimeValid),
+                new X509ChainErrorMapping(X509ChainStatusFlags.CtlNotSignatureValid),
+                new X509ChainErrorMapping(X509ChainStatusFlags.CtlNotValidForUsage),
+                new X509ChainErrorMapping(X509ChainStatusFlags.OfflineRevocation),
+                new X509ChainErrorMapping(X509ChainStatusFlags.NoIssuanceChainPolicy),
+                new X509ChainErrorMapping(X509ChainStatusFlags.ExplicitDistrust),
+                new X509ChainErrorMapping(X509ChainStatusFlags.HasNotSupportedCriticalExtension),
+                new X509ChainErrorMapping(X509ChainStatusFlags.HasWeakSignature),
             };
 
             internal readonly X509ChainStatusFlags ChainStatusFlag;
             internal readonly int OSStatus;
+            internal readonly string ErrorString;
 
             private X509ChainErrorMapping(X509ChainStatusFlags flag)
             {
                 ChainStatusFlag = flag;
                 OSStatus = Interop.AppleCrypto.GetOSStatusForChainStatus(flag);
+                ErrorString = Interop.AppleCrypto.GetSecErrorString(OSStatus);
             }
         }
     }
@@ -547,6 +599,8 @@ namespace Internal.Cryptography.Pal
             OidCollection certificatePolicy,
             X509RevocationMode revocationMode,
             X509RevocationFlag revocationFlag,
+            X509Certificate2Collection customTrustStore,
+            X509ChainTrustMode trustMode,
             DateTime verificationTime,
             TimeSpan timeout)
         {
@@ -566,7 +620,12 @@ namespace Internal.Cryptography.Pal
 
             try
             {
-                chainPal.OpenTrustHandle(cert, extraStore, revocationMode);
+                chainPal.OpenTrustHandle(
+                    cert,
+                    extraStore,
+                    revocationMode,
+                    customTrustStore,
+                    trustMode);
 
                 chainPal.Execute(
                     verificationTime,

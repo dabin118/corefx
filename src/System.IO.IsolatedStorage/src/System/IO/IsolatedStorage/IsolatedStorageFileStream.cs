@@ -13,10 +13,10 @@ namespace System.IO.IsolatedStorage
         private const string BackSlash = "\\";
         private const int DefaultBufferSize = 1024;
 
-        private FileStream _fs;
-        private IsolatedStorageFile _isf;
-        private string _givenPath;
-        private string _fullPath;
+        private readonly FileStream _fs;
+        private readonly IsolatedStorageFile _isf;
+        private readonly string _givenPath;
+        private readonly string _fullPath;
 
         public IsolatedStorageFileStream(string path, FileMode mode)
             : this(path, mode, (mode == FileMode.Append ? FileAccess.Write : FileAccess.ReadWrite), FileShare.None, null)
@@ -217,6 +217,14 @@ namespace System.IO.IsolatedStorage
             }
         }
 
+        public override ValueTask DisposeAsync()
+        {
+            return
+                GetType() != typeof(IsolatedStorageFileStream) ? base.DisposeAsync() :
+                _fs != null ? _fs.DisposeAsync() :
+                default;
+        }
+
         public override void Flush()
         {
             _fs.Flush();
@@ -242,9 +250,19 @@ namespace System.IO.IsolatedStorage
             return _fs.Read(buffer, offset, count);
         }
 
+        public override int Read(System.Span<byte> buffer)
+        {
+            return _fs.Read(buffer);
+        }
+
         public override Task<int> ReadAsync(byte[] buffer, int offset, int count, Threading.CancellationToken cancellationToken)
         {
             return _fs.ReadAsync(buffer, offset, count, cancellationToken);
+        }
+
+        public override ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken)
+        {
+            return _fs.ReadAsync(buffer, cancellationToken);
         }
 
         public override int ReadByte()
@@ -264,9 +282,19 @@ namespace System.IO.IsolatedStorage
             _fs.Write(buffer, offset, count);
         }
 
+        public override void Write(System.ReadOnlySpan<byte> buffer)
+        {
+            _fs.Write(buffer);
+        }
+
         public override Task WriteAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
         {
             return _fs.WriteAsync(buffer, offset, count, cancellationToken);
+        }
+
+        public override ValueTask WriteAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancellationToken)
+        {
+            return _fs.WriteAsync(buffer, cancellationToken);
         }
 
         public override void WriteByte(byte value)
@@ -294,7 +322,7 @@ namespace System.IO.IsolatedStorage
             _fs.EndWrite(asyncResult);
         }
 
-        [Obsolete("This property has been deprecated.  Please use IsolatedStorageFileStream's SafeFileHandle property instead.  http://go.microsoft.com/fwlink/?linkid=14202")]
+        [Obsolete("This property has been deprecated.  Please use IsolatedStorageFileStream's SafeFileHandle property instead.  https://go.microsoft.com/fwlink/?linkid=14202")]
         public override IntPtr Handle
         {
             get { return _fs.Handle; }

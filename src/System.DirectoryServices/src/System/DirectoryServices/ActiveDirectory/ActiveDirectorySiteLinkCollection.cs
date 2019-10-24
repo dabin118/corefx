@@ -23,36 +23,36 @@ namespace System.DirectoryServices.ActiveDirectory
                 ActiveDirectorySiteLink link = (ActiveDirectorySiteLink)value;
 
                 if (link == null)
-                    throw new ArgumentNullException("value");
+                    throw new ArgumentNullException(nameof(value));
 
                 if (!link.existing)
-                    throw new InvalidOperationException(SR.Format(SR.SiteLinkNotCommitted , link.Name));
+                    throw new InvalidOperationException(SR.Format(SR.SiteLinkNotCommitted, link.Name));
 
                 if (!Contains(link))
                     List[index] = link;
                 else
-                    throw new ArgumentException(SR.Format(SR.AlreadyExistingInCollection , link), "value");
+                    throw new ArgumentException(SR.Format(SR.AlreadyExistingInCollection, link), nameof(value));
             }
         }
 
         public int Add(ActiveDirectorySiteLink link)
         {
             if (link == null)
-                throw new ArgumentNullException("link");
+                throw new ArgumentNullException(nameof(link));
 
             if (!link.existing)
-                throw new InvalidOperationException(SR.Format(SR.SiteLinkNotCommitted , link.Name));
+                throw new InvalidOperationException(SR.Format(SR.SiteLinkNotCommitted, link.Name));
 
             if (!Contains(link))
                 return List.Add(link);
             else
-                throw new ArgumentException(SR.Format(SR.AlreadyExistingInCollection , link), "link");
+                throw new ArgumentException(SR.Format(SR.AlreadyExistingInCollection, link), nameof(link));
         }
 
         public void AddRange(ActiveDirectorySiteLink[] links)
         {
             if (links == null)
-                throw new ArgumentNullException("links");
+                throw new ArgumentNullException(nameof(links));
 
             for (int i = 0; i < links.Length; i = i + 1)
                 this.Add(links[i]);
@@ -61,7 +61,7 @@ namespace System.DirectoryServices.ActiveDirectory
         public void AddRange(ActiveDirectorySiteLinkCollection links)
         {
             if (links == null)
-                throw new ArgumentNullException("links");
+                throw new ArgumentNullException(nameof(links));
 
             int count = links.Count;
             for (int i = 0; i < count; i++)
@@ -71,10 +71,10 @@ namespace System.DirectoryServices.ActiveDirectory
         public bool Contains(ActiveDirectorySiteLink link)
         {
             if (link == null)
-                throw new ArgumentNullException("link");
+                throw new ArgumentNullException(nameof(link));
 
             if (!link.existing)
-                throw new InvalidOperationException(SR.Format(SR.SiteLinkNotCommitted , link.Name));
+                throw new InvalidOperationException(SR.Format(SR.SiteLinkNotCommitted, link.Name));
 
             string dn = (string)PropertyManager.GetPropertyValue(link.context, link.cachedEntry, PropertyManager.DistinguishedName);
 
@@ -99,10 +99,10 @@ namespace System.DirectoryServices.ActiveDirectory
         public int IndexOf(ActiveDirectorySiteLink link)
         {
             if (link == null)
-                throw new ArgumentNullException("link");
+                throw new ArgumentNullException(nameof(link));
 
             if (!link.existing)
-                throw new InvalidOperationException(SR.Format(SR.SiteLinkNotCommitted , link.Name));
+                throw new InvalidOperationException(SR.Format(SR.SiteLinkNotCommitted, link.Name));
 
             string dn = (string)PropertyManager.GetPropertyValue(link.context, link.cachedEntry, PropertyManager.DistinguishedName);
 
@@ -125,21 +125,21 @@ namespace System.DirectoryServices.ActiveDirectory
                 throw new ArgumentNullException("value");
 
             if (!link.existing)
-                throw new InvalidOperationException(SR.Format(SR.SiteLinkNotCommitted , link.Name));
+                throw new InvalidOperationException(SR.Format(SR.SiteLinkNotCommitted, link.Name));
 
             if (!Contains(link))
                 List.Insert(index, link);
             else
-                throw new ArgumentException(SR.Format(SR.AlreadyExistingInCollection , link), "link");
+                throw new ArgumentException(SR.Format(SR.AlreadyExistingInCollection, link), nameof(link));
         }
 
         public void Remove(ActiveDirectorySiteLink link)
         {
             if (link == null)
-                throw new ArgumentNullException("link");
+                throw new ArgumentNullException(nameof(link));
 
             if (!link.existing)
-                throw new InvalidOperationException(SR.Format(SR.SiteLinkNotCommitted , link.Name));
+                throw new InvalidOperationException(SR.Format(SR.SiteLinkNotCommitted, link.Name));
 
             string dn = (string)PropertyManager.GetPropertyValue(link.context, link.cachedEntry, PropertyManager.DistinguishedName);
 
@@ -156,7 +156,7 @@ namespace System.DirectoryServices.ActiveDirectory
             }
 
             // something that does not exist in the collectio
-            throw new ArgumentException(SR.Format(SR.NotFoundInCollection , link), "link");
+            throw new ArgumentException(SR.Format(SR.NotFoundInCollection, link), nameof(link));
         }
 
         protected override void OnClearComplete()
@@ -221,15 +221,15 @@ namespace System.DirectoryServices.ActiveDirectory
             }
         }
 
-        protected override void OnValidate(Object value)
+        protected override void OnValidate(object value)
         {
-            if (value == null) throw new ArgumentNullException("value");
+            if (value == null) throw new ArgumentNullException(nameof(value));
 
             if (!(value is ActiveDirectorySiteLink))
-                throw new ArgumentException("value");
+                throw new ArgumentException(nameof(value));
 
             if (!((ActiveDirectorySiteLink)value).existing)
-                throw new InvalidOperationException(SR.Format(SR.SiteLinkNotCommitted , ((ActiveDirectorySiteLink)value).Name));
+                throw new InvalidOperationException(SR.Format(SR.SiteLinkNotCommitted, ((ActiveDirectorySiteLink)value).Name));
         }
     }
 }

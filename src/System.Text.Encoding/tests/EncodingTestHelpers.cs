@@ -1,4 +1,4 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
@@ -117,12 +117,15 @@ namespace System.Text.Tests
                 Assert.Equal(originalBytes[i], bytes[i]);
             }
         }
-        
+
         public static void Decode(Encoding encoding, byte[] bytes, int index, int count, string expected)
         {
             GetCharCount(encoding, bytes, index, count, expected.Length);
             GetChars(encoding, bytes, index, count, expected.ToCharArray());
             GetString(encoding, bytes, index, count, expected);
+
+            GetCharCount_NetCoreApp(encoding, bytes, index, count, expected.Length);
+            GetString_NetCoreApp(encoding, bytes, index, count, expected);
         }
 
         private static unsafe void GetCharCount(Encoding encoding, byte[] bytes, int index, int count, int expected)
@@ -145,8 +148,7 @@ namespace System.Text.Tests
             }
         }
 
-        private static void GetChars(Encoding encoding, byte[] bytes, int index, int count, char[]
-         expectedChars)
+        private static void GetChars(Encoding encoding, byte[] bytes, int index, int count, char[] expectedChars)
         {
             char[] fullArray = new char[expectedChars.Length + 4];
             for (int i = 0; i < fullArray.Length; i++)
@@ -197,6 +199,8 @@ namespace System.Text.Tests
                 }
                 VerifyGetChars(bytePointerChars, charIndex, charCount, originalChars, expectedChars);
             }
+
+            VerifyGetChars_NetCoreApp(encoding, bytes, byteIndex, byteCount, chars, charIndex, expectedChars);
         }
 
         private static void VerifyGetChars(char[] chars, int charIndex, int charCount, char[] originalChars, char[] expectedChars)
@@ -216,7 +220,7 @@ namespace System.Text.Tests
                 Assert.Equal(originalChars[i], chars[i]);
             }
         }
-        
+
         private static void GetString(Encoding encoding, byte[] bytes, int index, int count, string expected)
         {
             if (index == 0 && count == bytes.Length)
@@ -228,12 +232,11 @@ namespace System.Text.Tests
             Assert.Equal(expected, encoding.GetString(bytes, index, count));
         }
 
-#if !netcoreapp
-        // Netcoreapp adds GetByteCount(string, int, int) and GetBytes(string, int, int) APIs.
-        // To use the common data from the Encode(...) entry point to these tests, we can define stubs that
-        // do nothing with netfx or netstandard. However, these are defined (they test the new APIs) with netcoreapp.
-        private static void GetByteCount_NetCoreApp(Encoding encoding, string chars, int index, int count, int expected) {}
-        private static void GetBytes_NetCoreApp(Encoding encoding, string chars, int index, int count, byte[] expected) {}
-#endif
+        // Netcoreapp adds several Encoding members.
+        static partial void GetByteCount_NetCoreApp(Encoding encoding, string chars, int index, int count, int expected);
+        static partial void GetBytes_NetCoreApp(Encoding encoding, string chars, int index, int count, byte[] expected);
+        static partial void GetCharCount_NetCoreApp(Encoding encoding, byte[] bytes, int index, int count, int expected);
+        static partial void VerifyGetChars_NetCoreApp(Encoding encoding, byte[] bytes, int byteIndex, int byteCount, char[] chars, int charIndex, char[] expectedChars);
+        static partial void GetString_NetCoreApp(Encoding encoding, byte[] bytes, int index, int count, string expected);
     }
 }

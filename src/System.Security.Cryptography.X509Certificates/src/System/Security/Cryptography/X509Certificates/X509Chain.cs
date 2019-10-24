@@ -31,7 +31,8 @@ namespace System.Security.Cryptography.X509Certificates
             _chainElements = new X509ChainElementCollection(_pal.ChainElements);
         }
 
-        public static X509Chain Create() {
+        public static X509Chain Create()
+        {
             return new X509Chain();
         }
 
@@ -109,8 +110,22 @@ namespace System.Security.Cryptography.X509Certificates
         {
             lock (_syncRoot)
             {
-                if (certificate == null)
+                if (certificate == null || certificate.Pal == null)
                     throw new ArgumentException(SR.Cryptography_InvalidContextHandle, nameof(certificate));
+
+                if (_chainPolicy != null && _chainPolicy.CustomTrustStore != null)
+                {
+                    if (_chainPolicy.TrustMode == X509ChainTrustMode.System && _chainPolicy.CustomTrustStore.Count > 0)
+                        throw new CryptographicException(SR.Cryptography_CustomTrustCertsInSystemMode, nameof(_chainPolicy.TrustMode));
+
+                    foreach (X509Certificate2 customCertificate in _chainPolicy.CustomTrustStore)
+                    {
+                        if (customCertificate == null || customCertificate.Handle == IntPtr.Zero)
+                        {
+                            throw new CryptographicException(SR.Cryptography_InvalidTrustCertificate, nameof(_chainPolicy.CustomTrustStore));
+                        }
+                    }
+                }
 
                 Reset();
 
@@ -118,11 +133,13 @@ namespace System.Security.Cryptography.X509Certificates
                 _pal = ChainPal.BuildChain(
                     _useMachineContext,
                     certificate.Pal,
-                    chainPolicy.ExtraStore,
-                    chainPolicy.ApplicationPolicy,
-                    chainPolicy.CertificatePolicy,
+                    chainPolicy._extraStore,
+                    chainPolicy._applicationPolicy,
+                    chainPolicy._certificatePolicy,
                     chainPolicy.RevocationMode,
                     chainPolicy.RevocationFlag,
+                    chainPolicy.CustomTrustStore,
+                    chainPolicy.TrustMode,
                     chainPolicy.VerificationTime,
                     chainPolicy.UrlRetrievalTimeout
                     );

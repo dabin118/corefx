@@ -5,12 +5,13 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text;
 using Xunit;
 
 namespace System.IO.Tests
 {
-    public class BinaryReaderTests
+    public partial class BinaryReaderTests
     {
         protected virtual Stream CreateStream()
         {
@@ -114,7 +115,6 @@ namespace System.IO.Tests
         }
 
         [Fact]
-        [SkipOnTargetFramework(TargetFrameworkMonikers.NetFramework, "Difference in behavior that added extra checks to BinaryReader/Writer buffers on .Net Core")]
         public void Read_InvalidEncoding()
         {
             using (var str = CreateStream())
@@ -126,7 +126,105 @@ namespace System.IO.Tests
 
                 using (var reader = new BinaryReader(str, new NegEncoding()))
                 {
-                    AssertExtensions.Throws<ArgumentOutOfRangeException>("charsRemaining", () => reader.Read(new char[10], 0, 10));
+                    Assert.ThrowsAny<ArgumentException>(() => reader.Read(new char[10], 0, 10));
+                }
+            }
+        }
+
+        [Theory]
+        [InlineData(100, 0, 100, 100, 100)]
+        [InlineData(100, 25, 50, 100, 50)]
+        [InlineData(50, 0, 100, 100, 50)]
+        [InlineData(0, 0, 10, 10, 0)]
+        public void Read_CharArray(int sourceSize, int index, int count, int destinationSize, int expectedReadLength)
+        {
+            using (var stream = CreateStream())
+            {
+                var source = new char[sourceSize];
+                var random = new Random(345);
+
+                for (int i = 0; i < sourceSize; i++)
+                {
+                    source[i] = (char)random.Next(0, 127);
+                }
+
+                stream.Write(Encoding.ASCII.GetBytes(source), 0, source.Length);
+                stream.Position = 0;
+
+                using (var reader = new BinaryReader(stream, Encoding.ASCII))
+                {
+                    var destination = new char[destinationSize];
+
+                    int readCount = reader.Read(destination, index, count);
+
+                    Assert.Equal(expectedReadLength, readCount);
+                    Assert.Equal(source.Take(readCount), destination.Skip(index).Take(readCount));
+
+                    // Make sure we didn't write past the end
+                    Assert.True(destination.Skip(readCount + index).All(b => b == default(char)));
+                }
+            }
+        }
+
+        [Theory]
+        [InlineData(new[] { 'h', 'e', 'l', 'l', 'o' }, 5, new[] { 'h', 'e', 'l', 'l', 'o' })]
+        [InlineData(new[] { 'h', 'e', 'l', 'l', 'o' }, 8, new[] { 'h', 'e', 'l', 'l', 'o' })]
+        [InlineData(new[] { 'h', 'e', '\0', '\0', 'o' }, 5, new[] { 'h', 'e', '\0', '\0', 'o' })]
+        [InlineData(new[] { 'h', 'e', 'l', 'l', 'o' }, 0, new char[0])]
+        [InlineData(new char[0], 5, new char[0])]
+        public void ReadChars(char[] source, int readLength, char[] expected)
+        {
+            using (var stream = CreateStream())
+            {
+                stream.Write(Encoding.ASCII.GetBytes(source), 0, source.Length);
+                stream.Position = 0;
+
+                using (var reader = new BinaryReader(stream))
+                {
+                    var destination = reader.ReadChars(readLength);
+
+                    Assert.Equal(expected, destination);
+                }
+            }
+        }
+
+        // ChunkingStream returns less than requested
+        private sealed class ChunkingStream : MemoryStream
+        {
+            public override int Read(byte[] buffer, int offset, int count)
+            {
+                return base.Read(buffer, offset, count > 10 ? count - 3 : count);
+            }
+
+            public override int Read(Span<byte> destination)
+            {
+                return base.Read(destination.Length > 10 ? destination.Slice(0, destination.Length - 3) : destination);
+            }
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void ReadChars_OverReads(bool unicodeEncoding)
+        {
+            Encoding encoding = unicodeEncoding ? Encoding.Unicode : Encoding.UTF8;
+
+            char[] data1 = "hello world \ud83d\ude03!".ToCharArray(); // 14 code points, 15 chars in UTF-16, 17 bytes in UTF-8
+            uint data2 = 0xABCDEF01;
+
+            using (Stream stream = new ChunkingStream())
+            {
+                using (BinaryWriter writer = new BinaryWriter(stream, encoding, leaveOpen: true))
+                {
+                    writer.Write(data1);
+                    writer.Write(data2);
+                }
+
+                stream.Seek(0, SeekOrigin.Begin);
+                using (BinaryReader reader = new BinaryReader(stream, encoding, leaveOpen: true))
+                {
+                    Assert.Equal(data1, reader.ReadChars(data1.Length));
+                    Assert.Equal(data2, reader.ReadUInt32());
                 }
             }
         }

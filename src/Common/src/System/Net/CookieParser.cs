@@ -43,13 +43,13 @@ namespace System.Net
     {
         private bool _eofCookie;
         private int _index;
-        private int _length;
+        private readonly int _length;
         private string _name;
         private bool _quoted;
         private int _start;
         private CookieToken _token;
         private int _tokenLength;
-        private string _tokenStream;
+        private readonly string _tokenStream;
         private string _value;
         private int _cookieStartIndex;
         private int _cookieLength;
@@ -128,14 +128,6 @@ namespace System.Net
             }
         }
 
-        // GetCookieString
-        //
-        // Gets the full string of the cookie
-        internal string GetCookieString()
-        {
-            return _tokenStream.SubstringTrim(_cookieStartIndex, _cookieLength);
-        }
-
         // Extract
         //
         // Extracts the current token
@@ -202,7 +194,7 @@ namespace System.Net
         {
             _tokenLength = 0;
             _start = _index;
-            while ((_index < _length) && Char.IsWhiteSpace(_tokenStream[_index]))
+            while ((_index < _length) && char.IsWhiteSpace(_tokenStream[_index]))
             {
                 ++_index;
                 ++_start;
@@ -282,7 +274,7 @@ namespace System.Net
                     }
                     ++_index;
                 }
-                
+
                 if (Eof)
                 {
                     _cookieLength = _index - _cookieStartIndex;
@@ -439,8 +431,8 @@ namespace System.Net
 
         private struct RecognizedAttribute
         {
-            private string _name;
-            private CookieToken _token;
+            private readonly string _name;
+            private readonly CookieToken _token;
 
             internal RecognizedAttribute(string name, CookieToken token)
             {
@@ -516,33 +508,12 @@ namespace System.Net
     // Takes a cookie header, makes cookies.
     internal class CookieParser
     {
-        private CookieTokenizer _tokenizer;
+        private readonly CookieTokenizer _tokenizer;
         private Cookie _savedCookie;
 
         internal CookieParser(string cookieString)
         {
             _tokenizer = new CookieTokenizer(cookieString);
-        }
-
-        // GetString
-        //
-        // Gets the next cookie string
-        internal string GetString()
-        {
-            bool first = true;
-
-            if (_tokenizer.Eof)
-            {
-                return null;
-            }
-
-            do
-            {
-                _tokenizer.Next(first, true);
-                first = false;
-            } while (!_tokenizer.Eof && !_tokenizer.EndOfCookie);
-
-            return _tokenizer.GetCookieString();
         }
 
 #if SYSTEM_NET_PRIMITIVES_DLL
@@ -562,13 +533,7 @@ namespace System.Net
                     // We need to use Cookie.InternalSetName instead of the Cookie.set_Name wrapped in a try catch block, as
                     // Cookie.set_Name keeps the original name if the string is empty or null.
                     // Unfortunately this API is internal so we use reflection to access it. The method is cached for performance reasons.
-                    BindingFlags flags = BindingFlags.Instance;
-#if uap
-                    flags |= BindingFlags.Public;
-#else
-                    flags |= BindingFlags.NonPublic;
-#endif
-                    MethodInfo method = typeof(Cookie).GetMethod("InternalSetName", flags);
+                    MethodInfo method = typeof(Cookie).GetMethod("InternalSetName", BindingFlags.Instance | BindingFlags.NonPublic);
                     Debug.Assert(method != null, "We need to use an internal method named InternalSetName that is declared on Cookie.");
                     s_internalSetNameMethod = (Func<Cookie, string, bool>)Delegate.CreateDelegate(typeof(Func<Cookie, string, bool>), method);
                 }
@@ -586,13 +551,7 @@ namespace System.Net
                 if (s_isQuotedDomainField == null)
                 {
                     // TODO: #13607
-                    BindingFlags flags = BindingFlags.Instance;
-#if uap
-                    flags |= BindingFlags.Public;
-#else
-                    flags |= BindingFlags.NonPublic;
-#endif
-                    FieldInfo field = typeof(Cookie).GetField("IsQuotedDomain", flags);
+                    FieldInfo field = typeof(Cookie).GetField("IsQuotedDomain", BindingFlags.Instance | BindingFlags.NonPublic);
                     Debug.Assert(field != null, "We need to use an internal field named IsQuotedDomain that is declared on Cookie.");
                     s_isQuotedDomainField = field;
                 }
@@ -609,13 +568,7 @@ namespace System.Net
                 if (s_isQuotedVersionField == null)
                 {
                     // TODO: #13607
-                    BindingFlags flags = BindingFlags.Instance;
-#if uap
-                    flags |= BindingFlags.Public;
-#else
-                    flags |= BindingFlags.NonPublic;
-#endif
-                    FieldInfo field = typeof(Cookie).GetField("IsQuotedVersion", flags);
+                    FieldInfo field = typeof(Cookie).GetField("IsQuotedVersion", BindingFlags.Instance | BindingFlags.NonPublic);
                     Debug.Assert(field != null, "We need to use an internal field named IsQuotedVersion that is declared on Cookie.");
                     s_isQuotedVersionField = field;
                 }
@@ -904,6 +857,11 @@ namespace System.Net
                 return value;
 
             return value.Length == 2 ? string.Empty : value.Substring(1, value.Length - 2);
+        }
+
+        internal bool EndofHeader()
+        {
+            return _tokenizer.Eof;
         }
     }
 }

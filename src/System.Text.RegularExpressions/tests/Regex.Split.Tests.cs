@@ -9,13 +9,13 @@ namespace System.Text.RegularExpressions.Tests
 {
     public class RegexSplitTests
     {
-        public static IEnumerable<object[]> Split_TestData()
+        public static IEnumerable<object[]> Split_NonCompiled_TestData()
         {
             yield return new object[] { "    ", "word0    word1    word2    word3", RegexOptions.None, 32, 0, new string[] { "word0", "word1", "word2", "word3" } };
 
             yield return new object[] { ":", "kkk:lll:mmm:nnn:ooo", RegexOptions.None, 19, 0, new string[] { "kkk", "lll", "mmm", "nnn", "ooo" } };
             yield return new object[] { ":", "kkk:lll:mmm:nnn:ooo", RegexOptions.None, 0, 0, new string[] { "kkk", "lll", "mmm", "nnn", "ooo" } };
-            
+
             yield return new object[] { @"(\s)?(-)", "once -upon-a time", RegexOptions.None, 17, 0, new string[] { "once", " ", "-", "upon", "-", "a time" } };
             yield return new object[] { @"(\s)?(-)", "once upon a time", RegexOptions.None, 16, 0, new string[] { "once upon a time" } };
             yield return new object[] { @"(\s)?(-)", "once - -upon- a- time", RegexOptions.None, 21, 0, new string[] { "once", " ", "-", "", " ", "-", "upon", "-", " a", "-", " time" } };
@@ -50,7 +50,8 @@ namespace System.Text.RegularExpressions.Tests
         }
 
         [Theory]
-        [MemberData(nameof(Split_TestData))]
+        [MemberData(nameof(Split_NonCompiled_TestData))]
+        [MemberData(nameof(RegexCompilationHelper.TransformRegexOptions), nameof(Split_NonCompiled_TestData), 2, MemberType = typeof(RegexCompilationHelper))]
         public void Split(string pattern, string input, RegexOptions options, int count, int start, string[] expected)
         {
             bool isDefaultStart = RegexHelpers.IsDefaultStart(input, options, start);

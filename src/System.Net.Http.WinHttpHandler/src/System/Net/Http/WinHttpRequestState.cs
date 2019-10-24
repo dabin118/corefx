@@ -24,7 +24,7 @@ namespace System.Net.Http
         private static int s_dbg_operationHandleFree = 0;
 
         private IntPtr s_dbg_requestHandle;
-#endif        
+#endif
 
         // A GCHandle for this operation object.
         // This is owned by the callback and will be deallocated when the sessionHandle has been closed.
@@ -64,7 +64,7 @@ namespace System.Net.Http
         // TODO (Issue 2506): The current locking mechanism doesn't allow any two WinHttp functions executing at
         // the same time for the same handle. Enhance locking to prevent only WinHttpCloseHandle being called
         // during other API execution. E.g. using a Reader/Writer model or, even better, Interlocked functions.
-        // The lock object must be used during the execution of any WinHttp function to ensure no race conditions with 
+        // The lock object must be used during the execution of any WinHttp function to ensure no race conditions with
         // calling WinHttpCloseHandle.
         public object Lock => this;
 
@@ -101,7 +101,7 @@ namespace System.Net.Http
 
         public WinHttpHandler Handler { get; set; }
 
-        SafeWinHttpHandle _requestHandle;
+        private SafeWinHttpHandle _requestHandle;
         public SafeWinHttpHandle RequestHandle
         {
             get
@@ -125,12 +125,7 @@ namespace System.Net.Http
 
         public bool CheckCertificateRevocationList { get; set; }
 
-        public Func<
-            HttpRequestMessage,
-            X509Certificate2,
-            X509Chain,
-            SslPolicyErrors,
-            bool> ServerCertificateValidationCallback { get; set; }
+        public Func<HttpRequestMessage, X509Certificate2, X509Chain, SslPolicyErrors, bool> ServerCertificateValidationCallback { get; set; }
 
         public WinHttpTransportContext TransportContext
         {
@@ -182,14 +177,7 @@ namespace System.Net.Http
 #if DEBUG
             Interlocked.Increment(ref s_dbg_callDispose);
 #endif
-            if (WinHttpTraceHelper.IsTraceEnabled())
-            {
-                WinHttpTraceHelper.Trace(
-                    "WinHttpRequestState.Dispose, GCHandle=0x{0:X}, disposed={1}, disposing={2}",
-                    ToIntPtr(),
-                    _disposed,
-                    disposing);
-            }
+            if (NetEventSource.IsEnabled) NetEventSource.Info(this, $"GCHandle=0x{ToIntPtr().ToString("X")}, disposed={_disposed}, disposing={disposing}");
 
             // Since there is no finalizer and this class is sealed, the disposing parameter should be TRUE.
             Debug.Assert(disposing, "WinHttpRequestState.Dispose() should have disposing=TRUE");

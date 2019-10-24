@@ -5,15 +5,9 @@
 namespace System.Configuration
 {
     [ConfigurationCollection(typeof(DateTimeConfigurationElement))]
-    public sealed class DateTimeConfigurationCollection : ConfigurationElementCollection
+    internal sealed class DateTimeConfigurationCollection : ConfigurationElementCollection
     {
-        private static readonly ConfigurationPropertyCollection s_properties;
-
-        static DateTimeConfigurationCollection()
-        {
-            // Property initialization
-            s_properties = new ConfigurationPropertyCollection();
-        }
+        private static readonly ConfigurationPropertyCollection s_properties = new ConfigurationPropertyCollection();
 
         protected internal override ConfigurationPropertyCollection Properties => s_properties;
 

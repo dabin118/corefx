@@ -7,6 +7,7 @@ using System.Text;
 using System.Globalization;
 using System.Collections.Generic;
 using System.Runtime.Serialization;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 
 namespace System
@@ -37,14 +38,14 @@ namespace System
         // or idn is on and we have unicode host or idn host
         // In that case, this string is normalized, stripped of bidi chars, and validated
         // with char limits
-        private string _string;
+        private string _string = null!; // initialized early in ctor via a helper
 
         // untouched user string if string has unicode with iri on or unicode/idn host with idn on
-        private string _originalUnicodeString;
+        private string _originalUnicodeString = null!; // initialized in ctor via helper
 
-        private UriParser _syntax;   // This is a whole Uri syntax, not only the scheme name
+        private UriParser _syntax = null!;   // Initialized in ctor via helper. This is a whole Uri syntax, not only the scheme name
         // temporarily stores dnssafe host when we have unicode/idn host and idn is on
-        private string _dnsSafeHost = null;
+        private string? _dnsSafeHost = null;
 
         [Flags]
         private enum Flags : ulong
@@ -92,7 +93,7 @@ namespace System
 
             UserDrivenParsing = 0x01000000,
             CanonicalDnsHost = 0x02000000,
-            ErrorOrParsingRecursion = 0x04000000,   // Used to signal a default parser error and also to confirm Port 
+            ErrorOrParsingRecursion = 0x04000000,   // Used to signal a default parser error and also to confirm Port
                                                     // and Host values in case of a custom user Parser
             DosPath = 0x08000000,
             UncPath = 0x10000000,
@@ -116,17 +117,17 @@ namespace System
         }
 
         private Flags _flags;
-        private UriInfo _info;
+        private UriInfo _info = null!; // initialized during ctor via helper
 
         private class UriInfo
         {
-            public string Host;
-            public string ScopeId;        //only IP v6 may need this
-            public string String;
+            public string? Host;
+            public string? ScopeId;        //only IP v6 may need this
+            public string? String;
             public Offset Offset;
-            public string DnsSafeHost;    // stores dns safe host when idn is on and we have unicode or idn host
-            public MoreInfo MoreInfo;       // Multi-threading: This field must be always accessed through a _local_ 
-                                            // stack copy of m_Info.
+            public string? DnsSafeHost;    // stores dns safe host when idn is on and we have unicode or idn host
+            public MoreInfo? MoreInfo;     // Multi-threading: This field must be always accessed through a _local_
+                                           // stack copy of m_Info.
         };
 
         [StructLayout(LayoutKind.Sequential, Pack = 1)]
@@ -144,12 +145,12 @@ namespace System
 
         private class MoreInfo
         {
-            public string Path;
-            public string Query;
-            public string Fragment;
-            public string AbsoluteUri;
+            public string? Path;
+            public string? Query;
+            public string? Fragment;
+            public string? AbsoluteUri;
             public int Hash;
-            public string RemoteUrl;
+            public string? RemoteUrl;
         };
 
         private bool IsImplicitFile
@@ -203,33 +204,10 @@ namespace System
         //
         // Statically checks if Iri parsing is allowed by the syntax & by config
         //
-        internal static bool IriParsingStatic(UriParser syntax)
+        internal static bool IriParsingStatic(UriParser? syntax)
         {
-            return (s_IriParsing && (((syntax != null) && syntax.InFact(UriSyntaxFlags.AllowIriParsing)) ||
+            return (IriParsing && (((syntax != null) && syntax.InFact(UriSyntaxFlags.AllowIriParsing)) ||
                    (syntax == null)));
-        }
-
-        //
-        // Checks if Idn is allowed by the syntax & by config
-        //
-        private bool AllowIdn
-        {
-            get
-            {
-                return ((_syntax != null) && ((_syntax.Flags & UriSyntaxFlags.AllowIdn) != 0) &&
-                          ((s_IdnScope == UriIdnScope.All) || ((s_IdnScope == UriIdnScope.AllExceptIntranet)
-                                                                              && NotAny(Flags.IntranetUri))));
-            }
-        }
-
-        //
-        // Checks statically if Idn is allowed by the syntax & by config
-        //
-        private bool AllowIdnStatic(UriParser syntax, Flags flags)
-        {
-            return ((syntax != null) && ((syntax.Flags & UriSyntaxFlags.AllowIdn) != 0) &&
-                   ((s_IdnScope == UriIdnScope.All) || ((s_IdnScope == UriIdnScope.AllExceptIntranet)
-                                                                            && StaticNotAny(flags, Flags.IntranetUri))));
         }
 
         private bool IsIntranet(string schemeHost)
@@ -307,7 +285,7 @@ namespace System
         private void EnsureHostString(bool allowDnsOptimization)
         {
             EnsureUriInfo();
-            if ((object)_info.Host == null)
+            if ((object?)_info.Host == null)
             {
                 if (allowDnsOptimization && InFact(Flags.CanonicalDnsHost))
                 {
@@ -342,7 +320,7 @@ namespace System
         //
         //  Uri constructor. Assumes that input string is canonically escaped
         //
-        [Obsolete("The constructor has been deprecated. Please use new Uri(string). The dontEscape parameter is deprecated and is always false. http://go.microsoft.com/fwlink/?linkid=14202")]
+        [Obsolete("The constructor has been deprecated. Please use new Uri(string). The dontEscape parameter is deprecated and is always false. https://go.microsoft.com/fwlink/?linkid=14202")]
         public Uri(string uriString, bool dontEscape)
         {
             if (uriString == null)
@@ -357,8 +335,8 @@ namespace System
         //  Uri combinatorial constructor. Do not perform character escaping if
         //  DontEscape is true
         //
-        [Obsolete("The constructor has been deprecated. Please new Uri(Uri, string). The dontEscape parameter is deprecated and is always false. http://go.microsoft.com/fwlink/?linkid=14202")]
-        public Uri(Uri baseUri, string relativeUri, bool dontEscape)
+        [Obsolete("The constructor has been deprecated. Please new Uri(Uri, string). The dontEscape parameter is deprecated and is always false. https://go.microsoft.com/fwlink/?linkid=14202")]
+        public Uri(Uri baseUri, string? relativeUri, bool dontEscape)
         {
             if (baseUri == null)
                 throw new ArgumentNullException(nameof(baseUri));
@@ -387,7 +365,7 @@ namespace System
         //  also be an absolute URI, in which case the resultant URI is constructed
         //  entirely from it
         //
-        public Uri(Uri baseUri, string relativeUri)
+        public Uri(Uri baseUri, string? relativeUri)
         {
             if ((object)baseUri == null)
                 throw new ArgumentNullException(nameof(baseUri));
@@ -405,17 +383,17 @@ namespace System
         //
         protected Uri(SerializationInfo serializationInfo, StreamingContext streamingContext)
         {
-            string uriString = serializationInfo.GetString("AbsoluteUri"); // Do not rename (binary serialization)
+            string? uriString = serializationInfo.GetString("AbsoluteUri"); // Do not rename (binary serialization)
 
-            if (uriString.Length != 0)
+            if (uriString!.Length != 0)
             {
                 CreateThis(uriString, false, UriKind.Absolute);
                 return;
             }
 
             uriString = serializationInfo.GetString("RelativeUri");  // Do not rename (binary serialization)
-            if ((object)uriString == null)
-                throw new ArgumentNullException("uriString");
+            if ((object?)uriString == null)
+                throw new ArgumentNullException(nameof(uriString));
 
             CreateThis(uriString, false, UriKind.Relative);
         }
@@ -446,16 +424,16 @@ namespace System
             }
         }
 
-        private void CreateUri(Uri baseUri, string relativeUri, bool dontEscape)
+        private void CreateUri(Uri baseUri, string? relativeUri, bool dontEscape)
         {
             // Parse relativeUri and populate Uri internal data.
             CreateThis(relativeUri, dontEscape, UriKind.RelativeOrAbsolute);
 
-            UriFormatException e;
-            if (baseUri.Syntax.IsSimple)
+            UriFormatException? e;
+            if (baseUri.Syntax!.IsSimple)
             {
                 // Resolve Uris if possible OR get merged Uri String to re-parse below
-                Uri uriResult = ResolveHelper(baseUri, this, ref relativeUri, ref dontEscape, out e);
+                Uri? uriResult = ResolveHelper(baseUri, this, ref relativeUri, ref dontEscape, out e);
 
                 if (e != null)
                     throw e;
@@ -478,8 +456,8 @@ namespace System
             }
 
             _flags = Flags.Zero;
-            _info = null;
-            _syntax = null;
+            _info = null!;
+            _syntax = null!;
             // If not resolved, we reparse modified Uri string and populate Uri internal data.
             CreateThis(relativeUri, dontEscape, UriKind.Absolute);
         }
@@ -498,22 +476,22 @@ namespace System
 
             CreateThisFromUri(relativeUri);
 
-            string newUriString = null;
-            UriFormatException e;
+            string? newUriString = null;
+            UriFormatException? e;
             bool dontEscape;
 
-            if (baseUri.Syntax.IsSimple)
+            if (baseUri.Syntax!.IsSimple)
             {
                 dontEscape = InFact(Flags.UserEscaped);
-                relativeUri = ResolveHelper(baseUri, this, ref newUriString, ref dontEscape, out e);
+                Uri? resolvedRelativeUri = ResolveHelper(baseUri, this, ref newUriString, ref dontEscape, out e);
 
                 if (e != null)
                     throw e;
 
-                if (relativeUri != null)
+                if (resolvedRelativeUri != null)
                 {
-                    if ((object)relativeUri != (object)this)
-                        CreateThisFromUri(relativeUri);
+                    if ((object)resolvedRelativeUri != (object)this)
+                        CreateThisFromUri(resolvedRelativeUri);
 
                     return;
                 }
@@ -527,8 +505,8 @@ namespace System
             }
 
             _flags = Flags.Zero;
-            _info = null;
-            _syntax = null;
+            _info = null!;
+            _syntax = null!;
             CreateThis(newUriString, dontEscape, UriKind.Absolute);
         }
 
@@ -538,7 +516,7 @@ namespace System
         //  - baseUri is a valid absolute Uri
         //  - relative part is not null and not empty
         private static unsafe ParsingError GetCombinedString(Uri baseUri, string relativeStr,
-            bool dontEscape, ref string result)
+            bool dontEscape, ref string? result)
         {
             // NB: This is not RFC2396 compliant although it is inline with w3c.org recommendations
             // This parser will allow the relativeStr to be an absolute Uri with the different scheme
@@ -558,30 +536,28 @@ namespace System
                         // Hence anything like x:sdsd is a relative path and be added to the baseUri Path
                         break;
                     }
-                    fixed (char* sptr = relativeStr) // relativeStr.Substring(0, i) represents the scheme
+
+                    UriParser? syntax = null;
+                    if (CheckSchemeSyntax(relativeStr.AsSpan(0, i), ref syntax) == ParsingError.None)
                     {
-                        UriParser syntax = null;
-                        if (CheckSchemeSyntax(sptr, (ushort)i, ref syntax) == ParsingError.None)
+                        if (baseUri.Syntax == syntax)
                         {
-                            if (baseUri.Syntax == syntax)
+                            //Remove the scheme for backward Uri parsers compatibility
+                            if (i + 1 < relativeStr.Length)
                             {
-                                //Remove the scheme for backward Uri parsers compatibility
-                                if (i + 1 < relativeStr.Length)
-                                {
-                                    relativeStr = relativeStr.Substring(i + 1);
-                                }
-                                else
-                                {
-                                    relativeStr = string.Empty;
-                                }
+                                relativeStr = relativeStr.Substring(i + 1);
                             }
                             else
                             {
-                                // This is the place where we switch the scheme.
-                                // Return relative part as the result Uri.
-                                result = relativeStr;
-                                return ParsingError.None;
+                                relativeStr = string.Empty;
                             }
+                        }
+                        else
+                        {
+                            // This is the place where we switch the scheme.
+                            // Return relative part as the result Uri.
+                            result = relativeStr;
+                            return ParsingError.None;
                         }
                     }
                     break;
@@ -598,7 +574,7 @@ namespace System
             return ParsingError.None;
         }
 
-        private static UriFormatException GetException(ParsingError err)
+        private static UriFormatException? GetException(ParsingError err)
         {
             switch (err)
             {
@@ -664,12 +640,12 @@ namespace System
             get
             {
                 UriInfo info = EnsureUriInfo();
-                if ((object)info.MoreInfo == null)
+                if ((object?)info.MoreInfo == null)
                 {
                     info.MoreInfo = new MoreInfo();
                 }
-                string result = info.MoreInfo.Path;
-                if ((object)result == null)
+                string? result = info.MoreInfo.Path;
+                if ((object?)result == null)
                 {
                     result = GetParts(UriComponents.Path | UriComponents.KeepDelimiter, UriFormat.UriEscaped);
                     info.MoreInfo.Path = result;
@@ -688,12 +664,12 @@ namespace System
                 }
 
                 UriInfo info = EnsureUriInfo();
-                if ((object)info.MoreInfo == null)
+                if ((object?)info.MoreInfo == null)
                 {
                     info.MoreInfo = new MoreInfo();
                 }
-                string result = info.MoreInfo.AbsoluteUri;
-                if ((object)result == null)
+                string? result = info.MoreInfo.AbsoluteUri;
+                if ((object?)result == null)
                 {
                     result = GetParts(UriComponents.AbsoluteUri, UriFormat.UriEscaped);
                     info.MoreInfo.AbsoluteUri = result;
@@ -857,32 +833,30 @@ namespace System
                     throw new InvalidOperationException(SR.net_uri_NotAbsolute);
                 }
 
-                string[] segments = null; // used to be a class cached result
-                if (segments == null)
-                {
-                    string path = PrivateAbsolutePath;
+                string[] segments;
+                string path = PrivateAbsolutePath;
 
-                    if (path.Length == 0)
-                    {
-                        segments = Array.Empty<string>();
-                    }
-                    else
-                    {
-                        var pathSegments = new ArrayBuilder<string>();
-                        int current = 0;
-                        while (current < path.Length)
-                        {
-                            int next = path.IndexOf('/', current);
-                            if (next == -1)
-                            {
-                                next = path.Length - 1;
-                            }
-                            pathSegments.Add(path.Substring(current, (next - current) + 1));
-                            current = next + 1;
-                        }
-                        segments = pathSegments.ToArray();
-                    }
+                if (path.Length == 0)
+                {
+                    segments = Array.Empty<string>();
                 }
+                else
+                {
+                    var pathSegments = new ArrayBuilder<string>();
+                    int current = 0;
+                    while (current < path.Length)
+                    {
+                        int next = path.IndexOf('/', current);
+                        if (next == -1)
+                        {
+                            next = path.Length - 1;
+                        }
+                        pathSegments.Add(path.Substring(current, (next - current) + 1));
+                        current = next + 1;
+                    }
+                    segments = pathSegments.ToArray();
+                }
+
                 return segments;
             }
         }
@@ -920,12 +894,8 @@ namespace System
         }
 
         // Value from config Uri section
-        // The use of this IDN mechanic is discouraged on Win8+ due to native platform improvements.
-        private static volatile UriIdnScope s_IdnScope = UriIdnScope.None;   // IDN is disabled in .NET Native and CoreCLR.
-
-        // Value from config Uri section
         // On by default in .NET 4.5+ and cannot be disabled by config.
-        private static volatile bool s_IriParsing = true; // IRI Parsing is always enabled in .NET Native and CoreCLR
+        private const bool IriParsing = true; // IRI Parsing is always enabled in .NET Native and CoreCLR
 
         private string GetLocalPath()
         {
@@ -935,6 +905,8 @@ namespace System
             if (IsUncOrDosPath)
             {
                 EnsureHostString(false);
+                Debug.Assert(_info != null);
+                Debug.Assert(_info.Host != null);
                 int start;
 
                 // Do we have a valid local path right in m_string?
@@ -1073,12 +1045,12 @@ namespace System
                 }
 
                 UriInfo info = EnsureUriInfo();
-                if ((object)info.MoreInfo == null)
+                if ((object?)info.MoreInfo == null)
                 {
                     info.MoreInfo = new MoreInfo();
                 }
-                string result = info.MoreInfo.Query;
-                if ((object)result == null)
+                string? result = info.MoreInfo.Query;
+                if ((object?)result == null)
                 {
                     result = GetParts(UriComponents.Query | UriComponents.KeepDelimiter, UriFormat.UriEscaped);
                     info.MoreInfo.Query = result;
@@ -1099,12 +1071,12 @@ namespace System
                 }
 
                 UriInfo info = EnsureUriInfo();
-                if ((object)info.MoreInfo == null)
+                if ((object?)info.MoreInfo == null)
                 {
                     info.MoreInfo = new MoreInfo();
                 }
-                string result = info.MoreInfo.Fragment;
-                if ((object)result == null)
+                string? result = info.MoreInfo.Fragment;
+                if ((object?)result == null)
                 {
                     result = GetParts(UriComponents.Fragment | UriComponents.KeepDelimiter, UriFormat.UriEscaped);
                     info.MoreInfo.Fragment = result;
@@ -1138,8 +1110,7 @@ namespace System
         {
             get
             {
-                return ((_iriParsing && InFact(Flags.HasUnicode)) ||
-                        (AllowIdn && (InFact(Flags.IdnHost) || InFact(Flags.UnicodeHost))));
+                return (_iriParsing && InFact(Flags.HasUnicode));
             }
         }
 
@@ -1167,13 +1138,6 @@ namespace System
                     throw new InvalidOperationException(SR.net_uri_NotAbsolute);
                 }
 
-                if (AllowIdn && (((_flags & Flags.IdnHost) != 0) || ((_flags & Flags.UnicodeHost) != 0)))
-                {
-                    // return pre generated idn
-                    EnsureUriInfo();
-                    return _info.DnsSafeHost;
-                }
-
                 EnsureHostString(false);
 
                 if (!string.IsNullOrEmpty(_info.DnsSafeHost))
@@ -1181,7 +1145,7 @@ namespace System
                     // Cached
                     return _info.DnsSafeHost;
                 }
-                else if (_info.Host.Length == 0)
+                else if (_info.Host!.Length == 0)
                 {
                     // Empty host, no possible processing
                     return string.Empty;
@@ -1193,11 +1157,9 @@ namespace System
 
                 if (HostType == Flags.IPv6HostType)
                 {
-                    ret = ret.Substring(1, ret.Length - 2);
-                    if ((object)_info.ScopeId != null)
-                    {
-                        ret += _info.ScopeId;
-                    }
+                    ret = _info.ScopeId != null ?
+                        string.Concat(ret.AsSpan(1, ret.Length - 2), _info.ScopeId) :
+                        ret.Substring(1, ret.Length - 2);
                 }
                 // Validate that this basic host qualifies as Dns safe,
                 // It has looser parsing rules that might allow otherwise.
@@ -1285,9 +1247,9 @@ namespace System
         // Throws:
         //  Nothing
         //
-        public static UriHostNameType CheckHostName(string name)
+        public static UriHostNameType CheckHostName(string? name)
         {
-            if ((object)name == null || name.Length == 0 || name.Length > short.MaxValue)
+            if ((object?)name == null || name.Length == 0 || name.Length > short.MaxValue)
             {
                 return UriHostNameType.Unknown;
             }
@@ -1408,14 +1370,12 @@ namespace System
                 throw new ArgumentOutOfRangeException(nameof(character));
             }
 
-            unsafe
+            return string.Create(3, character, (Span<char> chars, char c) =>
             {
-                char* chars = stackalloc char[3];
                 chars[0] = '%';
-                chars[1] = UriHelper.s_hexUpperChars[(character & 0xf0) >> 4];
-                chars[2] = UriHelper.s_hexUpperChars[character & 0xf];
-                return new string(chars, 0, 3);
-            }
+                chars[1] = (char)UriHelper.HexUpperChars[(c & 0xf0) >> 4];
+                chars[2] = (char)UriHelper.HexUpperChars[c & 0xf];
+            });
         }
 
         //
@@ -1503,9 +1463,9 @@ namespace System
         //  Syntax is:
         //      scheme = alpha *(alpha | digit | '+' | '-' | '.')
         //
-        public static bool CheckSchemeName(string schemeName)
+        public static bool CheckSchemeName(string? schemeName)
         {
-            if (((object)schemeName == null)
+            if (((object?)schemeName == null)
                 || (schemeName.Length == 0)
                 || !UriHelper.IsAsciiLetter(schemeName[0]))
             {
@@ -1573,15 +1533,15 @@ namespace System
 
             // Consider moving hash code storage from m_Info.MoreInfo to m_Info
             UriInfo info = EnsureUriInfo();
-            if ((object)info.MoreInfo == null)
+            if ((object?)info.MoreInfo == null)
             {
                 info.MoreInfo = new MoreInfo();
             }
             int tempHash = info.MoreInfo.Hash;
             if (tempHash == 0)
             {
-                string chkString = info.MoreInfo.RemoteUrl;
-                if ((object)chkString == null)
+                string? chkString = info.MoreInfo.RemoteUrl;
+                if ((object?)chkString == null)
                     chkString = GetParts(UriComponents.HttpRequestUrl, UriFormat.SafeUnescaped);
                 tempHash = CalculateCaseInsensitiveHashCode(chkString);
                 if (tempHash == 0)
@@ -1608,9 +1568,9 @@ namespace System
             }
 
             EnsureUriInfo();
-            if ((object)_info.String == null)
+            if ((object?)_info.String == null)
             {
-                if (Syntax.IsSimple)
+                if (Syntax!.IsSimple)
                     _info.String = GetComponentsHelper(UriComponents.AbsoluteUri, V1ToStringUnescape);
                 else
                     _info.String = GetParts(UriComponents.AbsoluteUri, UriFormat.SafeUnescaped);
@@ -1621,13 +1581,13 @@ namespace System
         //
         //  A static shortcut to Uri.Equals
         //
-        public static bool operator ==(Uri uri1, Uri uri2)
+        public static bool operator ==(Uri? uri1, Uri? uri2)
         {
-            if ((object)uri1 == (object)uri2)
+            if ((object?)uri1 == (object?)uri2)
             {
                 return true;
             }
-            if ((object)uri1 == null || (object)uri2 == null)
+            if ((object?)uri1 == null || (object?)uri2 == null)
             {
                 return false;
             }
@@ -1637,14 +1597,14 @@ namespace System
         //
         //  A static shortcut to !Uri.Equals
         //
-        public static bool operator !=(Uri uri1, Uri uri2)
+        public static bool operator !=(Uri? uri1, Uri? uri2)
         {
-            if ((object)uri1 == (object)uri2)
+            if ((object?)uri1 == (object?)uri2)
             {
                 return false;
             }
 
-            if ((object)uri1 == null || (object)uri2 == null)
+            if ((object?)uri1 == null || (object?)uri2 == null)
             {
                 return true;
             }
@@ -1666,30 +1626,30 @@ namespace System
         // Throws:
         //  Nothing
         //
-        public override bool Equals(object comparand)
+        public override bool Equals(object? comparand)
         {
-            if ((object)comparand == null)
+            if ((object?)comparand == null)
             {
                 return false;
             }
 
-            if ((object)this == (object)comparand)
+            if ((object?)this == (object?)comparand)
             {
                 return true;
             }
 
-            Uri obj = comparand as Uri;
+            Uri? obj = comparand as Uri;
 
             //
             // we allow comparisons of Uri and String objects only. If a string
             // is passed, convert to Uri. This is inefficient, but allows us to
             // canonicalize the comparand, making comparison possible
             //
-            if ((object)obj == null)
+            if ((object?)obj == null)
             {
-                string s = comparand as string;
+                string? s = comparand as string;
 
-                if ((object)s == null)
+                if ((object?)s == null)
                     return false;
 
                 if (!TryCreate(s, UriKind.RelativeOrAbsolute, out obj))
@@ -1742,7 +1702,7 @@ namespace System
                         }
                     }
                 }
-                else if (string.Compare(_string, obj._string, StringComparison.OrdinalIgnoreCase) == 0)
+                else if (string.Equals(_string, obj._string, StringComparison.OrdinalIgnoreCase))
                 {
                     return true;
                 }
@@ -1753,7 +1713,7 @@ namespace System
             EnsureUriInfo();
             obj.EnsureUriInfo();
 
-            if (!UserDrivenParsing && !obj.UserDrivenParsing && Syntax.IsSimple && obj.Syntax.IsSimple)
+            if (!UserDrivenParsing && !obj.UserDrivenParsing && Syntax!.IsSimple && obj.Syntax!.IsSimple)
             {
                 // Optimization of canonical DNS names by avoiding host string creation.
                 // Note there could be explicit ports specified that would invalidate path offsets
@@ -1800,7 +1760,7 @@ namespace System
                 {
                     EnsureHostString(false);
                     obj.EnsureHostString(false);
-                    if (!_info.Host.Equals(obj._info.Host))
+                    if (!_info.Host!.Equals(obj._info.Host))
                     {
                         return false;
                     }
@@ -1817,25 +1777,25 @@ namespace System
 
             UriInfo selfInfo = _info;
             UriInfo otherInfo = obj._info;
-            if ((object)selfInfo.MoreInfo == null)
+            if ((object?)selfInfo.MoreInfo == null)
             {
                 selfInfo.MoreInfo = new MoreInfo();
             }
-            if ((object)otherInfo.MoreInfo == null)
+            if ((object?)otherInfo.MoreInfo == null)
             {
                 otherInfo.MoreInfo = new MoreInfo();
             }
 
             // NB: To avoid a race condition when creating MoreInfo field
             // "selfInfo" and "otherInfo" shall remain as local copies.
-            string selfUrl = selfInfo.MoreInfo.RemoteUrl;
-            if ((object)selfUrl == null)
+            string? selfUrl = selfInfo.MoreInfo.RemoteUrl;
+            if ((object?)selfUrl == null)
             {
                 selfUrl = GetParts(UriComponents.HttpRequestUrl, UriFormat.SafeUnescaped);
                 selfInfo.MoreInfo.RemoteUrl = selfUrl;
             }
-            string otherUrl = otherInfo.MoreInfo.RemoteUrl;
-            if ((object)otherUrl == null)
+            string? otherUrl = otherInfo.MoreInfo.RemoteUrl;
+            if ((object?)otherUrl == null)
             {
                 otherUrl = obj.GetParts(UriComponents.HttpRequestUrl, UriFormat.SafeUnescaped);
                 otherInfo.MoreInfo.RemoteUrl = otherUrl;
@@ -1880,7 +1840,7 @@ namespace System
 
         public Uri MakeRelativeUri(Uri uri)
         {
-            if ((object)uri == null)
+            if ((object?)uri == null)
                 throw new ArgumentNullException(nameof(uri));
 
             if (IsNotAbsoluteUri || uri.IsNotAbsoluteUri)
@@ -1910,21 +1870,21 @@ namespace System
 
         //
         // http://www.ietf.org/rfc/rfc3986.txt
-        // 
+        //
         // 3.3.  Path
-        // In addition, a URI reference (Section 4.1) may be a relative-path reference, in which case the  first 
+        // In addition, a URI reference (Section 4.1) may be a relative-path reference, in which case the  first
         // path segment cannot contain a colon (":") character.
-        // 
+        //
         // 4.2.  Relative Reference
-        // A path segment that contains a colon character (e.g., "this:that") cannot be used as the first segment 
-        // of a relative-path reference, as it would be mistaken for a scheme name.  Such a segment must be   
+        // A path segment that contains a colon character (e.g., "this:that") cannot be used as the first segment
+        // of a relative-path reference, as it would be mistaken for a scheme name.  Such a segment must be
         // preceded by a dot-segment (e.g., "./this:that") to make a relative-path reference.
-        // 
-        // 5.4.2. Abnormal Examples 
+        //
+        // 5.4.2. Abnormal Examples
         // http:(relativeUri) may be considered a valid relative Uri.
-        // 
+        //
         // Returns true if a colon is found in the first path segment, false otherwise
-        // 
+        //
 
         // Check for anything that may terminate the first regular path segment
         // or an illegal colon
@@ -1937,24 +1897,15 @@ namespace System
             return (index >= 0 && uriString[index] == ':');
         }
 
-        internal static unsafe string InternalEscapeString(string rawString)
-        {
-            if ((object)rawString == null)
-                return string.Empty;
-
-            int position = 0;
-            char[] dest = UriHelper.EscapeString(rawString, 0, rawString.Length, null, ref position, true, '?', '#', '%');
-            if ((object)dest == null)
-                return rawString;
-
-            return new string(dest, 0, position);
-        }
+        internal static string InternalEscapeString(string rawString) =>
+            rawString is null ? string.Empty :
+            UriHelper.EscapeString(rawString, checkExistingEscaped: true, UriHelper.UnreservedReservedTable, '?', '#');
 
         //
         //  This method is called first to figure out the scheme or a simple file path
         //  Is called only at the .ctor time
         //
-        private static unsafe ParsingError ParseScheme(string uriString, ref Flags flags, ref UriParser syntax)
+        private static unsafe ParsingError ParseScheme(string uriString, ref Flags flags, ref UriParser? syntax)
         {
             int length = uriString.Length;
             if (length == 0)
@@ -1982,7 +1933,7 @@ namespace System
         // It signals back that the call has been done
         // plus it communicates back a flag for an error if any
         //
-        internal UriFormatException ParseMinimal()
+        internal UriFormatException? ParseMinimal()
         {
             ParsingError result = PrivateParseMinimal();
             if (result == ParsingError.None)
@@ -2009,7 +1960,7 @@ namespace System
         {
             ushort idx = (ushort)(_flags & Flags.IndexMask);
             ushort length = (ushort)_string.Length;
-            string newHost = null;      // stores newly parsed host when original strings are being switched
+            string? newHost = null;      // stores newly parsed host when original strings are being switched
 
             // Means a custom UriParser did call "base" InitializeAndValidate()
             _flags &= ~(Flags.IndexMask | Flags.UserDrivenParsing);
@@ -2020,7 +1971,7 @@ namespace System
                                         ((_flags & Flags.HasUnicode) != 0) &&
                                         ((_flags & Flags.HostUnicodeNormalized) == 0)) ? _originalUnicodeString : _string))
             {
-                // Cut trailing spaces in m_String
+                // Cut trailing spaces in _string
                 if (length > idx && UriHelper.IsLWS(pUriString[length - 1]))
                 {
                     --length;
@@ -2142,10 +2093,16 @@ namespace System
                         _flags |= Flags.AuthorityFound;
                         idx += 2;
                     }
+                    // There is no Authority component, save the Path index
+                    // Ideally we would treat mailto like any other URI, but for historical reasons we have to separate out its host parsing.
                     else if (_syntax.NotAny(UriSyntaxFlags.MailToLikeUri))
                     {
-                        // There is no Authority component, save the Path index
-                        // Note: mailto is the only guy who is treated specially, should be not.
+                        // By now we know the URI has no Authority, so if the URI must be normalized, initialize it without one.
+                        if (_iriParsing && (_flags & Flags.HasUnicode) != 0 && (_flags & Flags.HostUnicodeNormalized) == 0)
+                        {
+                            _string = _string.Substring(0, idx);
+                        }
+                        // Since there is no Authority, the path index is just the end of the scheme.
                         _flags |= ((Flags)idx | Flags.UnknownHostType);
                         return ParsingError.None;
                     }
@@ -2154,10 +2111,16 @@ namespace System
                 {
                     return ParsingError.BadAuthority;
                 }
+                // There is no Authority component, save the Path index
+                // Ideally we would treat mailto like any other URI, but for historical reasons we have to separate out its host parsing.
                 else if (_syntax.NotAny(UriSyntaxFlags.MailToLikeUri))
                 {
-                    // There is no Authority component, save the Path index
-                    // mailto is treated specially.
+                    // By now we know the URI has no Authority, so if the URI must be normalized, initialize it without one.
+                    if (_iriParsing && (_flags & Flags.HasUnicode) != 0 && (_flags & Flags.HostUnicodeNormalized) == 0)
+                    {
+                        _string = _string.Substring(0, idx);
+                    }
+                    // Since there is no Authority, the path index is just the end of the scheme.
                     _flags |= ((Flags)idx | Flags.UnknownHostType);
                     return ParsingError.None;
                 }
@@ -2210,29 +2173,17 @@ namespace System
                 // is not created/canonicalized at this point.
             }
 
-            if ((s_IdnScope != UriIdnScope.None) || _iriParsing)
+            if (_iriParsing)
                 PrivateParseMinimalIri(newHost, idx);
 
             return ParsingError.None;
         }
 
-        private void PrivateParseMinimalIri(string newHost, ushort idx)
+        private void PrivateParseMinimalIri(string? newHost, ushort idx)
         {
             // we have a new host!
             if (newHost != null)
                 _string = newHost;
-
-            // conditions where we don't need to go to parseremaining, so we copy the rest of the
-            // original string.. and switch offsets
-            if ((!_iriParsing && AllowIdn && (((_flags & Flags.IdnHost) != 0) || ((_flags & Flags.UnicodeHost) != 0))) ||
-                (_iriParsing && ((_flags & Flags.HasUnicode) == 0) && AllowIdn && ((_flags & Flags.IdnHost) != 0)))
-            {
-                // update the start of path from the end of new string
-                _flags &= ~(Flags.IndexMask);
-                _flags |= (Flags)_string.Length;
-
-                _string += _originalUnicodeString.Substring(idx, _originalUnicodeString.Length - idx);
-            }
 
             // Indicate to createuriinfo that offset is in m_originalUnicodeString
             if (_iriParsing && ((_flags & Flags.HasUnicode) != 0))
@@ -2402,8 +2353,7 @@ namespace System
                         if (++idx < info.Offset.End)
                         {
                             port = unchecked((ushort)(userString[idx] - '0'));
-                            if (!(port == unchecked((ushort)('/' - '0')) || port == (ushort)('?' - '0') ||
-                                port == unchecked((ushort)('#' - '0'))))
+                            if (port <= unchecked((ushort)('9' - '0')))
                             {
                                 notEmpty = true;
                                 if (port == 0)
@@ -2413,8 +2363,7 @@ namespace System
                                 for (++idx; idx < info.Offset.End; ++idx)
                                 {
                                     ushort val = unchecked((ushort)((ushort)userString[idx] - (ushort)'0'));
-                                    if (val == unchecked((ushort)('/' - '0')) || val == (ushort)('?' - '0') ||
-                                        val == unchecked((ushort)('#' - '0')))
+                                    if (val > unchecked((ushort)('9' - '0')))
                                     {
                                         break;
                                     }
@@ -2461,7 +2410,7 @@ namespace System
             {
                 lock (_info)
                 {
-                    // ATTN: Avoid possible recursion through 
+                    // ATTN: Avoid possible recursion through
                     // CreateHostString->Syntax.GetComponents->Uri.GetComponentsHelper->CreateHostString
                     if (NotAny(Flags.ErrorOrParsingRecursion))
                     {
@@ -2511,11 +2460,7 @@ namespace System
                         flags |= Flags.E_HostNotCanonical;
                         if (NotAny(Flags.UserEscaped))
                         {
-                            int position = 0;
-                            char[] dest = UriHelper.EscapeString(host, 0, host.Length, null, ref position, true, '?',
-                                '#', IsImplicitFile ? c_DummyChar : '%');
-                            if ((object)dest != null)
-                                host = new string(dest, 0, position);
+                            host = UriHelper.EscapeString(host, checkExistingEscaped: !IsImplicitFile, UriHelper.UnreservedReservedTable, '?', '#');
                         }
                         else
                         {
@@ -2526,14 +2471,14 @@ namespace System
                 else if (NotAny(Flags.CanonicalDnsHost))
                 {
                     // Check to see if we can take the canonical host string out of m_String
-                    if ((object)_info.ScopeId != null)
+                    if ((object?)_info.ScopeId != null)
                     {
                         // IPv6 ScopeId is included when serializing a Uri
                         flags |= (Flags.HostNotCanonical | Flags.E_HostNotCanonical);
                     }
                     else
                     {
-                        for (ushort i = 0; i < host.Length; ++i)
+                        for (int i = 0; i < host.Length; ++i)
                         {
                             if ((_info.Offset.Host + i) >= _info.Offset.End ||
                                 host[i] != _string[_info.Offset.Host + i])
@@ -2553,7 +2498,7 @@ namespace System
             }
         }
 
-        private static string CreateHostStringHelper(string str, ushort idx, ushort end, ref Flags flags, ref string scopeId)
+        private static string CreateHostStringHelper(string str, ushort idx, ushort end, ref Flags flags, ref string? scopeId)
         {
             bool loopback = false;
             string host;
@@ -2600,7 +2545,7 @@ namespace System
                     break;
 
                 default:
-                    throw GetException(ParsingError.BadHostName);
+                    throw GetException(ParsingError.BadHostName)!;
             }
 
             if (loopback)
@@ -2622,17 +2567,17 @@ namespace System
             string host = _syntax.InternalGetComponents(this, UriComponents.Host, UriFormat.UriEscaped);
 
             // ATTN: Check on whether recursion has not happened
-            if ((object)_info.Host == null)
+            if ((object?)_info.Host == null)
             {
                 if (host.Length >= c_MaxUriBufferSize)
-                    throw GetException(ParsingError.SizeLimit);
+                    throw GetException(ParsingError.SizeLimit)!;
 
                 ParsingError err = ParsingError.None;
                 Flags flags = _flags & ~Flags.HostTypeMask;
 
                 fixed (char* pHost = host)
                 {
-                    string newHost = null;
+                    string? newHost = null;
                     if (CheckAuthorityHelper(pHost, 0, (ushort)host.Length, ref err, ref flags, _syntax, ref newHost) !=
                         (ushort)host.Length)
                     {
@@ -2650,7 +2595,7 @@ namespace System
                 else
                 {
                     host = CreateHostStringHelper(host, 0, (ushort)host.Length, ref flags, ref _info.ScopeId);
-                    for (ushort i = 0; i < host.Length; ++i)
+                    for (int i = 0; i < host.Length; ++i)
                     {
                         if ((_info.Offset.Host + i) >= _info.Offset.End || host[i] != _string[_info.Offset.Host + i])
                         {
@@ -2679,7 +2624,7 @@ namespace System
                 {
                     int val = portStr[idx] - '0';
                     if (val < 0 || val > 9 || (port = (port * 10 + val)) > 0xFFFF)
-                        throw new UriFormatException(SR.Format(SR.net_uri_PortOutOfRange, _syntax.GetType().ToString(), portStr));
+                        throw new UriFormatException(SR.Format(SR.net_uri_PortOutOfRange, _syntax.GetType(), portStr));
                 }
                 if (port != _info.Offset.PortValue)
                 {
@@ -2731,8 +2676,8 @@ namespace System
 
             if ((unchecked((ushort)uriParts) & nonCanonical) == 0)
             {
-                string ret = GetUriPartsFromUserString(uriParts);
-                if ((object)ret != null)
+                string? ret = GetUriPartsFromUserString(uriParts);
+                if ((object?)ret != null)
                 {
                     return ret;
                 }
@@ -2764,8 +2709,8 @@ namespace System
 
             if ((unchecked((ushort)uriParts) & nonCanonical) == 0)
             {
-                string ret = GetUriPartsFromUserString(uriParts);
-                if ((object)ret != null)
+                string? ret = GetUriPartsFromUserString(uriParts);
+                if ((object?)ret != null)
                 {
                     return ret;
                 }
@@ -2777,7 +2722,7 @@ namespace System
         private string ReCreateParts(UriComponents parts, ushort nonCanonical, UriFormat formatAs)
         {
             EnsureHostString(false);
-            string stemp = (parts & UriComponents.Host) == 0 ? string.Empty : _info.Host;
+            string stemp = (parts & UriComponents.Host) == 0 ? string.Empty : _info.Host!;
             // we reserve more space than required because a canonical Ipv6 Host
             // may take more characters than in original m_String
             // Also +3 is for :// and +1 is for absent first slash
@@ -2813,8 +2758,10 @@ namespace System
                         case UriFormat.UriEscaped:
                             if (NotAny(Flags.UserEscaped))
                             {
-                                chars = UriHelper.EscapeString(_string, _info.Offset.User, _info.Offset.Host, chars,
-                                    ref count, true, '?', '#', '%');
+                                chars = UriHelper.EscapeString(
+                                    _string.AsSpan(_info.Offset.User, _info.Offset.Host - _info.Offset.User),
+                                    chars, ref count,
+                                    checkExistingEscaped: true, '?', '#');
                             }
                             else
                             {
@@ -2888,9 +2835,9 @@ namespace System
                             {
                                 // Upconvert any punycode to unicode, xn--pck -> ?
                                 stemp = DomainNameHelper.UnicodeEquivalent(
-                                    hostPtr, 0, stemp.Length, ref allAscii, ref atLeastOneValidIdn);
+                                    hostPtr, 0, stemp.Length, ref allAscii, ref atLeastOneValidIdn)!;
                             }
-                            // The host may be invalid punycode (www.xn--?-pck.com), 
+                            // The host may be invalid punycode (www.xn--?-pck.com),
                             // but we shouldn't throw after the constructor.
                             catch (UriFormatException) { }
                         }
@@ -2901,7 +2848,7 @@ namespace System
 
                 // A fix up only for SerializationInfo and IpV6 host with a scopeID
                 if ((parts & UriComponents.SerializationInfoString) != 0 && HostType == Flags.IPv6HostType &&
-                    (object)_info.ScopeId != null)
+                    (object?)_info.ScopeId != null)
                 {
                     _info.ScopeId.CopyTo(0, chars, count - 1, _info.ScopeId.Length);
                     count += _info.ScopeId.Length;
@@ -2980,8 +2927,12 @@ namespace System
                         case UriFormat.UriEscaped:
                             //Can Assert IsImplicitfile == false
                             if (NotAny(Flags.UserEscaped))
-                                chars = UriHelper.EscapeString(_string, delimiterAwareIndex, _info.Offset.Fragment, chars,
-                                    ref count, true, '#', c_DummyChar, '%');
+                            {
+                                chars = UriHelper.EscapeString(
+                                    _string.AsSpan(delimiterAwareIndex, _info.Offset.Fragment - delimiterAwareIndex),
+                                    chars, ref count,
+                                    checkExistingEscaped: true, '#');
+                            }
                             else
                             {
                                 UriHelper.UnescapeString(_string, delimiterAwareIndex, _info.Offset.Fragment, chars,
@@ -3033,8 +2984,12 @@ namespace System
                     {
                         case UriFormat.UriEscaped:
                             if (NotAny(Flags.UserEscaped))
-                                chars = UriHelper.EscapeString(_string, delimiterAwareIndex, _info.Offset.End, chars,
-                                    ref count, true, c_DummyChar, c_DummyChar, '%');
+                            {
+                                chars = UriHelper.EscapeString(
+                                    _string.AsSpan(delimiterAwareIndex, _info.Offset.End - delimiterAwareIndex),
+                                    chars, ref count,
+                                    checkExistingEscaped: true);
+                            }
                             else
                             {
                                 UriHelper.UnescapeString(_string, delimiterAwareIndex, _info.Offset.End, chars,
@@ -3079,7 +3034,7 @@ namespace System
         // This method is called only if the user string has a canonical representation
         // of requested parts
         //
-        private string GetUriPartsFromUserString(UriComponents uriParts)
+        private string? GetUriPartsFromUserString(UriComponents uriParts)
         {
             ushort delimiterAwareIdx;
 
@@ -3090,8 +3045,9 @@ namespace System
                     if (!InFact(Flags.HasUserInfo))
                         return _string.Substring(_info.Offset.Scheme, _info.Offset.Path - _info.Offset.Scheme);
 
-                    return _string.Substring(_info.Offset.Scheme, _info.Offset.User - _info.Offset.Scheme)
-                         + _string.Substring(_info.Offset.Host, _info.Offset.Path - _info.Offset.Host);
+                    return string.Concat(
+                        _string.AsSpan(_info.Offset.Scheme, _info.Offset.User - _info.Offset.Scheme),
+                        _string.AsSpan(_info.Offset.Host, _info.Offset.Path - _info.Offset.Host));
 
                 // For HttpWebRequest.ConnectHostAndPort perf
                 case UriComponents.HostAndPort:  //Host|StrongPort
@@ -3102,8 +3058,8 @@ namespace System
                     if (InFact(Flags.NotDefaultPort) || _syntax.DefaultPort == UriParser.NoDefaultPort)
                         return _string.Substring(_info.Offset.Host, _info.Offset.Path - _info.Offset.Host);
 
-                    return _string.Substring(_info.Offset.Host, _info.Offset.Path - _info.Offset.Host)
-                        + ':' + _info.Offset.PortValue.ToString(CultureInfo.InvariantCulture);
+                    return string.Concat(_string.AsSpan(_info.Offset.Host, _info.Offset.Path - _info.Offset.Host),
+                        ":", _info.Offset.PortValue.ToString(CultureInfo.InvariantCulture));
 
                 // For an obvious common case perf
                 case UriComponents.AbsoluteUri:     //Scheme|UserInfo|Host|Port|Path|Query|Fragment,
@@ -3116,8 +3072,9 @@ namespace System
                 case UriComponents.HttpRequestUrl:   //Scheme|Host|Port|Path|Query,
                     if (InFact(Flags.HasUserInfo))
                     {
-                        return _string.Substring(_info.Offset.Scheme, _info.Offset.User - _info.Offset.Scheme)
-                            + _string.Substring(_info.Offset.Host, _info.Offset.Fragment - _info.Offset.Host);
+                        return string.Concat(
+                            _string.AsSpan(_info.Offset.Scheme, _info.Offset.User - _info.Offset.Scheme),
+                            _string.AsSpan(_info.Offset.Host, _info.Offset.Fragment - _info.Offset.Host));
                     }
                     if (_info.Offset.Scheme == 0 && _info.Offset.Fragment == _string.Length)
                         return _string;
@@ -3202,8 +3159,8 @@ namespace System
                     if (InFact(Flags.NotDefaultPort) || _syntax.DefaultPort == UriParser.NoDefaultPort)
                         goto case UriComponents.UserInfo | UriComponents.Host | UriComponents.Port;
 
-                    return _string.Substring(_info.Offset.User, _info.Offset.Path - _info.Offset.User)
-                        + ':' + _info.Offset.PortValue.ToString(CultureInfo.InvariantCulture);
+                    return string.Concat(_string.AsSpan(_info.Offset.User, _info.Offset.Path - _info.Offset.User),
+                        ":", _info.Offset.PortValue.ToString(CultureInfo.InvariantCulture));
 
                 case UriComponents.PathAndQuery:        //Path|Query,
                     return _string.Substring(_info.Offset.Path, _info.Offset.Fragment - _info.Offset.Path);
@@ -3211,8 +3168,9 @@ namespace System
                 case UriComponents.HttpRequestUrl | UriComponents.Fragment: //Scheme|Host|Port|Path|Query|Fragment,
                     if (InFact(Flags.HasUserInfo))
                     {
-                        return _string.Substring(_info.Offset.Scheme, _info.Offset.User - _info.Offset.Scheme)
-                            + _string.Substring(_info.Offset.Host, _info.Offset.End - _info.Offset.Host);
+                        return string.Concat(
+                            _string.AsSpan(_info.Offset.Scheme, _info.Offset.User - _info.Offset.Scheme),
+                            _string.AsSpan(_info.Offset.Host, _info.Offset.End - _info.Offset.Host));
                     }
                     if (_info.Offset.Scheme == 0 && _info.Offset.End == _string.Length)
                         return _string;
@@ -3241,6 +3199,15 @@ namespace System
                 default:
                     return null;
             }
+        }
+
+        // Cut trailing spaces
+        private void GetLengthWithoutTrailingSpaces(string str, ref ushort length, int idx)
+        {
+            // to avoid dereferencing ref length parameter for every update
+            ushort local = length;
+            while (local > idx && UriHelper.IsLWS(str[local - 1])) --local;
+            length = local;
         }
 
         //
@@ -3275,14 +3242,7 @@ namespace System
 
             fixed (char* str = _string)
             {
-                // Cut trailing spaces in m_String
-                if (length > idx && UriHelper.IsLWS(str[length - 1]))
-                {
-                    --length;
-                    while (length != idx && UriHelper.IsLWS(str[--length]))
-                        ;
-                    ++length;
-                }
+                GetLengthWithoutTrailingSpaces(_string, ref length, idx);
 
                 if (IsImplicitFile)
                 {
@@ -3365,12 +3325,6 @@ namespace System
                         _string = _syntax.SchemeName + SchemeDelimiter;
                     }
                 }
-                
-                // If host is absent, uri is abnormal and relative as in RFC 3986 section 5.4.2
-                if (_info.Offset.Host == _info.Offset.Path)
-                {
-                    _string = _syntax.SchemeName + ":";
-                }
 
                 _info.Offset.Path = (ushort)_string.Length;
                 idx = _info.Offset.Path;
@@ -3396,11 +3350,22 @@ namespace System
                 }
                 catch (ArgumentException)
                 {
-                    UriFormatException e = GetException(ParsingError.BadFormat);
+                    UriFormatException e = GetException(ParsingError.BadFormat)!;
+                    throw e;
+                }
+
+                if (_string.Length > ushort.MaxValue)
+                {
+                    UriFormatException e = GetException(ParsingError.SizeLimit)!;
                     throw e;
                 }
 
                 length = (ushort)_string.Length;
+                // We need to be sure that there isn't a '?' separated from the path by spaces.
+                if (_string == _originalUnicodeString)
+                {
+                    GetLengthWithoutTrailingSpaces(_string, ref length, idx);
+                }
             }
 
             fixed (char* str = _string)
@@ -3523,11 +3488,22 @@ namespace System
                     }
                     catch (ArgumentException)
                     {
-                        UriFormatException e = GetException(ParsingError.BadFormat);
+                        UriFormatException e = GetException(ParsingError.BadFormat)!;
+                        throw e;
+                    }
+
+                    if (_string.Length > ushort.MaxValue)
+                    {
+                        UriFormatException e = GetException(ParsingError.SizeLimit)!;
                         throw e;
                     }
 
                     length = (ushort)_string.Length;
+                    // We need to be sure that there isn't a '#' separated from the query by spaces.
+                    if (_string == _originalUnicodeString)
+                    {
+                        GetLengthWithoutTrailingSpaces(_string, ref length, idx);
+                    }
                 }
             }
 
@@ -3580,11 +3556,19 @@ namespace System
                     }
                     catch (ArgumentException)
                     {
-                        UriFormatException e = GetException(ParsingError.BadFormat);
+                        UriFormatException e = GetException(ParsingError.BadFormat)!;
+                        throw e;
+                    }
+
+                    if (_string.Length > ushort.MaxValue)
+                    {
+                        UriFormatException e = GetException(ParsingError.SizeLimit)!;
                         throw e;
                     }
 
                     length = (ushort)_string.Length;
+                    // we don't need to check _originalUnicodeString == _string because # is last part
+                    GetLengthWithoutTrailingSpaces(_string, ref length, idx);
                 }
             }
 
@@ -3633,7 +3617,7 @@ namespace System
         // throws UriFormatException if invalid scheme
         //
         private static unsafe ushort ParseSchemeCheckImplicitFile(char* uriString, ushort length,
-            ref ParsingError err, ref Flags flags, ref UriParser syntax)
+            ref ParsingError err, ref Flags flags, ref UriParser? syntax)
         {
             ushort idx = 0;
 
@@ -3729,22 +3713,9 @@ namespace System
                 return 0;
             }
 
-            // Here could be a possibly valid, and not well-known scheme
-            // Finds the scheme delimiter
-            // we don;t work with the schemes names > c_MaxUriSchemeName (should be ~1k)
-            if ((end - idx) > c_MaxUriSchemeName)
-            {
-                err = ParsingError.SchemeLimit;
-                return 0;
-            }
-
-            //Check the syntax, canonicalize  and avoid a GC call
-            char* schemePtr = stackalloc char[end - idx];
-            for (length = 0; idx < end; ++idx)
-            {
-                schemePtr[length++] = uriString[idx];
-            }
-            err = CheckSchemeSyntax(schemePtr, length, ref syntax);
+            // This is a potentially valid scheme, but we have not identified it yet.
+            // Check for illegal characters, canonicalize, and check the length.
+            err = CheckSchemeSyntax(new ReadOnlySpan<char>(uriString + idx, end - idx), ref syntax!);
             if (err != ParsingError.None)
             {
                 return 0;
@@ -3755,7 +3726,7 @@ namespace System
         //
         // Quickly parses well known schemes.
         // nChars does not include the last ':'. Assuming there is one at the end of passed buffer
-        private static unsafe bool CheckKnownSchemes(long* lptr, ushort nChars, ref UriParser syntax)
+        private static unsafe bool CheckKnownSchemes(long* lptr, ushort nChars, ref UriParser? syntax)
         {
             //NOTE beware of too short input buffers!
 
@@ -3910,64 +3881,45 @@ namespace System
         //
         // This will check whether a scheme string follows the rules
         //
-        private static unsafe ParsingError CheckSchemeSyntax(char* ptr, ushort length, ref UriParser syntax)
+        private static unsafe ParsingError CheckSchemeSyntax(ReadOnlySpan<char> span, ref UriParser? syntax)
         {
-            //First character must be an alpha
+            static char ToLowerCaseAscii(char c) => (uint)(c - 'A') <= 'Z' - 'A' ? (char)(c | 0x20) : c;
+
+            if (span.Length == 0)
             {
-                char c = *ptr;
-                if (c >= 'a' && c <= 'z')
-                {
-                    ;
-                }
-                else if (c >= 'A' && c <= 'Z')
-                {
-                    *ptr = (char)(c | 0x20);    //make it lowercase
-                }
-                else
-                {
-                    return ParsingError.BadScheme;
-                }
+                return ParsingError.BadScheme;
             }
 
-            for (ushort i = 1; i < length; ++i)
+            // The first character must be an alpha.  Validate that and store it as lower-case, as
+            // all of the fast-path checks need that value.
+            char firstLower = span[0];
+            if ((uint)(firstLower - 'A') <= 'Z' - 'A')
             {
-                char c = ptr[i];
-                if (c >= 'a' && c <= 'z')
-                {
-                    ;
-                }
-                else if (c >= 'A' && c <= 'Z')
-                {
-                    ptr[i] = (char)(c | 0x20);    //make it lowercase
-                }
-                else if (c >= '0' && c <= '9')
-                {
-                    ;
-                }
-                else if (c == '+' || c == '-' || c == '.')
-                {
-                    ;
-                }
-                else
-                {
-                    return ParsingError.BadScheme;
-                }
+                firstLower = (char)(firstLower | 0x20);
+            }
+            else if ((uint)(firstLower - 'a') > 'z' - 'a')
+            {
+                return ParsingError.BadScheme;
             }
 
             // Special-case common and known schemes to avoid allocations and dictionary lookups in these cases.
-            switch (length)
+            const int wsMask = 'w' << 8 | 's';
+            const int ftpMask = 'f' << 16 | 't' << 8 | 'p';
+            const int wssMask = 'w' << 16 | 's' << 8 | 's';
+            const int fileMask = 'f' << 24 | 'i' << 16 | 'l' << 8 | 'e';
+            const int httpMask = 'h' << 24 | 't' << 16 | 't' << 8 | 'p';
+            const int mailMask = 'm' << 24 | 'a' << 16 | 'i' << 8 | 'l';
+            switch (span.Length)
             {
                 case 2:
-                    if (ptr[0] == 'w' && ptr[1] == 's')
+                    if (wsMask == (firstLower << 8 | ToLowerCaseAscii(span[1])))
                     {
                         syntax = UriParser.WsUri;
                         return ParsingError.None;
                     }
                     break;
                 case 3:
-                    const int ftpMask = 'f' << 16 | 't' << 8 | 'p';
-                    const int wssMask = 'w' << 16 | 's' << 8 | 's';
-                    switch (ptr[0] << 16 | ptr[1] << 8 | ptr[2])
+                    switch (firstLower << 16 | ToLowerCaseAscii(span[1]) << 8 | ToLowerCaseAscii(span[2]))
                     {
                         case ftpMask:
                             syntax = UriParser.FtpUri;
@@ -3978,9 +3930,7 @@ namespace System
                     }
                     break;
                 case 4:
-                    const int httpMask = 'h' << 24 | 't' << 16 | 't' << 8 | 'p';
-                    const int fileMask = 'f' << 24 | 'i' << 16 | 'l' << 8 | 'e';
-                    switch (ptr[0] << 24 | ptr[1] << 16 | ptr[2] << 8 | ptr[3])
+                    switch (firstLower << 24 | ToLowerCaseAscii(span[1]) << 16 | ToLowerCaseAscii(span[2]) << 8 | ToLowerCaseAscii(span[3]))
                     {
                         case httpMask:
                             syntax = UriParser.HttpUri;
@@ -3991,14 +3941,16 @@ namespace System
                     }
                     break;
                 case 5:
-                    if (ptr[0] == 'h' && ptr[1] == 't' && ptr[2] == 't' && ptr[3] == 'p' && ptr[4] == 's')
+                    if (httpMask == (firstLower << 24 | ToLowerCaseAscii(span[1]) << 16 | ToLowerCaseAscii(span[2]) << 8 | ToLowerCaseAscii(span[3])) &&
+                        ToLowerCaseAscii(span[4]) == 's')
                     {
                         syntax = UriParser.HttpsUri;
                         return ParsingError.None;
                     }
                     break;
                 case 6:
-                    if (ptr[0] == 'm' && ptr[1] == 'a' && ptr[2] == 'i' && ptr[3] == 'l' && ptr[4] == 't' && ptr[5] == 'o')
+                    if (mailMask == (firstLower << 24 | ToLowerCaseAscii(span[1]) << 16 | ToLowerCaseAscii(span[2]) << 8 | ToLowerCaseAscii(span[3])) &&
+                        ToLowerCaseAscii(span[4]) == 't' && ToLowerCaseAscii(span[5]) == 'o')
                     {
                         syntax = UriParser.MailToUri;
                         return ParsingError.None;
@@ -4006,8 +3958,31 @@ namespace System
                     break;
             }
 
-            // Not special-cased scheme.  Look up the syntax based on the substring.
-            string str = new string(ptr, 0, length);
+            // The scheme is not known.  Validate all of the characters in the input.
+            for (int i = 1; i < span.Length; i++)
+            {
+                char c = span[i];
+                if ((uint)(c - 'a') > 'z' - 'a' &&
+                    (uint)(c - 'A') > 'Z' - 'A' &&
+                    (uint)(c - '0') > '9' - '0' &&
+                    c != '+' && c != '-' && c != '.')
+                {
+                    return ParsingError.BadScheme;
+                }
+            }
+
+            if (span.Length > c_MaxUriSchemeName)
+            {
+                return ParsingError.SchemeLimit;
+            }
+
+            // Then look up the syntax in a string-based table.
+            string str = new string('\0', span.Length);
+            fixed (char* ptr = str)
+            {
+                int charsWritten = span.ToLowerInvariant(new Span<char>(ptr, str.Length));
+                Debug.Assert(charsWritten == str.Length);
+            }
             syntax = UriParser.FindOrFetchAsUnknownV1Syntax(str);
             return ParsingError.None;
         }
@@ -4020,7 +3995,7 @@ namespace System
         //
         // Must be called in the ctor only
         private unsafe ushort CheckAuthorityHelper(char* pString, ushort idx, ushort length,
-            ref ParsingError err, ref Flags flags, UriParser syntax, ref string newHost)
+            ref ParsingError err, ref Flags flags, UriParser syntax, ref string? newHost)
         {
             int end = length;
             char ch;
@@ -4028,7 +4003,7 @@ namespace System
             ushort start = idx;
             newHost = null;
             bool justNormalized = false;
-            bool iriParsing = (s_IriParsing && IriParsingStatic(syntax)); // perf
+            bool iriParsing = (IriParsing && IriParsingStatic(syntax)); // perf
             bool hasUnicode = ((flags & Flags.HasUnicode) != 0); // perf
             bool hostNotUnicodeNormalized = ((flags & Flags.HostUnicodeNormalized) == 0); // perf
             UriSyntaxFlags syntaxFlags = syntax.Flags;
@@ -4049,7 +4024,7 @@ namespace System
 
                 if (hasUnicode && iriParsing && hostNotUnicodeNormalized)
                 {
-                    flags |= Flags.HostUnicodeNormalized;// no host
+                    flags |= Flags.HostUnicodeNormalized; // no host
                 }
 
                 return idx;
@@ -4061,7 +4036,7 @@ namespace System
                 newHost = _originalUnicodeString.Substring(0, startInput);
             }
 
-            string userInfoString = null;
+            string? userInfoString = null;
             // Attempt to parse user info first
 
             if ((syntaxFlags & UriSyntaxFlags.MayHaveUserInfo) != 0)
@@ -4079,13 +4054,19 @@ namespace System
                         flags |= Flags.HasUserInfo;
 
                         // Iri'ze userinfo
-                        if (iriParsing || (s_IdnScope != UriIdnScope.None))
+                        if (iriParsing)
                         {
                             if (iriParsing && hasUnicode && hostNotUnicodeNormalized)
                             {
                                 // Normalize user info
                                 userInfoString = IriHelper.EscapeUnescapeIri(pString, startInput, start + 1, UriComponents.UserInfo);
                                 newHost += userInfoString;
+
+                                if (newHost.Length > ushort.MaxValue)
+                                {
+                                    err = ParsingError.SizeLimit;
+                                    return idx;
+                                }
                             }
                             else
                             {
@@ -4108,7 +4089,7 @@ namespace System
             {
                 flags |= Flags.IPv6HostType;
 
-                _iriParsing = (s_IriParsing && IriParsingStatic(syntax));
+                _iriParsing = (IriParsing && IriParsingStatic(syntax));
 
                 if (hasUnicode && iriParsing && hostNotUnicodeNormalized)
                 {
@@ -4139,39 +4120,6 @@ namespace System
                 {
                     flags |= Flags.CanonicalDnsHost;
                 }
-
-                if ((s_IdnScope != UriIdnScope.None))
-                {
-                    // check if intranet
-                    //
-                    if ((s_IdnScope == UriIdnScope.AllExceptIntranet) && IsIntranet(new string(pString, 0, end)))
-                    {
-                        flags |= Flags.IntranetUri;
-                    }
-                    if (AllowIdnStatic(syntax, flags))
-                    {
-                        bool allAscii = true;
-                        bool atLeastOneIdn = false;
-
-                        string idnValue = DomainNameHelper.UnicodeEquivalent(pString, start, end, ref allAscii, ref atLeastOneIdn);
-
-                        // did we find at least one valid idn
-                        if (atLeastOneIdn)
-                        {
-                            // need to switch string here since we didn't know beforehand there was an idn host
-                            if (StaticNotAny(flags, Flags.HasUnicode))
-                                _originalUnicodeString = _string; // lazily switching strings
-                            flags |= Flags.IdnHost;
-
-                            // need to build string for this special scenario
-                            newHost = _originalUnicodeString.Substring(0, startInput) + userInfoString + idnValue;
-                            flags |= Flags.CanonicalDnsHost;
-                            _dnsSafeHost = new string(pString, start, end - start);
-                            justNormalized = true;
-                        }
-                        flags |= Flags.HostUnicodeNormalized;
-                    }
-                }
             }
             else if (((syntaxFlags & UriSyntaxFlags.AllowDnsHost) != 0)
                     && ((syntax.InFact(UriSyntaxFlags.AllowIriParsing) && hostNotUnicodeNormalized)
@@ -4190,7 +4138,15 @@ namespace System
                 if (UncNameHelper.IsValid(pString, start, ref end, StaticNotAny(flags, Flags.ImplicitFile)))
                 {
                     if (end - start <= UncNameHelper.MaximumInternetNameLength)
+                    {
                         flags |= Flags.UncHostType;
+                        if (hasUnicode && iriParsing && hostNotUnicodeNormalized)
+                        {
+                            newHost += new string(pString, start, end - start);
+                            flags |= Flags.HostUnicodeNormalized;
+                            justNormalized = true;
+                        }
+                    }
                 }
             }
 
@@ -4352,133 +4308,45 @@ namespace System
         }
 
         private unsafe void CheckAuthorityHelperHandleDnsIri(char* pString, ushort start, int end, int startInput,
-            bool iriParsing, bool hasUnicode, UriParser syntax, string userInfoString, ref Flags flags,
-            ref bool justNormalized, ref string newHost, ref ParsingError err)
+            bool iriParsing, bool hasUnicode, UriParser syntax, string? userInfoString, ref Flags flags,
+            ref bool justNormalized, ref string? newHost, ref ParsingError err)
         {
             // comes here only if host has unicode chars and iri is on or idn is allowed
 
             flags |= Flags.DnsHostType;
 
-            // check if intranet
-            //
-            if ((s_IdnScope == UriIdnScope.AllExceptIntranet) && IsIntranet(new string(pString, 0, end)))
+            if (hasUnicode)
             {
-                flags |= Flags.IntranetUri;
-            }
-
-            if (AllowIdnStatic(syntax, flags))
-            {
-                bool allAscii = true;
-                bool atLeastOneIdn = false;
-
-                string idnValue = DomainNameHelper.IdnEquivalent(pString, start, end, ref allAscii, ref atLeastOneIdn);
-                string UniEquvlt = DomainNameHelper.UnicodeEquivalent(idnValue, pString, start, end);
-
-                if (!allAscii)
-                    flags |= Flags.UnicodeHost; // we have a unicode host
-
-                if (atLeastOneIdn)
-                    flags |= Flags.IdnHost;   // we have at least one valid idn label
-
-                if (allAscii && atLeastOneIdn && StaticNotAny(flags, Flags.HasUnicode))
+                string temp = UriHelper.StripBidiControlCharacter(pString, start, end - start);
+                try
                 {
-                    // original string location changed lazily
-                    _originalUnicodeString = _string;
-                    newHost = _originalUnicodeString.Substring(0, startInput) +
-                        (StaticInFact(flags, Flags.HasUserInfo) ? userInfoString : null);
-                    justNormalized = true;
+                    newHost += ((temp != null) ? temp.Normalize(NormalizationForm.FormC) : null);
                 }
-                else if (!iriParsing && (StaticInFact(flags, Flags.UnicodeHost) || StaticInFact(flags, Flags.IdnHost)))
+                catch (ArgumentException)
                 {
-                    // original string location changed lazily
-                    _originalUnicodeString = _string;
-                    newHost = _originalUnicodeString.Substring(0, startInput) +
-                        (StaticInFact(flags, Flags.HasUserInfo) ? userInfoString : null);
-                    justNormalized = true;
+                    err = ParsingError.BadHostName;
                 }
-
-                if (!(allAscii && !atLeastOneIdn))
-                {
-                    _dnsSafeHost = idnValue;
-                    newHost += UniEquvlt;
-                    justNormalized = true;
-                }
-                else if (allAscii && !atLeastOneIdn && iriParsing && hasUnicode)
-                {
-                    newHost += UniEquvlt;
-                    justNormalized = true;
-                }
-            }
-            else
-            {
-                if (hasUnicode)
-                {
-                    string temp = UriHelper.StripBidiControlCharacter(pString, start, end - start);
-                    try
-                    {
-                        newHost += ((temp != null) ? temp.Normalize(NormalizationForm.FormC) : null);
-                    }
-                    catch (ArgumentException)
-                    {
-                        err = ParsingError.BadHostName;
-                    }
-                    justNormalized = true;
-                }
+                justNormalized = true;
             }
             flags |= Flags.HostUnicodeNormalized;
         }
 
         private unsafe void CheckAuthorityHelperHandleAnyHostIri(char* pString, int startInput, int end,
                                             bool iriParsing, bool hasUnicode, UriParser syntax,
-                                            ref Flags flags, ref string newHost, ref ParsingError err)
+                                            ref Flags flags, ref string? newHost, ref ParsingError err)
         {
-            if (StaticNotAny(flags, Flags.HostUnicodeNormalized) && (AllowIdnStatic(syntax, flags) ||
-                (iriParsing && hasUnicode)))
+            if (StaticNotAny(flags, Flags.HostUnicodeNormalized) && (iriParsing && hasUnicode))
             {
                 // Normalize any other host or do idn
                 string user = new string(pString, startInput, end - startInput);
 
-                if (AllowIdnStatic(syntax, flags))
+                try
                 {
-                    bool allAscii = true;
-                    bool atLeastOneIdn = false;
-
-                    string UniEquvlt = DomainNameHelper.UnicodeEquivalent(pString, startInput, end, ref allAscii,
-                        ref atLeastOneIdn);
-
-                    if (((allAscii && atLeastOneIdn) || !allAscii) && !(iriParsing && hasUnicode))
-                    {
-                        // original string location changed lazily
-                        _originalUnicodeString = _string;
-                        newHost = _originalUnicodeString.Substring(0, startInput);
-                        flags |= Flags.HasUnicode;
-                    }
-                    if (atLeastOneIdn || !allAscii)
-                    {
-                        newHost += UniEquvlt;
-                        string bidiStrippedHost = null;
-                        _dnsSafeHost = DomainNameHelper.IdnEquivalent(pString, startInput, end, ref allAscii,
-                            ref bidiStrippedHost);
-                        if (atLeastOneIdn)
-                            flags |= Flags.IdnHost;
-                        if (!allAscii)
-                            flags |= Flags.UnicodeHost;
-                    }
-                    else if (iriParsing && hasUnicode)
-                    {
-                        newHost += user;
-                    }
+                    newHost += user.Normalize(NormalizationForm.FormC);
                 }
-                else
+                catch (ArgumentException)
                 {
-                    try
-                    {
-                        newHost += user.Normalize(NormalizationForm.FormC);
-                    }
-                    catch (ArgumentException)
-                    {
-                        err = ParsingError.BadHostName;
-                    }
+                    err = ParsingError.BadHostName;
                 }
 
                 flags |= Flags.HostUnicodeNormalized;
@@ -4566,7 +4434,7 @@ namespace System
                     foundEscaping = true;
                     res |= Check.ReservedFound;
                 }
-                else if (c > 'z' && c != '~')
+                else if (c > '~')
                 {
                     if (_iriParsing)
                     {
@@ -4641,8 +4509,21 @@ namespace System
                         res |= Check.DotSlashAttn;
                     }
                 }
-                else if (!needsEscaping && ((c <= '"' && c != '!') || (c >= '[' && c <= '^') || c == '>'
-                    || c == '<' || c == '`'))
+                else if (((c <= '"' && c != '!') || (c >= '[' && c <= '^') || c == '>'
+                        || c == '<' || c == '`'))
+                {
+                    if (!needsEscaping) needsEscaping = true;
+
+                    // The check above validates only that we have valid IRI characters, which is not enough to
+                    // conclude that we have a valid canonical IRI.
+                    // If we have an IRI with Flags.HasUnicode, we need to set Check.NotIriCanonical so that the
+                    // path, query, and fragment will be validated.
+                    if ((_flags & Flags.HasUnicode) != 0 && _iriParsing)
+                    {
+                        res |= Check.NotIriCanonical;
+                    }
+                }
+                else if (c >= '{' && c <= '}') // includes '{', '|', '}'
                 {
                     needsEscaping = true;
                 }
@@ -4713,7 +4594,7 @@ namespace System
                     _string.CopyTo(_info.Offset.Path, dest, end, _info.Offset.Query - _info.Offset.Path);
                     end += (_info.Offset.Query - _info.Offset.Path);
 
-                    // If the path was found as needed compression and contains escaped characters, unescape only 
+                    // If the path was found as needed compression and contains escaped characters, unescape only
                     // interesting characters (safe)
 
                     if (_syntax.InFact(UriSyntaxFlags.UnEscapeDotsAndSlashes) && InFact(Flags.PathNotCanonical)
@@ -4739,8 +4620,11 @@ namespace System
                             str = str.Remove(dosPathIdx + _info.Offset.Path - 1, 1);
                             str = str.Insert(dosPathIdx + _info.Offset.Path - 1, ":");
                         }
-                        dest = UriHelper.EscapeString(str, _info.Offset.Path, _info.Offset.Query, dest, ref end, true,
-                            '?', '#', IsImplicitFile ? c_DummyChar : '%');
+
+                        dest = UriHelper.EscapeString(
+                            str.AsSpan(_info.Offset.Path, _info.Offset.Query - _info.Offset.Path),
+                            dest, ref end,
+                            checkExistingEscaped: !IsImplicitFile, '?', '#');
                     }
                     else
                     {
@@ -4752,8 +4636,7 @@ namespace System
                 // On Unix, escape '\\' in path of file uris to '%5C' canonical form.
                 if (!IsWindowsSystem && InFact(Flags.BackslashInPath) && _syntax.NotAny(UriSyntaxFlags.ConvertPathSlashes) && _syntax.InFact(UriSyntaxFlags.FileLikeUri) && !IsImplicitFile)
                 {
-                    string str = new string(dest, pos, end - pos);
-                    dest = UriHelper.EscapeString(str, 0, str.Length, dest, ref pos, true, '\\', c_DummyChar, '%');
+                    dest = UriHelper.EscapeString(new string(dest, pos, end - pos), dest, ref pos, checkExistingEscaped: true, '\\');
                     end = pos;
                 }
             }
@@ -4764,7 +4647,7 @@ namespace System
 
                 if (InFact(Flags.ShouldBeCompressed))
                 {
-                    // If the path was found as needed compression and contains escaped characters, 
+                    // If the path was found as needed compression and contains escaped characters,
                     // unescape only interesting characters (safe)
 
                     if (_syntax.InFact(UriSyntaxFlags.UnEscapeDotsAndSlashes) && InFact(Flags.PathNotCanonical)
@@ -4801,9 +4684,7 @@ namespace System
                 if (formatAs == UriFormat.UriEscaped && NotAny(Flags.UserEscaped) && InFact(Flags.E_PathNotCanonical))
                 {
                     //Note: Flags.UserEscaped check is solely based on trusting the user
-                    string srcString = new string(dest, pos, end - pos);
-                    dest = UriHelper.EscapeString(srcString, 0, end - pos, dest, ref pos, true, '?', '#',
-                        IsImplicitFile ? c_DummyChar : '%');
+                    dest = UriHelper.EscapeString(new string(dest, pos, end - pos), dest, ref pos, checkExistingEscaped: !IsImplicitFile, '?', '#');
                     end = pos;
                 }
             }
@@ -4847,7 +4728,7 @@ namespace System
                 }
 
                 char[] dest1 = new char[dest.Length];
-                Buffer.BlockCopy(dest, 0, dest1, 0, end << 1);
+                Buffer.BlockCopy(dest, 0, dest1, 0, end * sizeof(char));
                 fixed (char* pdest = dest1)
                 {
                     dest = UriHelper.UnescapeString(pdest, pos, end, dest, ref pos, '?', '#', c_DummyChar, mode,
@@ -4985,7 +4866,7 @@ namespace System
 
                         //
                         // Cases:
-                        // /./                  = remove this segment 
+                        // /./                  = remove this segment
                         // /../                 = remove this segment, mark next for removal
                         // /....x               = DO NOT TOUCH, leave as is
                         // x.../                = DO NOT TOUCH, leave as is, except for V2 legacy mode
@@ -5001,7 +4882,7 @@ namespace System
                                 //
                                 // just reusing a variable slot we perform //dest.Remove(i+1, dotCount + (lastSlash==0?0:1));
                                 lastSlash = (ushort)(i + 1 + dotCount + (lastSlash == 0 ? 0 : 1));
-                                Buffer.BlockCopy(dest, lastSlash << 1, dest, (i + 1) << 1, (destLength - lastSlash) << 1);
+                                Buffer.BlockCopy(dest, lastSlash * sizeof(char), dest, (i + 1) * sizeof(char), (destLength - lastSlash) * sizeof(char));
                                 destLength -= (lastSlash - i - 1);
 
                                 lastSlash = i;
@@ -5036,7 +4917,7 @@ namespace System
 
                             // just reusing a variable slot we perform //dest.Remove(i+1, lastSlash - i);
                             lastSlash = (ushort)(lastSlash + 1);
-                            Buffer.BlockCopy(dest, lastSlash << 1, dest, (i + 1) << 1, (destLength - lastSlash) << 1);
+                            Buffer.BlockCopy(dest, lastSlash * sizeof(char), dest, (i + 1) * sizeof(char), (destLength - lastSlash) * sizeof(char));
                             destLength -= (lastSlash - i - 1);
                         }
                         lastSlash = i;
@@ -5054,7 +4935,7 @@ namespace System
                     {
                         //remove first not rooted segment
                         lastSlash = (ushort)(lastSlash + 1);
-                        Buffer.BlockCopy(dest, lastSlash << 1, dest, start << 1, (destLength - lastSlash) << 1);
+                        Buffer.BlockCopy(dest, lastSlash * sizeof(char), dest, start * sizeof(char), (destLength - lastSlash) * sizeof(char));
                         destLength -= lastSlash;
                     }
                     else if (dotCount != 0)
@@ -5064,7 +4945,7 @@ namespace System
                         if (lastSlash == dotCount + 1 || (lastSlash == 0 && dotCount + 1 == destLength))
                         {
                             dotCount = (ushort)(dotCount + (lastSlash == 0 ? 0 : 1));
-                            Buffer.BlockCopy(dest, dotCount << 1, dest, start << 1, (destLength - dotCount) << 1);
+                            Buffer.BlockCopy(dest, dotCount * sizeof(char), dest, start * sizeof(char), (destLength - dotCount) * sizeof(char));
                             destLength -= dotCount;
                         }
                     }
@@ -5115,11 +4996,12 @@ namespace System
                 int idx = basePart.OriginalString.IndexOf(':');
                 if (basePart.IsImplicitFile)
                 {
-                    return basePart.OriginalString.Substring(0, idx + 1) + relativePart;
+                    return string.Concat(basePart.OriginalString.AsSpan(0, idx + 1), relativePart);
                 }
+
                 // The basePart has explicit scheme (could be not file:), take the DOS drive ':' position
                 idx = basePart.OriginalString.IndexOf(':', idx + 1);
-                return basePart.OriginalString.Substring(0, idx + 1) + relativePart;
+                return string.Concat(basePart.OriginalString.AsSpan(0, idx + 1), relativePart);
             }
 
             // Check special case for Unc or absolute path in relativePart when base is FILE
@@ -5171,7 +5053,7 @@ namespace System
 
             bool convBackSlashes = basePart.Syntax.InFact(UriSyntaxFlags.ConvertPathSlashes);
 
-            string left = null;
+            string? left = null;
 
             // check for network or local absolute path
             if (c1 == '/' || (c1 == '\\' && convBackSlashes))
@@ -5194,10 +5076,9 @@ namespace System
                     left = basePart.GetParts(UriComponents.SchemeAndServer | UriComponents.UserInfo, uriFormat);
                 }
 
-                if (convBackSlashes && c1 == '\\')
-                    relativePart = '/' + relativePart.Substring(1);
-
-                return left + relativePart;
+                return convBackSlashes && c1 == '\\' ?
+                    string.Concat(left, "/", relativePart.AsSpan(1)) :
+                    left + relativePart;
             }
 
             // Here we got a relative path
@@ -5231,7 +5112,7 @@ namespace System
             // The  implicit file check is to avoid a fragment in the implicit file combined uri.
             char c2 = (!basePart.IsImplicitFile && basePart.Syntax.InFact(UriSyntaxFlags.MayHaveFragment)) ? '#' :
                 c_DummyChar;
-            string extra = string.Empty;
+            ReadOnlySpan<char> extra = string.Empty;
 
             // assuming c_DummyChar may not happen in an unicode uri string
             if (!(c1 == c_DummyChar && c2 == c_DummyChar))
@@ -5250,7 +5131,7 @@ namespace System
                 }
                 else if (i < relativePart.Length)
                 {
-                    extra = relativePart.Substring(i);
+                    extra = relativePart.AsSpan(i);
                 }
                 length += i;
             }
@@ -5281,7 +5162,7 @@ namespace System
                     {
                         // The FILE DOS path comes as /c:/path, we have to exclude first 3 chars from compression
                         path = Compress(path, 3, ref length, basePart.Syntax);
-                        return new string(path, 1, length - 1) + extra;
+                        return string.Concat(path.AsSpan(1, length - 1), extra);
                     }
                     else if (!IsWindowsSystem && basePart.IsUnixPath)
                     {
@@ -5299,7 +5180,7 @@ namespace System
             }
             //compress the path
             path = Compress(path, basePart.SecuredPathIndex, ref length, basePart.Syntax);
-            return left + new string(path, 0, length) + extra;
+            return string.Concat(left, path.AsSpan(0, length), extra);
         }
 
         //
@@ -5365,7 +5246,7 @@ namespace System
             // Same path except that path1 ended with a file name and path2 didn't
             if (relPath.Length == 0 && path2.Length - 1 == si)
                 return "./"; // Truncate the file name
-            return relPath.ToString() + path2.Substring(si + 1);
+            return relPath.Append(path2.AsSpan(si + 1)).ToString();
         }
 
         //
@@ -5385,7 +5266,7 @@ namespace System
         // Throws:
         //  ArgumentNullException, InvalidOperationException
         //
-        [Obsolete("The method has been deprecated. Please use MakeRelativeUri(Uri uri). http://go.microsoft.com/fwlink/?linkid=14202")]
+        [Obsolete("The method has been deprecated. Please use MakeRelativeUri(Uri uri). https://go.microsoft.com/fwlink/?linkid=14202")]
         public string MakeRelative(Uri toUri)
         {
             if (toUri == null)
@@ -5401,7 +5282,7 @@ namespace System
         }
 
         /// <internalonly/>
-        [Obsolete("The method has been deprecated. It is not used by the system. http://go.microsoft.com/fwlink/?linkid=14202")]
+        [Obsolete("The method has been deprecated. It is not used by the system. https://go.microsoft.com/fwlink/?linkid=14202")]
         protected virtual void Canonicalize()
         {
             // this method if suppressed by the derived class
@@ -5411,7 +5292,7 @@ namespace System
         }
 
         /// <internalonly/>
-        [Obsolete("The method has been deprecated. It is not used by the system. http://go.microsoft.com/fwlink/?linkid=14202")]
+        [Obsolete("The method has been deprecated. It is not used by the system. https://go.microsoft.com/fwlink/?linkid=14202")]
         protected virtual void Parse()
         {
             // this method if suppressed by the derived class
@@ -5421,7 +5302,7 @@ namespace System
         }
 
         /// <internalonly/>
-        [Obsolete("The method has been deprecated. It is not used by the system. http://go.microsoft.com/fwlink/?linkid=14202")]
+        [Obsolete("The method has been deprecated. It is not used by the system. https://go.microsoft.com/fwlink/?linkid=14202")]
         protected virtual void Escape()
         {
             // this method if suppressed by the derived class
@@ -5438,7 +5319,7 @@ namespace System
         //  UTF-8 sequences (e.g. %C4%D2 == 'Latin capital Ligature Ij')
         //
         /// <internalonly/>
-        [Obsolete("The method has been deprecated. Please use GetComponents() or static UnescapeDataString() to unescape a Uri component or a string. http://go.microsoft.com/fwlink/?linkid=14202")]
+        [Obsolete("The method has been deprecated. Please use GetComponents() or static UnescapeDataString() to unescape a Uri component or a string. https://go.microsoft.com/fwlink/?linkid=14202")]
         protected virtual string Unescape(string path)
         {
             // This method is dangerous since it gives path unescaping control
@@ -5452,23 +5333,10 @@ namespace System
             return new string(dest, 0, count);
         }
 
-        [Obsolete("The method has been deprecated. Please use GetComponents() or static EscapeUriString() to escape a Uri component or a string. http://go.microsoft.com/fwlink/?linkid=14202")]
-        protected static string EscapeString(string str)
-        {
-            // This method just does not make sense as protected
-            // It should go public static asap
-
-            if (str == null)
-            {
-                return string.Empty;
-            }
-
-            int destStart = 0;
-            char[] dest = UriHelper.EscapeString(str, 0, str.Length, null, ref destStart, true, '?', '#', '%');
-            if (dest == null)
-                return str;
-            return new string(dest, 0, destStart);
-        }
+        [Obsolete("The method has been deprecated. Please use GetComponents() or static EscapeUriString() to escape a Uri component or a string. https://go.microsoft.com/fwlink/?linkid=14202")]
+        protected static string EscapeString(string? str) =>
+            str is null ? string.Empty :
+            UriHelper.EscapeString(str, checkExistingEscaped: true, UriHelper.UnreservedReservedTable, '?', '#');
 
         //
         // CheckSecurity
@@ -5476,7 +5344,7 @@ namespace System
         //  Check for any invalid or problematic character sequences
         //
         /// <internalonly/>
-        [Obsolete("The method has been deprecated. It is not used by the system. http://go.microsoft.com/fwlink/?linkid=14202")]
+        [Obsolete("The method has been deprecated. It is not used by the system. https://go.microsoft.com/fwlink/?linkid=14202")]
         protected virtual void CheckSecurity()
         {
             // This method just does not make sense
@@ -5492,7 +5360,7 @@ namespace System
         //  true if <character> is reserved else false
         //
         /// <internalonly/>
-        [Obsolete("The method has been deprecated. It is not used by the system. http://go.microsoft.com/fwlink/?linkid=14202")]
+        [Obsolete("The method has been deprecated. It is not used by the system. https://go.microsoft.com/fwlink/?linkid=14202")]
         protected virtual bool IsReservedCharacter(char character)
         {
             // This method just does not make sense as protected virtual
@@ -5520,7 +5388,7 @@ namespace System
         //  true if <character> should be escaped else false
         //
         /// <internalonly/>
-        [Obsolete("The method has been deprecated. It is not used by the system. http://go.microsoft.com/fwlink/?linkid=14202")]
+        [Obsolete("The method has been deprecated. It is not used by the system. https://go.microsoft.com/fwlink/?linkid=14202")]
         protected static bool IsExcludedCharacter(char character)
         {
             // This method just does not make sense as protected
@@ -5563,7 +5431,7 @@ namespace System
         //  true if <character> would be a treated as a bad file system character
         //  else false
         //
-        [Obsolete("The method has been deprecated. It is not used by the system. http://go.microsoft.com/fwlink/?linkid=14202")]
+        [Obsolete("The method has been deprecated. It is not used by the system. https://go.microsoft.com/fwlink/?linkid=14202")]
         protected virtual bool IsBadFileSystemCharacter(char character)
         {
             // This method just does not make sense as protected virtual

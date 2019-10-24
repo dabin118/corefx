@@ -9,6 +9,7 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Runtime.Serialization;
 using System.Text;
+using System.Diagnostics.CodeAnalysis;
 
 namespace System.Net
 {
@@ -32,9 +33,9 @@ namespace System.Net
         private const int ApproxAveHeaderLineSize = 30;
         private const int ApproxHighAvgNumHeaders = 16;
         private WebHeaderCollectionType _type;
-        private NameValueCollection _innerCollection;
+        private NameValueCollection? _innerCollection;
 
-        private static HeaderInfoTable _headerInfo;
+        private static HeaderInfoTable? _headerInfo;
 
         protected WebHeaderCollection(SerializationInfo serializationInfo, StreamingContext streamingContext)
         {
@@ -91,7 +92,7 @@ namespace System.Net
             }
         }
 
-        public string this[HttpRequestHeader header]
+        public string? this[HttpRequestHeader header]
         {
             get
             {
@@ -111,7 +112,7 @@ namespace System.Net
             }
         }
 
-        public string this[HttpResponseHeader header]
+        public string? this[HttpResponseHeader header]
         {
             get
             {
@@ -131,7 +132,9 @@ namespace System.Net
             }
         }
 
-        public override void Set(string name, string value)
+#pragma warning disable CS8610 // Nullability of parameter 'name' doesn't match overridden member
+        public override void Set(string name, string? value)
+#pragma warning restore CS8610
         {
             if (string.IsNullOrEmpty(name))
             {
@@ -146,14 +149,14 @@ namespace System.Net
             {
                 if (value != null && value.Length > ushort.MaxValue)
                 {
-                    throw new ArgumentOutOfRangeException(nameof(value), value, string.Format(CultureInfo.InvariantCulture,SR.net_headers_toolong, ushort.MaxValue));
+                    throw new ArgumentOutOfRangeException(nameof(value), value, SR.Format(CultureInfo.InvariantCulture, SR.net_headers_toolong, ushort.MaxValue));
                 }
             }
             InvalidateCachedArrays();
             InnerCollection.Set(name, value);
         }
 
-        public void Set(HttpRequestHeader header, string value)
+        public void Set(HttpRequestHeader header, string? value)
         {
             if (!AllowHttpRequestHeader)
             {
@@ -162,7 +165,7 @@ namespace System.Net
             this.Set(header.GetName(), value);
         }
 
-        public void Set(HttpResponseHeader header, string value)
+        public void Set(HttpResponseHeader header, string? value)
         {
             if (!AllowHttpResponseHeader)
             {
@@ -172,7 +175,7 @@ namespace System.Net
             {
                 if (value != null && value.Length > ushort.MaxValue)
                 {
-                    throw new ArgumentOutOfRangeException(nameof(value), value, string.Format(CultureInfo.InvariantCulture, SR.net_headers_toolong, ushort.MaxValue));
+                    throw new ArgumentOutOfRangeException(nameof(value), value, SR.Format(CultureInfo.InvariantCulture, SR.net_headers_toolong, ushort.MaxValue));
                 }
             }
             this.Set(header.GetName(), value);
@@ -206,11 +209,11 @@ namespace System.Net
             this.Remove(header.GetName());
         }
 
-        public override void OnDeserialization(object sender)
+        public override void OnDeserialization(object? sender)
         {
-            // Nop in desktop 
+            // Nop in desktop
         }
-             
+
         public static bool IsRestricted(string headerName)
         {
             return IsRestricted(headerName, false);
@@ -218,23 +221,87 @@ namespace System.Net
 
         public static bool IsRestricted(string headerName, bool response)
         {
-            headerName =  HttpValidationHelpers.CheckBadHeaderNameChars(headerName);
+            headerName = HttpValidationHelpers.CheckBadHeaderNameChars(headerName);
             return response ? HeaderInfo[headerName].IsResponseRestricted : HeaderInfo[headerName].IsRequestRestricted;
         }
 
-        public override string[] GetValues(int index)
+        public override string[]? GetValues(int index)
         {
             return InnerCollection.GetValues(index);
         }
 
-        public override string[] GetValues(string header)
+        // GetValues
+        // Routine Description:
+        //     This method takes a header name and returns a string array representing
+        //     the individual values for that headers. For example, if the headers
+        //     contained the line Accept: text/plain, text/html then
+        //     GetValues("Accept") would return an array of two strings: "text/plain"
+        //     and "text/html".
+        // Arguments:
+        //     header      - Name of the header.
+        // Return Value:
+        //     string[] - array of parsed string objects
+#pragma warning disable CS8610 // Nullability of parameter 'header' doesn't match overridden member
+        public override string[]? GetValues(string header)
+#pragma warning restore CS8610
         {
-            return InnerCollection.GetValues(header);
+            // First get the information about the header and the values for
+            // the header.
+            HeaderInfo info = HeaderInfo[header!];
+            string[]? values = InnerCollection.GetValues(header);
+            // If we have no information about the header or it doesn't allow
+            // multiple values, just return the values.
+            if (info == null || values == null || !info.AllowMultiValues)
+            {
+                return values;
+            }
+            // Here we have a multi value header. We need to go through
+            // each entry in the multi values array, and if an entry itself
+            // has multiple values we'll need to combine those in.
+            //
+            // We do some optimazation here, where we try not to copy the
+            // values unless there really is one that have multiple values.
+            string[] tempValues;
+            List<string>? valueList = null;
+            for (int i = 0; i < values.Length; i++)
+            {
+                // Parse this value header.
+                tempValues = info.Parser(values[i]);
+                // If we don't have an array list yet, see if this
+                // value has multiple values.
+                if (valueList == null)
+                {
+                    // If it's not empty, replace valueList.
+                    // Because for invalid WebRequest headers, we will return empty
+                    // valueList instead of the default NameValueCollection.GetValues().
+                    if (tempValues != null)
+                    {
+                        // It does, so we need to create an array list that
+                        // represents the Values, then trim out this one and
+                        // the ones after it that haven't been parsed yet.
+                        valueList = new List<string>(values);
+                        valueList.RemoveRange(i, values.Length - i);
+                        valueList.AddRange(tempValues);
+                    }
+                }
+                else
+                {
+                    // We already have an List, so just add the values.
+                    valueList.AddRange(tempValues);
+                }
+            }
+            // See if we have an List. If we don't, just return the values.
+            // Otherwise convert the List to a string array and return that.
+            if (valueList != null)
+            {
+                return valueList.ToArray();
+            }
+            return values;
         }
 
         public override string GetKey(int index)
         {
-            return InnerCollection.GetKey(index);
+            return InnerCollection.GetKey(index)!;
         }
 
         public override void Clear()
@@ -246,7 +313,7 @@ namespace System.Net
             }
         }
 
-        public override string Get(int index)
+        public override string? Get(int index)
         {
             if (_innerCollection == null)
             {
@@ -255,7 +322,7 @@ namespace System.Net
             return _innerCollection.Get(index);
         }
 
-        public override string Get(string name)
+        public override string? Get(string? name)
         {
             if (_innerCollection == null)
             {
@@ -264,7 +331,7 @@ namespace System.Net
             return _innerCollection.Get(name);
         }
 
-        public void Add(HttpRequestHeader header, string value)
+        public void Add(HttpRequestHeader header, string? value)
         {
             if (!AllowHttpRequestHeader)
             {
@@ -273,7 +340,7 @@ namespace System.Net
             this.Add(header.GetName(), value);
         }
 
-        public void Add(HttpResponseHeader header, string value)
+        public void Add(HttpResponseHeader header, string? value)
         {
             if (!AllowHttpResponseHeader)
             {
@@ -283,7 +350,7 @@ namespace System.Net
             {
                 if (value != null && value.Length > ushort.MaxValue)
                 {
-                    throw new ArgumentOutOfRangeException(nameof(value), value, string.Format(CultureInfo.InvariantCulture, SR.net_headers_toolong, ushort.MaxValue));
+                    throw new ArgumentOutOfRangeException(nameof(value), value, SR.Format(CultureInfo.InvariantCulture, SR.net_headers_toolong, ushort.MaxValue));
                 }
             }
             this.Add(header.GetName(), value);
@@ -311,14 +378,16 @@ namespace System.Net
             {
                 if (value != null && value.Length > ushort.MaxValue)
                 {
-                    throw new ArgumentOutOfRangeException(nameof(value), value, string.Format(CultureInfo.InvariantCulture, SR.net_headers_toolong, ushort.MaxValue));
+                    throw new ArgumentOutOfRangeException(nameof(value), value, SR.Format(CultureInfo.InvariantCulture, SR.net_headers_toolong, ushort.MaxValue));
                 }
             }
             InvalidateCachedArrays();
             InnerCollection.Add(name, value);
         }
 
-        public override void Add(string name, string value)
+#pragma warning disable CS8610 // Nullability of parameter 'name' doesn't match overridden member
+        public override void Add(string name, string? value)
+#pragma warning restore CS8610
         {
             if (name == null)
             {
@@ -337,14 +406,14 @@ namespace System.Net
             {
                 if (value != null && value.Length > ushort.MaxValue)
                 {
-                    throw new ArgumentOutOfRangeException(nameof(value), value,string.Format(CultureInfo.InvariantCulture, SR.net_headers_toolong, ushort.MaxValue));
+                    throw new ArgumentOutOfRangeException(nameof(value), value, SR.Format(CultureInfo.InvariantCulture, SR.net_headers_toolong, ushort.MaxValue));
                 }
             }
             InvalidateCachedArrays();
             InnerCollection.Add(name, value);
         }
 
-        protected void AddWithoutValidate(string headerName, string headerValue)
+        protected void AddWithoutValidate(string headerName, string? headerValue)
         {
             headerName = HttpValidationHelpers.CheckBadHeaderNameChars(headerName);
             headerValue = HttpValidationHelpers.CheckBadHeaderValueChars(headerValue);
@@ -353,7 +422,7 @@ namespace System.Net
             {
                 if (headerValue != null && headerValue.Length > ushort.MaxValue)
                 {
-                    throw new ArgumentOutOfRangeException(nameof(headerValue), headerValue, string.Format(CultureInfo.InvariantCulture, SR.net_headers_toolong, ushort.MaxValue));
+                    throw new ArgumentOutOfRangeException(nameof(headerValue), headerValue, SR.Format(CultureInfo.InvariantCulture, SR.net_headers_toolong, ushort.MaxValue));
                 }
             }
             InvalidateCachedArrays();
@@ -366,14 +435,14 @@ namespace System.Net
             {
                 if (HeaderInfo[headerName].IsRequestRestricted)
                 {
-                    throw new ArgumentException(string.Format(SR.net_headerrestrict, headerName), nameof(headerName));
+                    throw new ArgumentException(SR.Format(SR.net_headerrestrict, headerName), nameof(headerName));
                 }
             }
             else if (_type == WebHeaderCollectionType.HttpListenerResponse)
             {
                 if (HeaderInfo[headerName].IsResponseRestricted)
                 {
-                    throw new ArgumentException(string.Format(SR.net_headerrestrict, headerName), nameof(headerName));
+                    throw new ArgumentException(SR.Format(SR.net_headerrestrict, headerName), nameof(headerName));
                 }
             }
         }
@@ -391,7 +460,9 @@ namespace System.Net
         /// <devdoc>
         ///    <para>Removes the specified header.</para>
         /// </devdoc>
+#pragma warning disable CS8610 // Nullability of parameter 'name' doesn't match overridden member
         public override void Remove(string name)
+#pragma warning restore CS8610
         {
             if (string.IsNullOrEmpty(name))
             {
@@ -432,9 +503,9 @@ namespace System.Net
 
             var sb = new StringBuilder(ApproxAveHeaderLineSize * Count);
 
-            foreach (string key in InnerCollection)
+            foreach (string? key in InnerCollection)
             {
-                string val = InnerCollection.Get(key);
+                string? val = InnerCollection.Get(key);
                 sb.Append(key)
                     .Append(": ")
                     .Append(val)
@@ -476,7 +547,7 @@ namespace System.Net
         {
             get
             {
-                return InnerCollection.AllKeys;
+                return InnerCollection.AllKeys!;
             }
         }
 

@@ -33,7 +33,7 @@ namespace System.Drawing.Imaging
         /// </summary>
         Alpha = 0x00040000,
         /// <summary>
-        /// Specifies that pixel format contains pre-multipled alpha values.
+        /// Specifies that pixel format contains pre-multiplied alpha values.
         /// </summary>
         PAlpha = 0x00080000, // What's this?
         Extended = 0x00100000,
@@ -48,7 +48,7 @@ namespace System.Drawing.Imaging
         DontCare = 0,
         // makes it into devtools, we can change this.
         /// <summary>
-        /// Specifies thatpixel format is 1 bit per pixel indexed color. The color table therefore has two colors in it.
+        /// Specifies that pixel format is 1 bit per pixel indexed color. The color table therefore has two colors in it.
         /// </summary>
         Format1bppIndexed = 1 | (1 << 8) | (int)Indexed | (int)Gdi,
         /// <summary>
@@ -62,7 +62,7 @@ namespace System.Drawing.Imaging
         Format16bppGrayScale = 4 | (16 << 8) | (int)Extended,
         /// <summary>
         /// Specifies that pixel format is 16 bits per pixel. The color information specifies 65536 shades of gray.
-        /// </summary>                              
+        /// </summary>
         Format16bppRgb555 = 5 | (16 << 8) | (int)Gdi,
         /// <summary>
         /// Specifies that pixel format is 16 bits per pixel. The color information specifies 32768 shades of color of
@@ -118,4 +118,3 @@ namespace System.Drawing.Imaging
         Max = 15,
     }
 }
-

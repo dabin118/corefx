@@ -18,7 +18,6 @@ namespace System.DirectoryServices.AccountManagement
 
         public Principal Current
         {
-            [System.Security.SecuritySafeCritical]
             get
             {
                 CheckDisposed();
@@ -47,7 +46,6 @@ namespace System.DirectoryServices.AccountManagement
 
         object IEnumerator.Current
         {
-            [System.Security.SecurityCritical]
             get
             {
                 return Current;
@@ -58,7 +56,6 @@ namespace System.DirectoryServices.AccountManagement
         // Public methods
         //
 
-        [System.Security.SecuritySafeCritical]
         public bool MoveNext()
         {
             GlobalDebug.WriteLineIf(GlobalDebug.Info, "PrincipalCollectionEnumerator", "Entering MoveNext");
@@ -120,7 +117,7 @@ namespace System.DirectoryServices.AccountManagement
                             if (_removedValuesCompleted.Contains(principal) || _removedValuesPending.Contains(principal))
                             {
                                 // It's a value that's been removed (either a pending remove that hasn't completed, or a remove
-                                // that completed _after_ we loaded the ResultSet from the store).    
+                                // that completed _after_ we loaded the ResultSet from the store).
                                 GlobalDebug.WriteLineIf(GlobalDebug.Info, "PrincipalCollectionEnumerator", "MoveNext: ResultSet mode, found remove, skipping");
 
                                 needToRepeat = true;
@@ -130,7 +127,7 @@ namespace System.DirectoryServices.AccountManagement
                             {
                                 // insertedValuesCompleted: We must have gotten the ResultSet after the inserted committed.
                                 // We don't want to return
-                                // the principal twice, so we'll skip it here and later return it in 
+                                // the principal twice, so we'll skip it here and later return it in
                                 // the CurrentEnumeratorMode.InsertedValuesCompleted mode.
                                 //
                                 // insertedValuesPending: The principal must have been originally in the ResultSet, but then
@@ -203,17 +200,15 @@ namespace System.DirectoryServices.AccountManagement
                 }
             }
 
-            Debug.Fail(String.Format(CultureInfo.CurrentCulture, "PrincipalCollectionEnumerator.MoveNext: fell off end of function, mode = {0}", _currentMode.ToString()));
+            Debug.Fail($"PrincipalCollectionEnumerator.MoveNext: fell off end of function, mode = {_currentMode}");
             return false;
         }
 
-        [System.Security.SecurityCritical]
         bool IEnumerator.MoveNext()
         {
             return MoveNext();
         }
 
-        [System.Security.SecurityCritical]
         public void Reset()
         {
             GlobalDebug.WriteLineIf(GlobalDebug.Info, "PrincipalCollectionEnumerator", "Reset");
@@ -227,7 +222,6 @@ namespace System.DirectoryServices.AccountManagement
             _currentMode = CurrentEnumeratorMode.None;
         }
 
-        [System.Security.SecurityCritical]
         void IEnumerator.Reset()
         {
             Reset();
@@ -277,11 +271,11 @@ namespace System.DirectoryServices.AccountManagement
         //   must be synchronized, since multiple enumerators could be iterating over us at once.
         //   Synchronize by locking on resultSet.
 
-        private ResultSet _resultSet;
-        private List<Principal> _insertedValuesPending;
-        private List<Principal> _insertedValuesCompleted;
-        private List<Principal> _removedValuesPending;
-        private List<Principal> _removedValuesCompleted;
+        private readonly ResultSet _resultSet;
+        private readonly List<Principal> _insertedValuesPending;
+        private readonly List<Principal> _insertedValuesCompleted;
+        private readonly List<Principal> _removedValuesPending;
+        private readonly List<Principal> _removedValuesCompleted;
 
         private bool _endReached = false;    // true if there are no results left to iterate over
 
@@ -310,11 +304,10 @@ namespace System.DirectoryServices.AccountManagement
         }
 
         // When this enumerator was constructed, to detect changes made to the PrincipalCollection after it was constructed
-        private DateTime _creationTime = DateTime.UtcNow;
+        private readonly DateTime _creationTime = DateTime.UtcNow;
 
-        private PrincipalCollection _memberCollection = null;
+        private readonly PrincipalCollection _memberCollection = null;
 
-        [System.Security.SecurityCritical]
         private void CheckChanged()
         {
             // Make sure the app hasn't changed our underlying list
@@ -332,4 +325,3 @@ namespace System.DirectoryServices.AccountManagement
         }
     }
 }
-

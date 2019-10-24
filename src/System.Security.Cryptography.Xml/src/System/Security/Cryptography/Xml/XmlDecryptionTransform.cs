@@ -1,26 +1,20 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using System;
 using System.Collections;
 using System.IO;
-using System.Runtime.InteropServices;
-using System.Security;
-using System.Text;
 using System.Xml;
-using System.Xml.XPath;
-using System.Xml.Xsl;
 
 namespace System.Security.Cryptography.Xml
 {
-    // XML Decryption Transform is used to specify the order of XML Digital Signature 
+    // XML Decryption Transform is used to specify the order of XML Digital Signature
     // and XML Encryption when performed on the same document.
 
     public class XmlDecryptionTransform : Transform
     {
-        private Type[] _inputTypes = { typeof(Stream), typeof(XmlDocument) };
-        private Type[] _outputTypes = { typeof(XmlDocument) };
+        private readonly Type[] _inputTypes = { typeof(Stream), typeof(XmlDocument) };
+        private readonly Type[] _outputTypes = { typeof(XmlDocument) };
         private XmlNodeList _encryptedDataList = null;
         private ArrayList _arrayListUri = null; // this ArrayList object represents the Uri's to be excluded
         private EncryptedXml _exml = null; // defines the XML encryption processing rules
@@ -98,14 +92,25 @@ namespace System.Security.Cryptography.Xml
             foreach (XmlNode node in nodeList)
             {
                 XmlElement elem = node as XmlElement;
-                if (elem != null && elem.LocalName == "Except" && elem.NamespaceURI == XmlDecryptionTransformNamespaceUrl)
+                if (elem != null)
                 {
-                    // the Uri is required
-                    string uri = Utils.GetAttribute(elem, "URI", XmlDecryptionTransformNamespaceUrl);
-                    if (uri == null || uri.Length == 0 || uri[0] != '#')
-                        throw new CryptographicException(SR.Cryptography_Xml_UriRequired);
-                    string idref = Utils.ExtractIdFromLocalUri(uri);
-                    ExceptUris.Add(idref);
+                    if (elem.LocalName == "Except" && elem.NamespaceURI == XmlDecryptionTransformNamespaceUrl)
+                    {
+                        // the Uri is required
+                        string uri = Utils.GetAttribute(elem, "URI", XmlDecryptionTransformNamespaceUrl);
+                        if (uri == null || uri.Length == 0 || uri[0] != '#')
+                            throw new CryptographicException(SR.Cryptography_Xml_UriRequired);
+                        if (!Utils.VerifyAttributes(elem, "URI"))
+                        {
+                            throw new CryptographicException(SR.Cryptography_Xml_UnknownTransform);
+                        }
+                        string idref = Utils.ExtractIdFromLocalUri(uri);
+                        ExceptUris.Add(idref);
+                    }
+                    else
+                    {
+                        throw new CryptographicException(SR.Cryptography_Xml_UnknownTransform);
+                    }
                 }
             }
         }
@@ -171,7 +176,7 @@ namespace System.Security.Cryptography.Xml
             if (parent.NodeType == XmlNodeType.Document)
             {
                 // We're replacing the root element.  In order to correctly reflect the semantics of the
-                // decryption transform, we need to replace the entire document with the decrypted data. 
+                // decryption transform, we need to replace the entire document with the decrypted data.
                 // However, EncryptedXml.ReplaceData will preserve other top-level elements such as the XML
                 // entity declaration and top level comments.  So, in this case we must do the replacement
                 // ourselves.

@@ -13,10 +13,10 @@
 // distribute, sublicense, and/or sell copies of the Software, and to
 // permit persons to whom the Software is furnished to do so, subject to
 // the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be
 // included in all copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
 // EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
 // MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
@@ -34,7 +34,7 @@ using System.IO;
 
 namespace System.Data.Tests.SqlTypes
 {
-    public class SqlDecimalTest : IDisposable
+    public class SqlDecimalTest
     {
         private CultureInfo _originalCulture;
         private SqlDecimal _test1;
@@ -45,18 +45,11 @@ namespace System.Data.Tests.SqlTypes
 
         public SqlDecimalTest()
         {
-            _originalCulture = CultureInfo.CurrentCulture; ;
-            CultureInfo.CurrentCulture = new CultureInfo("en-US");
             _test1 = new SqlDecimal(6464.6464m);
             _test2 = new SqlDecimal(10000.00m);
             _test3 = new SqlDecimal(10000.00m);
             _test4 = new SqlDecimal(-6m);
             _test5 = new SqlDecimal(decimal.MaxValue);
-        }
-
-        public void Dispose()
-        {
-            CultureInfo.CurrentCulture = _originalCulture;
         }
 
         // Test constructor
@@ -201,16 +194,16 @@ namespace System.Data.Tests.SqlTypes
 
             // Divide() => Notworking
             /*
-			Assert.Equal ((SqlDecimal)(-1077.441066m), SqlDecimal.Divide (Test1, Test4));
-			Assert.Equal (1.54687501546m, SqlDecimal.Divide (Test2, Test1).Value);
+            Assert.Equal ((SqlDecimal)(-1077.441066m), SqlDecimal.Divide (Test1, Test4));
+            Assert.Equal (1.54687501546m, SqlDecimal.Divide (Test2, Test1).Value);
 
-			try {
-				SqlDecimal test = SqlDecimal.Divide(Test1, new SqlDecimal(0)).Value;
+            try {
+                SqlDecimal test = SqlDecimal.Divide(Test1, new SqlDecimal(0)).Value;
 Assert.False(true);
-			} catch (DivideByZeroException e) {
-				Assert.Equal (typeof (DivideByZeroException), e.GetType ());
-			}
-			*/
+            } catch (DivideByZeroException e) {
+                Assert.Equal (typeof (DivideByZeroException), e.GetType ());
+            }
+            */
 
             Assert.Equal(6464m, SqlDecimal.Floor(_test1));
 
@@ -260,10 +253,10 @@ Assert.False(true);
         [Fact]
         public void AdjustScale()
         {
-            Assert.Equal("6464.646400", SqlDecimal.AdjustScale(_test1, 2, false).Value.ToString());
-            Assert.Equal("6464.65", SqlDecimal.AdjustScale(_test1, -2, true).Value.ToString());
-            Assert.Equal("6464.64", SqlDecimal.AdjustScale(_test1, -2, false).Value.ToString());
-            Assert.Equal("10000.000000000000", SqlDecimal.AdjustScale(_test2, 10, false).Value.ToString());
+            Assert.Equal(6464.646400m.ToString(), SqlDecimal.AdjustScale(_test1, 2, false).Value.ToString());
+            Assert.Equal(6464.65.ToString(), SqlDecimal.AdjustScale(_test1, -2, true).Value.ToString());
+            Assert.Equal(6464.64.ToString(), SqlDecimal.AdjustScale(_test1, -2, false).Value.ToString());
+            Assert.Equal(10000.000000000000m.ToString(), SqlDecimal.AdjustScale(_test2, 10, false).Value.ToString());
             Assert.Equal("79228162514264337593543950335.00", SqlDecimal.AdjustScale(_test5, 2, false).ToString());
             try
             {
@@ -336,13 +329,13 @@ Assert.False(true);
         }
 
         /* Don't do such environment-dependent test. It will never succeed under Portable.NET and MS.NET
-		[Fact]
-		public void GetHashCodeTest()
-		{
-			// FIXME: Better way to test HashCode
-			Assert.Equal (-1281249885, Test1.GetHashCode ());
-		}
-		*/
+        [Fact]
+        public void GetHashCodeTest()
+        {
+            // FIXME: Better way to test HashCode
+            Assert.Equal (-1281249885, Test1.GetHashCode ());
+        }
+        */
 
         [Fact]
         public void GetTypeTest()
@@ -426,12 +419,12 @@ Assert.False(true);
                 Assert.Equal(typeof(OverflowException), e.GetType());
             }
 
-            // ToSqlInt32 () 
-            // LAMESPEC: 6464.6464 --> 64646464 ??? with windows
-            // MS.NET seems to return the first 32 bit integer (i.e. 
+            // ToSqlInt32 ()
+            // 6464.6464 --> 64646464 ??? with windows
+            // MS.NET seems to return the first 32 bit integer (i.e.
             // Data [0]) but we don't have to follow such stupidity.
-            //			Assert.Equal ((int)64646464, Test1.ToSqlInt32 ().Value);
-            //			Assert.Equal ((int)1212, new SqlDecimal(12.12m).ToSqlInt32 ().Value);
+            //            Assert.Equal ((int)64646464, Test1.ToSqlInt32 ().Value);
+            //            Assert.Equal ((int)1212, new SqlDecimal(12.12m).ToSqlInt32 ().Value);
 
             try
             {

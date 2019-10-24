@@ -7,7 +7,6 @@ using Microsoft.Win32.SafeHandles;
 
 namespace System.DirectoryServices.ActiveDirectory
 {
-    [SuppressUnmanagedCodeSecurityAttribute()]
     internal sealed class PolicySafeHandle : SafeHandleZeroOrMinusOneIsInvalid
     {
         internal PolicySafeHandle(IntPtr value) : base(true)
@@ -15,10 +14,9 @@ namespace System.DirectoryServices.ActiveDirectory
             SetHandle(value);
         }
 
-        override protected bool ReleaseHandle() => UnsafeNativeMethods.LsaClose(handle) == 0;
+        protected override bool ReleaseHandle() => UnsafeNativeMethods.LsaClose(handle) == 0;
     }
 
-    [SuppressUnmanagedCodeSecurityAttribute()]
     internal sealed class LsaLogonProcessSafeHandle : SafeHandleZeroOrMinusOneIsInvalid
     {
         private LsaLogonProcessSafeHandle() : base(true) { }
@@ -28,10 +26,9 @@ namespace System.DirectoryServices.ActiveDirectory
             SetHandle(value);
         }
 
-        override protected bool ReleaseHandle() => NativeMethods.LsaDeregisterLogonProcess(handle) == 0;
+        protected override bool ReleaseHandle() => NativeMethods.LsaDeregisterLogonProcess(handle) == 0;
     }
 
-    [SuppressUnmanagedCodeSecurityAttribute()]
     internal sealed class LoadLibrarySafeHandle : SafeHandleZeroOrMinusOneIsInvalid
     {
         private LoadLibrarySafeHandle() : base(true) { }
@@ -41,6 +38,6 @@ namespace System.DirectoryServices.ActiveDirectory
             SetHandle(value);
         }
 
-        override protected bool ReleaseHandle() => UnsafeNativeMethods.FreeLibrary(handle) != 0;
+        protected override bool ReleaseHandle() => UnsafeNativeMethods.FreeLibrary(handle) != 0;
     }
 }

@@ -10,27 +10,22 @@ using System.Reflection.Emit;
 using System.Text.RegularExpressions;
 using System.Xml.Extensions;
 
-#if !FEATURE_SERIALIZATION_UAPAOT
-#if XMLSERIALIZERGENERATOR
-namespace Microsoft.XmlSerializer.Generator
-#else
 namespace System.Xml.Serialization
-#endif
 {
     internal class SourceInfo
     {
         //a[ia]
         //((global::System.Xml.Serialization.XmlSerializerNamespaces)p[0])
-        private static Regex s_regex = new Regex("([(][(](?<t>[^)]+)[)])?(?<a>[^[]+)[[](?<ia>.+)[]][)]?");
+        private static readonly Regex s_regex = new Regex("([(][(](?<t>[^)]+)[)])?(?<a>[^[]+)[[](?<ia>.+)[]][)]?");
         //((global::Microsoft.CFx.Test.Common.TypeLibrary.IXSType_9)o), @"IXSType_9", @"", true, true);
-        private static Regex s_regex2 = new Regex("[(][(](?<cast>[^)]+)[)](?<arg>[^)]+)[)]");
+        private static readonly Regex s_regex2 = new Regex("[(][(](?<cast>[^)]+)[)](?<arg>[^)]+)[)]");
 
         private static readonly Lazy<MethodInfo> s_iListGetItemMethod = new Lazy<MethodInfo>(
             () =>
             {
                 return typeof(IList).GetMethod(
                     "get_Item",
-                    new Type[] { typeof(Int32) }
+                    new Type[] { typeof(int) }
                 );
             });
 
@@ -105,7 +100,7 @@ namespace System.Xml.Serialization
                     MethodInfo get_Item = varType.GetMethod(
                         "get_Item",
                         CodeGenerator.InstanceBindingFlags,
-                        new Type[] { typeof(Int32) }
+                        new Type[] { typeof(int) }
                         );
 
                     if (get_Item == null && typeof(IList).IsAssignableFrom(varType))
@@ -222,7 +217,7 @@ namespace System.Xml.Serialization
                 MethodInfo Nullable_get_Value = nullableType.GetMethod(
                     "get_Value",
                     CodeGenerator.InstanceBindingFlags,
-                    CodeGenerator.EmptyTypeArray
+                    Array.Empty<Type>()
                     );
                 ILG.Call(Nullable_get_Value);
                 if (targetType != null)
@@ -232,7 +227,7 @@ namespace System.Xml.Serialization
             }
         }
 
-        public static implicit operator string (SourceInfo source)
+        public static implicit operator string(SourceInfo source)
         {
             return source.Source;
         }
@@ -267,4 +262,3 @@ namespace System.Xml.Serialization
         }
     }
 }
-#endif

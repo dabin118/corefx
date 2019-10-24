@@ -14,9 +14,6 @@ using System.Runtime.InteropServices;
 
 namespace System.DirectoryServices.AccountManagement
 {
-#pragma warning disable 618    // Have not migrated to v4 transparency yet
-    [System.Security.SecurityCritical(System.Security.SecurityCriticalScope.Everything)]
-#pragma warning restore 618
     internal class SAMMembersSet : BookmarkableResultSet
     {
         internal SAMMembersSet(string groupPath, UnsafeNativeMethods.IADsGroup group, bool recursive, SAMStoreCtx storeCtx, DirectoryEntry ctxBase)
@@ -43,7 +40,7 @@ namespace System.DirectoryServices.AccountManagement
 
         // Return the principal we're positioned at as a Principal object.
         // Need to use our StoreCtx's GetAsPrincipal to convert the native object to a Principal
-        override internal object CurrentAsPrincipal
+        internal override object CurrentAsPrincipal
         {
             get
             {
@@ -78,7 +75,7 @@ namespace System.DirectoryServices.AccountManagement
         // Advance the enumerator to the next principal in the result set, pulling in additional pages
         // of results (or ranges of attribute values) as needed.
         // Returns true if successful, false if no more results to return.
-        override internal bool MoveNext()
+        internal override bool MoveNext()
         {
             GlobalDebug.WriteLineIf(GlobalDebug.Info, "SAMMembersSet", "Entering MoveNext");
 
@@ -432,12 +429,10 @@ namespace System.DirectoryServices.AccountManagement
                                         err);
 
                 throw new PrincipalOperationException(
-                            String.Format(CultureInfo.CurrentCulture,
-                                          SR.SAMStoreCtxErrorEnumeratingGroup,
-                                          err));
+                            SR.Format(SR.SAMStoreCtxErrorEnumeratingGroup, err));
             }
 
-            if (String.Compare(_storeCtx.MachineFlatName, domainName, StringComparison.OrdinalIgnoreCase) == 0)
+            if (string.Equals(_storeCtx.MachineFlatName, domainName, StringComparison.OrdinalIgnoreCase))
                 isLocal = true;
 
             GlobalDebug.WriteLineIf(GlobalDebug.Info,
@@ -454,7 +449,7 @@ namespace System.DirectoryServices.AccountManagement
         // operation, e.g., if doing a paged search, may need to re-retrieve the first page of results.
         // As a special case, if the ResultSet is already at the very beginning, this is guaranteed to be
         // a no-op.
-        override internal void Reset()
+        internal override void Reset()
         {
             GlobalDebug.WriteLineIf(GlobalDebug.Info, "SAMMembersSet", "Reset");
 
@@ -486,7 +481,7 @@ namespace System.DirectoryServices.AccountManagement
             }
         }
 
-        override internal ResultSetBookmark BookmarkAndReset()
+        internal override ResultSetBookmark BookmarkAndReset()
         {
             GlobalDebug.WriteLineIf(GlobalDebug.Info, "SAMMembersSet", "Bookmarking");
 
@@ -526,7 +521,7 @@ namespace System.DirectoryServices.AccountManagement
             return bookmark;
         }
 
-        override internal void RestoreBookmark(ResultSetBookmark bookmark)
+        internal override void RestoreBookmark(ResultSetBookmark bookmark)
         {
             GlobalDebug.WriteLineIf(GlobalDebug.Info, "SAMMembersSet", "Restoring from bookmark");
 
@@ -550,7 +545,7 @@ namespace System.DirectoryServices.AccountManagement
             _atBeginning = samBookmark.atBeginning;
         }
 
-        override public void Dispose()
+        public override void Dispose()
         {
             try
             {
@@ -577,12 +572,12 @@ namespace System.DirectoryServices.AccountManagement
         // Private fields
         //
 
-        private bool _recursive;
+        private readonly bool _recursive;
 
         private bool _disposed = false;
 
-        private SAMStoreCtx _storeCtx;
-        private DirectoryEntry _ctxBase;
+        private readonly SAMStoreCtx _storeCtx;
+        private readonly DirectoryEntry _ctxBase;
 
         private bool _atBeginning = true;
 
@@ -597,7 +592,7 @@ namespace System.DirectoryServices.AccountManagement
         private Principal _currentFakePrincipal = null;  // current member of the group (if enumerating local group and found a fake pricipal)
 
         private UnsafeNativeMethods.IADsGroup _group;            // the group whose membership we're currently enumerating over
-        private UnsafeNativeMethods.IADsGroup _originalGroup;    // the group whose membership we started off with (before recursing)
+        private readonly UnsafeNativeMethods.IADsGroup _originalGroup;    // the group whose membership we started off with (before recursing)
 
         private IEnumerator _membersEnumerator;         // the current group's membership enumerator
 

@@ -1,6 +1,6 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
-
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information
 
 using System.Security.Principal;
 using Xunit;
@@ -12,11 +12,10 @@ namespace System.Security.AccessControl
         [Fact]
         public void ObjectInitialization_IdentityReference_FileSystemRights_AuditFlags_Success()
         {
-            var identity = new SecurityIdentifier(WellKnownSidType.WorldSid, null);
-            var auditRule = new FileSystemAuditRule(identity, FileSystemRights.ReadData, AuditFlags.Failure);
-            Assert.Equal(auditRule.IdentityReference, identity);
-            Assert.Equal(auditRule.FileSystemRights, FileSystemRights.ReadData);
-            Assert.Equal(auditRule.AuditFlags, AuditFlags.Failure);
+            var auditRule = new FileSystemAuditRule(Helpers.s_WorldSidNTAccount, FileSystemRights.ReadData, AuditFlags.Failure);
+            Assert.Equal(auditRule.IdentityReference, Helpers.s_WorldSidNTAccount);
+            Assert.Equal(FileSystemRights.ReadData, auditRule.FileSystemRights);
+            Assert.Equal(AuditFlags.Failure, auditRule.AuditFlags);
         }
 
         [Fact]
@@ -24,24 +23,23 @@ namespace System.Security.AccessControl
         {
             var auditRule = new FileSystemAuditRule(@"MYDOMAIN\MyAccount", FileSystemRights.ReadData,
                     InheritanceFlags.ObjectInherit, PropagationFlags.InheritOnly, AuditFlags.Failure);
-            Assert.Equal(auditRule.PropagationFlags, PropagationFlags.InheritOnly);
-            Assert.Equal(auditRule.InheritanceFlags, InheritanceFlags.ObjectInherit);
+            Assert.Equal(PropagationFlags.InheritOnly, auditRule.PropagationFlags);
+            Assert.Equal(InheritanceFlags.ObjectInherit, auditRule.InheritanceFlags);
         }
 
         [Fact]
         public void ObjectInitialization_Identity_FileSystemRights_AuditFlags_Success()
         {
             var auditRule = new FileSystemAuditRule(@"MYDOMAIN\MyAccount", FileSystemRights.ReadData, AuditFlags.Failure);
-            Assert.Equal(auditRule.FileSystemRights, FileSystemRights.ReadData);
-            Assert.Equal(auditRule.AuditFlags, AuditFlags.Failure);
-            Assert.Equal(auditRule.IdentityReference.Value, @"MYDOMAIN\MyAccount");
+            Assert.Equal(FileSystemRights.ReadData, auditRule.FileSystemRights);
+            Assert.Equal(AuditFlags.Failure, auditRule.AuditFlags);
+            Assert.Equal(@"MYDOMAIN\MyAccount", auditRule.IdentityReference.Value);
         }
 
         [Fact]
         public void ObjectInitialization_InvalidFileSystemRights()
         {
             var fileSystemRights = (FileSystemRights)(-1);
-            var identity = new SecurityIdentifier(WellKnownSidType.WorldSid, null);
             AssertExtensions.Throws<ArgumentOutOfRangeException>("fileSystemRights", () => new FileSystemAuditRule(@"MYDOMAIN\MyAccount", fileSystemRights, AuditFlags.Failure));
         }
 
@@ -51,7 +49,7 @@ namespace System.Security.AccessControl
         {
             var auditRule = new FileSystemAuditRule(@"MYDOMAIN\MyAccount", FileSystemRights.ReadData, AuditFlags.Failure);
             FileSystemRights fileSystemRights = auditRule.FileSystemRights;
-            Assert.Equal(fileSystemRights, FileSystemRights.ReadData);
+            Assert.Equal(FileSystemRights.ReadData, fileSystemRights);
         }
     }
 }

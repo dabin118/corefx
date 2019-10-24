@@ -1,4 +1,4 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
@@ -6,11 +6,13 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
+using System.Tests;
+using Microsoft.DotNet.RemoteExecutor;
 using Xunit;
 
 namespace System.Text.RegularExpressions.Tests
 {
-    public class RegexGroupTests : RemoteExecutorTestBase
+    public class RegexGroupTests
     {
         private static readonly CultureInfo s_enUSCulture = new CultureInfo("en-US");
         private static readonly CultureInfo s_invariantCulture = new CultureInfo("");
@@ -322,6 +324,7 @@ namespace System.Text.RegularExpressions.Tests
             yield return new object[] { @"(cat) (?#cat)    \s+ (?#followed by 1 or more whitespace) (dog)  (?#followed by dog)", "cat    dog", RegexOptions.IgnorePatternWhitespace, new string[] { "cat    dog", "cat", "dog" } };
 
             // Back Reference
+            yield return new object[] { @"(?<cat>cat)(?<dog>dog)\k<cat>", "asdfcatdogcatdog", RegexOptions.None, new string[] { "catdogcat", "cat", "dog" } };
             yield return new object[] { @"(?<cat>cat)\s+(?<dog>dog)\k<cat>", "asdfcat   dogcat   dog", RegexOptions.None, new string[] { "cat   dogcat", "cat", "dog" } };
             yield return new object[] { @"(?<cat>cat)\s+(?<dog>dog)\k'cat'", "asdfcat   dogcat   dog", RegexOptions.None, new string[] { "cat   dogcat", "cat", "dog" } };
             yield return new object[] { @"(?<cat>cat)\s+(?<dog>dog)\<cat>", "asdfcat   dogcat   dog", RegexOptions.None, new string[] { "cat   dogcat", "cat", "dog" } };
@@ -393,6 +396,9 @@ namespace System.Text.RegularExpressions.Tests
 
             yield return new object[] { @"(cat)(\cZ*)(dog)", "asdlkcat\u001adogiwod", RegexOptions.None, new string[] { "cat\u001adog", "cat", "\u001a", "dog" } };
             yield return new object[] { @"(cat)(\cz*)(dog)", "asdlkcat\u001adogiwod", RegexOptions.None, new string[] { "cat\u001adog", "cat", "\u001a", "dog" } };
+
+            yield return new object[] { @"(cat)(\c[*)(dog)", "asdlkcat\u001bdogiwod", RegexOptions.None, new string[] { "cat\u001bdog", "cat", "\u001b", "dog" } };
+            yield return new object[] { @"(cat)(\c[*)(dog)", "asdlkcat\u001Bdogiwod", RegexOptions.None, new string[] { "cat\u001Bdog", "cat", "\u001B", "dog" } };
 
             // Atomic Zero-Width Assertions \A \Z \z \G \b \B
             //\A
@@ -475,13 +481,13 @@ namespace System.Text.RegularExpressions.Tests
             yield return new object[] { @"(?<cat>cat)\s+(?<dog>dog)\s+\123\s+\234", "asdfcat   dog     cat23    dog34eia", RegexOptions.ECMAScript, new string[] { "cat   dog     cat23    dog34", "cat", "dog" } };
 
             // Balanced Matching
-            yield return new object[] { @"<div> 
-            (?> 
-                <div>(?<DEPTH>) |   
-                </div> (?<-DEPTH>) |  
+            yield return new object[] { @"<div>
+            (?>
+                <div>(?<DEPTH>) |
+                </div> (?<-DEPTH>) |
                 .?
             )*?
-            (?(DEPTH)(?!)) 
+            (?(DEPTH)(?!))
             </div>", "<div>this is some <div>red</div> text</div></div></div>", RegexOptions.IgnorePatternWhitespace, new string[] { "<div>this is some <div>red</div> text</div>", "" } };
 
             yield return new object[] { @"(
@@ -638,11 +644,11 @@ namespace System.Text.RegularExpressions.Tests
             {
                 defaultCulture = new CultureInfo("en-US");
             }
-            
+
             return defaultCulture;
         }
 
-        public void Groups(string pattern, string input, RegexOptions options, string[] expectedGroups)
+        private static void Groups(string pattern, string input, RegexOptions options, string[] expectedGroups)
         {
             Regex regex = new Regex(pattern, options);
             Match match = regex.Match(input);
@@ -672,85 +678,90 @@ namespace System.Text.RegularExpressions.Tests
         [Fact]
         public void GroupsEnUS()
         {
-            RemoteInvoke(() => {
-                CultureInfo.CurrentCulture = s_enUSCulture;
+            using (new ThreadCultureChange(s_enUSCulture))
+            {
                 foreach (object[] testCase in Groups_CustomCulture_TestData_enUS())
                 {
                     GroupsTest(testCase);
                 }
-
-                return SuccessExitCode;
-            }).Dispose();
+            }
         }
 
         [Fact]
         public void GroupsCzech()
         {
-            RemoteInvoke(() => {
-                CultureInfo.CurrentCulture = s_czechCulture;
+            using (new ThreadCultureChange(s_czechCulture))
+            {
                 foreach (object[] testCase in Groups_CustomCulture_TestData_Czech())
                 {
                     GroupsTest(testCase);
                 }
-
-                return SuccessExitCode;
-            }).Dispose();
+            }
         }
 
         [Fact]
         public void GroupsDanish()
         {
-            RemoteInvoke(() => {
-                CultureInfo.CurrentCulture = s_danishCulture;
+            using (new ThreadCultureChange(s_danishCulture))
+            {
                 foreach (object[] testCase in Groups_CustomCulture_TestData_Danish())
                 {
                     GroupsTest(testCase);
                 }
-
-                return SuccessExitCode;
-            }).Dispose();
+            }
         }
 
         [Fact]
         public void GroupsTurkish()
         {
-            RemoteInvoke(() => {
-                CultureInfo.CurrentCulture = s_turkishCulture;
+            using (new ThreadCultureChange(s_turkishCulture))
+            {
                 foreach (object[] testCase in Groups_CustomCulture_TestData_Turkish())
                 {
                     GroupsTest(testCase);
                 }
-
-                return SuccessExitCode;
-            }).Dispose();
+            }
         }
 
         [Fact]
         public void GroupsAzeriLatin()
         {
-            RemoteInvoke(() => {
-                CultureInfo.CurrentCulture = s_azeriLatinCulture;
+            using (new ThreadCultureChange(s_azeriLatinCulture))
+            {
                 foreach (object[] testCase in Groups_CustomCulture_TestData_AzeriLatin())
                 {
                     GroupsTest(testCase);
                 }
-
-                return SuccessExitCode;
-            }).Dispose();
+            }
         }
 
         [Fact]
         public void GroupsBasic()
         {
-            RemoteInvoke(() => {
-                CultureInfo.CurrentCulture = GetDefaultCultureForTests();
+            using (new ThreadCultureChange(GetDefaultCultureForTests()))
+            {
                 foreach (object[] testCase in Groups_Basic_TestData())
                 {
                     GroupsTest(testCase);
                 }
+            }
+        }
 
-                return SuccessExitCode;
-            }).Dispose();
+        [Fact]
+        public void Synchronized_NullGroup_Throws()
+        {
+            AssertExtensions.Throws<ArgumentNullException>("inner", () => Group.Synchronized(null));
+        }
+
+        [Theory]
+        [InlineData(@"(cat)([\v]*)(dog)", "cat\v\v\vdog")]
+        [InlineData("abc", "def")] // no match
+        public void Synchronized_ValidGroup_Success(string pattern, string input)
+        {
+            Match match = Regex.Match(input, pattern);
+
+            Group synchronizedGroup = Group.Synchronized(match.Groups[0]);
+            Assert.NotNull(synchronizedGroup);
         }
     }
 }

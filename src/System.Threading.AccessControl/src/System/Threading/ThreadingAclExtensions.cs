@@ -2,12 +2,11 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-// Ported from EventWaitHandle.cs, Mutex.cs, Semaphore.cs and made extension methods (or renamed statics, where necessary) to allow 
+// Ported from EventWaitHandle.cs, Mutex.cs, Semaphore.cs and made extension methods (or renamed statics, where necessary) to allow
 // extending the class without System.Threading needing to rely on System.Security.AccessControl
 
 using System;
 using System.Security.AccessControl;
-using System.Diagnostics.Contracts;
 
 namespace System.Threading
 {
@@ -22,7 +21,6 @@ namespace System.Threading
         {
             if (eventSecurity == null)
                 throw new ArgumentNullException(nameof(eventSecurity));
-            Contract.EndContractBlock();
 
             eventSecurity.Persist(handle.GetSafeWaitHandle());
         }
@@ -36,7 +34,6 @@ namespace System.Threading
         {
             if (mutexSecurity == null)
                 throw new ArgumentNullException(nameof(mutexSecurity));
-            Contract.EndContractBlock();
 
             mutexSecurity.Persist(mutex.GetSafeWaitHandle());
         }

@@ -31,7 +31,7 @@ namespace System.Net
             {
                 throw new ArgumentNullException(nameof(authType));
             }
-            
+
             if ((cred is SystemNetworkCredential)
                 && !((string.Equals(authType, NegotiationInfoClass.NTLM, StringComparison.OrdinalIgnoreCase))
                      || (string.Equals(authType, NegotiationInfoClass.Kerberos, StringComparison.OrdinalIgnoreCase))
@@ -76,7 +76,7 @@ namespace System.Net
             {
                 throw new ArgumentOutOfRangeException(nameof(port));
             }
-            
+
             if ((credential is SystemNetworkCredential)
                 && !((string.Equals(authenticationType, NegotiationInfoClass.NTLM, StringComparison.OrdinalIgnoreCase))
                      || (string.Equals(authenticationType, NegotiationInfoClass.Kerberos, StringComparison.OrdinalIgnoreCase))
@@ -418,7 +418,7 @@ namespace System.Net
         }
     }
 
-    internal struct CredentialHostKey : IEquatable<CredentialHostKey>
+    internal readonly struct CredentialHostKey : IEquatable<CredentialHostKey>
     {
         public readonly string Host;
         public readonly string AuthenticationType;

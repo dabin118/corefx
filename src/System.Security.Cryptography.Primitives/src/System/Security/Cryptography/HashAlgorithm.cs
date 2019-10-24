@@ -16,9 +16,11 @@ namespace System.Security.Cryptography
 
         protected HashAlgorithm() { }
 
-        public static HashAlgorithm Create() => Create("System.Security.Cryptography.HashAlgorithm");
+        public static HashAlgorithm Create() =>
+            CryptoConfigForwarder.CreateDefaultHashAlgorithm();
 
-        public static HashAlgorithm Create(string hashName) => throw new PlatformNotSupportedException();
+        public static HashAlgorithm Create(string hashName) =>
+            (HashAlgorithm)CryptoConfigForwarder.CreateFromName(hashName);
 
         public virtual int HashSize => HashSizeValue;
 
@@ -53,7 +55,7 @@ namespace System.Security.Cryptography
                 throw new ObjectDisposedException(null);
             }
 
-            if (destination.Length < HashSizeValue/8)
+            if (destination.Length < HashSizeValue / 8)
             {
                 bytesWritten = 0;
                 return false;
@@ -95,13 +97,16 @@ namespace System.Security.Cryptography
             if (_disposed)
                 throw new ObjectDisposedException(null);
 
-            // Default the buffer size to 4K.
-            byte[] buffer = new byte[4096];
+            // Use ArrayPool.Shared instead of CryptoPool because the array is passed out.
+            byte[] buffer = ArrayPool<byte>.Shared.Rent(4096);
+
             int bytesRead;
             while ((bytesRead = inputStream.Read(buffer, 0, buffer.Length)) > 0)
             {
                 HashCore(buffer, 0, bytesRead);
             }
+
+            ArrayPool<byte>.Shared.Return(buffer, clearArray: true);
             return CaptureHashCodeAndReinitialize();
         }
 
@@ -122,7 +127,7 @@ namespace System.Security.Cryptography
             GC.SuppressFinalize(this);
         }
 
-        public void Clear() 
+        public void Clear()
         {
             (this as IDisposable).Dispose();
         }
@@ -207,17 +212,12 @@ namespace System.Security.Cryptography
 
         protected virtual void HashCore(ReadOnlySpan<byte> source)
         {
+            // Use ArrayPool.Shared instead of CryptoPool because the array is passed out.
             byte[] array = ArrayPool<byte>.Shared.Rent(source.Length);
-            try
-            {
-                source.CopyTo(array);
-                HashCore(array, 0, source.Length);
-            }
-            finally
-            {
-                Array.Clear(array, 0, source.Length);
-                ArrayPool<byte>.Shared.Return(array);
-            }
+            source.CopyTo(array);
+            HashCore(array, 0, source.Length);
+            Array.Clear(array, 0, source.Length);
+            ArrayPool<byte>.Shared.Return(array);
         }
 
         protected virtual bool TryHashFinal(Span<byte> destination, out int bytesWritten)

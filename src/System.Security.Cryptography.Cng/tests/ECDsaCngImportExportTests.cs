@@ -4,6 +4,7 @@
 
 using Xunit;
 using System.Security.Cryptography.EcDsa.Tests;
+using System.Security.Cryptography.Tests;
 
 namespace System.Security.Cryptography.Cng.Tests
 {
@@ -17,22 +18,22 @@ namespace System.Security.Cryptography.Cng.Tests
                 Assert.Equal(CngAlgorithm.ECDiffieHellmanP256, key.Algorithm);
                 Assert.Equal(CngAlgorithmGroup.ECDiffieHellman, key.AlgorithmGroup);
                 Assert.Equal(CngExportPolicies.None, key.ExportPolicy);
-                Assert.Equal(true, key.IsEphemeral);
-                Assert.Equal(false, key.IsMachineKey);
-                Assert.Equal(null, key.KeyName);
+                Assert.True(key.IsEphemeral);
+                Assert.False(key.IsMachineKey);
+                Assert.Null(key.KeyName);
                 Assert.Equal(0x100, key.KeySize);
                 Assert.Equal(CngKeyUsages.AllUsages, key.KeyUsage);
                 Assert.Equal(IntPtr.Zero, key.ParentWindowHandle);
                 Assert.Equal(CngProvider.MicrosoftSoftwareKeyStorageProvider, key.Provider);
 
                 CngUIPolicy policy = key.UIPolicy;
-                Assert.Equal(null, policy.CreationTitle);
-                Assert.Equal(null, policy.Description);
-                Assert.Equal(null, policy.FriendlyName);
-                Assert.Equal(null, policy.UseContext);
+                Assert.Null(policy.CreationTitle);
+                Assert.Null(policy.Description);
+                Assert.Null(policy.FriendlyName);
+                Assert.Null(policy.UseContext);
                 Assert.Equal(CngUIProtectionLevels.None, policy.ProtectionLevel);
 
-                Assert.Equal(null, key.UniqueName);
+                Assert.Null(key.UniqueName);
             }
         }
 
@@ -46,7 +47,7 @@ namespace System.Security.Cryptography.Cng.Tests
             }
         }
 
-#if netcoreapp
+#if NETCOREAPP
         [ConditionalTheory(nameof(ECExplicitCurvesSupported)), MemberData(nameof(TestCurves))]
         public static void TestHashRoundTrip(CurveDef curveDef)
         {
@@ -69,6 +70,6 @@ namespace System.Security.Cryptography.Cng.Tests
                 Assert.Equal(0xFF, param2.Curve.Seed[0]);
             }
         }
-#endif // netcoreapp
+#endif
     }
 }

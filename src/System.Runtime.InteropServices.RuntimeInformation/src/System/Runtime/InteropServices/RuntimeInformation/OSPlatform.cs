@@ -4,9 +4,11 @@
 
 namespace System.Runtime.InteropServices
 {
-    public struct OSPlatform : IEquatable<OSPlatform>
+    public readonly struct OSPlatform : IEquatable<OSPlatform>
     {
         private readonly string _osPlatform;
+
+        public static OSPlatform FreeBSD { get; } = new OSPlatform("FREEBSD");
 
         public static OSPlatform Linux { get; } = new OSPlatform("LINUX");
 
@@ -18,7 +20,7 @@ namespace System.Runtime.InteropServices
         {
             if (osPlatform == null) throw new ArgumentNullException(nameof(osPlatform));
             if (osPlatform.Length == 0) throw new ArgumentException(SR.Argument_EmptyValue, nameof(osPlatform));
-            
+
             _osPlatform = osPlatform;
         }
 
@@ -32,12 +34,12 @@ namespace System.Runtime.InteropServices
             return Equals(other._osPlatform);
         }
 
-        internal bool Equals(string other)
+        internal bool Equals(string? other)
         {
             return string.Equals(_osPlatform, other, StringComparison.Ordinal);
         }
 
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
             return obj is OSPlatform && Equals((OSPlatform)obj);
         }

@@ -9,7 +9,7 @@ namespace System.Reflection.Metadata.Ecma335
     /// <summary>
     /// Encodes instructions.
     /// </summary>
-    public struct InstructionEncoder
+    public readonly struct InstructionEncoder
     {
         /// <summary>
         /// Underlying builder where encoded instructions are written to.
@@ -20,7 +20,7 @@ namespace System.Reflection.Metadata.Ecma335
         /// Builder tracking labels, branches and exception handlers.
         /// </summary>
         /// <remarks>
-        /// If null the encoder doesn't support constuction of control flow.
+        /// If null the encoder doesn't support construction of control flow.
         /// </remarks>
         public ControlFlowBuilder ControlFlowBuilder { get; }
 
@@ -408,7 +408,7 @@ namespace System.Reflection.Metadata.Ecma335
             OpCode(code);
 
             // -1 points in the middle of the branch instruction and is thus invalid.
-            // We want to produce invalid IL so that if the caller doesn't patch the branches 
+            // We want to produce invalid IL so that if the caller doesn't patch the branches
             // the branch instructions will be invalid in an obvious way.
             if (size == 1)
             {

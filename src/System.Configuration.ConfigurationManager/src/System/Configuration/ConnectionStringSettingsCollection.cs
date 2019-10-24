@@ -7,13 +7,7 @@ namespace System.Configuration
     [ConfigurationCollection(typeof(ConnectionStringSettings))]
     public sealed class ConnectionStringSettingsCollection : ConfigurationElementCollection
     {
-        private static readonly ConfigurationPropertyCollection s_properties;
-
-        static ConnectionStringSettingsCollection()
-        {
-            // Property initialization
-            s_properties = new ConfigurationPropertyCollection();
-        }
+        private static readonly ConfigurationPropertyCollection s_properties = new ConfigurationPropertyCollection();
 
         public ConnectionStringSettingsCollection()
             : base(StringComparer.OrdinalIgnoreCase)
@@ -39,7 +33,7 @@ namespace System.Configuration
         }
 
         // the connection string behavior is strange in that is acts kind of like a
-        // basic map and partially like a add remove clear collection
+        // basic map and partially like an add remove clear collection
         // Overriding these methods allows for the specific behaviors to be
         // patterened
         protected override void BaseAdd(int index, ConfigurationElement element)

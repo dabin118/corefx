@@ -12,41 +12,18 @@ using System.Text;
 
 namespace System.Xml.Schema
 {
-    /// <include file='doc\XmlSchemaDatatype.uex' path='docs/doc[@for="XmlSchemaDatatype"]/*' />
-    /// <devdoc>
-    ///    <para>[To be supplied.]</para>
-    /// </devdoc>
     public abstract class XmlSchemaDatatype
     {
-        /// <include file='doc\XmlSchemaDatatype.uex' path='docs/doc[@for="XmlSchemaDatatype.ValueType"]/*' />
-        /// <devdoc>
-        ///    <para>[To be supplied.]</para>
-        /// </devdoc>
         public abstract Type ValueType { get; }
 
-        /// <include file='doc\XmlSchemaDatatype.uex' path='docs/doc[@for="XmlSchemaDatatype.TokenizedType"]/*' />
-        /// <devdoc>
-        ///    <para>[To be supplied.]</para>
-        /// </devdoc>
         public abstract XmlTokenizedType TokenizedType { get; }
 
-        /// <include file='doc\XmlSchemaDatatype.uex' path='docs/doc[@for="XmlSchemaDatatype.ParseValue"]/*' />
-        /// <devdoc>
-        ///    <para>[To be supplied.]</para>
-        /// </devdoc>
         public abstract object ParseValue(string s, XmlNameTable nameTable, IXmlNamespaceResolver nsmgr);
 
-        /// <include file='doc\XmlSchemaDatatype.uex' path='docs/doc[@for="XmlSchemaDatatype.Variety"]/*' />
-        /// <devdoc>
-        ///    <para>[To be supplied.]</para>
-        /// </devdoc>
         public virtual XmlSchemaDatatypeVariety Variety { get { return XmlSchemaDatatypeVariety.Atomic; } }
 
+        internal XmlSchemaDatatype() { }
 
-        /// <include file='doc\XmlSchemaDatatype.uex' path='docs/doc[@for="XmlSchemaDatatype.ChangeType1"]/*' />
-        /// <devdoc>
-        ///    <para>[To be supplied.]</para>
-        /// </devdoc>
         public virtual object ChangeType(object value, Type targetType)
         {
             if (value == null)
@@ -60,10 +37,6 @@ namespace System.Xml.Schema
             return ValueConverter.ChangeType(value, targetType);
         }
 
-        /// <include file='doc\XmlSchemaDatatype.uex' path='docs/doc[@for="XmlSchemaDatatype.ChangeType2"]/*' />
-        /// <devdoc>
-        ///    <para>[To be supplied.]</para>
-        /// </devdoc>
         public virtual object ChangeType(object value, Type targetType, IXmlNamespaceResolver namespaceResolver)
         {
             if (value == null)
@@ -81,16 +54,8 @@ namespace System.Xml.Schema
             return ValueConverter.ChangeType(value, targetType, namespaceResolver);
         }
 
-        /// <include file='doc\XmlSchemaDatatype.uex' path='docs/doc[@for="XmlSchemaDatatype.TypeCode"]/*' />
-        /// <devdoc>
-        ///    <para>[To be supplied.]</para>
-        /// </devdoc>
         public virtual XmlTypeCode TypeCode { get { return XmlTypeCode.None; } }
 
-        /// <include file='doc\XmlSchemaDatatype.uex' path='docs/doc[@for="XmlSchemaDatatype.IsDerivedFrom"]/*' />
-        /// <devdoc>
-        ///    <para>[To be supplied.]</para>
-        /// </devdoc>
         public virtual bool IsDerivedFrom(XmlSchemaDatatype datatype)
         {
             return false;
@@ -165,116 +130,69 @@ namespace System.Xml.Schema
             }
         }
 
-        internal string TypeCodeToString(XmlTypeCode typeCode)
-        {
-            switch (typeCode)
+        internal string TypeCodeToString(XmlTypeCode typeCode) =>
+            typeCode switch
             {
-                case XmlTypeCode.None:
-                    return "None";
-                case XmlTypeCode.Item:
-                    return "AnyType";
-                case XmlTypeCode.AnyAtomicType:
-                    return "AnyAtomicType";
-                case XmlTypeCode.String:
-                    return "String";
-                case XmlTypeCode.Boolean:
-                    return "Boolean";
-                case XmlTypeCode.Decimal:
-                    return "Decimal";
-                case XmlTypeCode.Float:
-                    return "Float";
-                case XmlTypeCode.Double:
-                    return "Double";
-                case XmlTypeCode.Duration:
-                    return "Duration";
-                case XmlTypeCode.DateTime:
-                    return "DateTime";
-                case XmlTypeCode.Time:
-                    return "Time";
-                case XmlTypeCode.Date:
-                    return "Date";
-                case XmlTypeCode.GYearMonth:
-                    return "GYearMonth";
-                case XmlTypeCode.GYear:
-                    return "GYear";
-                case XmlTypeCode.GMonthDay:
-                    return "GMonthDay";
-                case XmlTypeCode.GDay:
-                    return "GDay";
-                case XmlTypeCode.GMonth:
-                    return "GMonth";
-                case XmlTypeCode.HexBinary:
-                    return "HexBinary";
-                case XmlTypeCode.Base64Binary:
-                    return "Base64Binary";
-                case XmlTypeCode.AnyUri:
-                    return "AnyUri";
-                case XmlTypeCode.QName:
-                    return "QName";
-                case XmlTypeCode.Notation:
-                    return "Notation";
-                case XmlTypeCode.NormalizedString:
-                    return "NormalizedString";
-                case XmlTypeCode.Token:
-                    return "Token";
-                case XmlTypeCode.Language:
-                    return "Language";
-                case XmlTypeCode.NmToken:
-                    return "NmToken";
-                case XmlTypeCode.Name:
-                    return "Name";
-                case XmlTypeCode.NCName:
-                    return "NCName";
-                case XmlTypeCode.Id:
-                    return "Id";
-                case XmlTypeCode.Idref:
-                    return "Idref";
-                case XmlTypeCode.Entity:
-                    return "Entity";
-                case XmlTypeCode.Integer:
-                    return "Integer";
-                case XmlTypeCode.NonPositiveInteger:
-                    return "NonPositiveInteger";
-                case XmlTypeCode.NegativeInteger:
-                    return "NegativeInteger";
-                case XmlTypeCode.Long:
-                    return "Long";
-                case XmlTypeCode.Int:
-                    return "Int";
-                case XmlTypeCode.Short:
-                    return "Short";
-                case XmlTypeCode.Byte:
-                    return "Byte";
-                case XmlTypeCode.NonNegativeInteger:
-                    return "NonNegativeInteger";
-                case XmlTypeCode.UnsignedLong:
-                    return "UnsignedLong";
-                case XmlTypeCode.UnsignedInt:
-                    return "UnsignedInt";
-                case XmlTypeCode.UnsignedShort:
-                    return "UnsignedShort";
-                case XmlTypeCode.UnsignedByte:
-                    return "UnsignedByte";
-                case XmlTypeCode.PositiveInteger:
-                    return "PositiveInteger";
+                XmlTypeCode.None => "None",
+                XmlTypeCode.Item => "AnyType",
+                XmlTypeCode.AnyAtomicType => "AnyAtomicType",
+                XmlTypeCode.String => "String",
+                XmlTypeCode.Boolean => "Boolean",
+                XmlTypeCode.Decimal => "Decimal",
+                XmlTypeCode.Float => "Float",
+                XmlTypeCode.Double => "Double",
+                XmlTypeCode.Duration => "Duration",
+                XmlTypeCode.DateTime => "DateTime",
+                XmlTypeCode.Time => "Time",
+                XmlTypeCode.Date => "Date",
+                XmlTypeCode.GYearMonth => "GYearMonth",
+                XmlTypeCode.GYear => "GYear",
+                XmlTypeCode.GMonthDay => "GMonthDay",
+                XmlTypeCode.GDay => "GDay",
+                XmlTypeCode.GMonth => "GMonth",
+                XmlTypeCode.HexBinary => "HexBinary",
+                XmlTypeCode.Base64Binary => "Base64Binary",
+                XmlTypeCode.AnyUri => "AnyUri",
+                XmlTypeCode.QName => "QName",
+                XmlTypeCode.Notation => "Notation",
+                XmlTypeCode.NormalizedString => "NormalizedString",
+                XmlTypeCode.Token => "Token",
+                XmlTypeCode.Language => "Language",
+                XmlTypeCode.NmToken => "NmToken",
+                XmlTypeCode.Name => "Name",
+                XmlTypeCode.NCName => "NCName",
+                XmlTypeCode.Id => "Id",
+                XmlTypeCode.Idref => "Idref",
+                XmlTypeCode.Entity => "Entity",
+                XmlTypeCode.Integer => "Integer",
+                XmlTypeCode.NonPositiveInteger => "NonPositiveInteger",
+                XmlTypeCode.NegativeInteger => "NegativeInteger",
+                XmlTypeCode.Long => "Long",
+                XmlTypeCode.Int => "Int",
+                XmlTypeCode.Short => "Short",
+                XmlTypeCode.Byte => "Byte",
+                XmlTypeCode.NonNegativeInteger => "NonNegativeInteger",
+                XmlTypeCode.UnsignedLong => "UnsignedLong",
+                XmlTypeCode.UnsignedInt => "UnsignedInt",
+                XmlTypeCode.UnsignedShort => "UnsignedShort",
+                XmlTypeCode.UnsignedByte => "UnsignedByte",
+                XmlTypeCode.PositiveInteger => "PositiveInteger",
 
-                default:
-                    return typeCode.ToString();
-            }
-        }
+                _ => typeCode.ToString(),
+            };
 
         internal static string ConcatenatedToString(object value)
         {
             Type t = value.GetType();
             string stringValue = string.Empty;
-            if (t == typeof(IEnumerable) && t != typeof(System.String))
+            if (t == typeof(IEnumerable) && t != typeof(string))
             {
                 StringBuilder bldr = new StringBuilder();
                 IEnumerator enumerator = (value as IEnumerable).GetEnumerator();
                 if (enumerator.MoveNext())
                 {
                     bldr.Append("{");
-                    Object cur = enumerator.Current;
+                    object cur = enumerator.Current;
                     if (cur is IFormattable)
                     {
                         bldr.Append(((IFormattable)cur).ToString("", CultureInfo.InvariantCulture));
@@ -349,7 +267,7 @@ namespace System.Xml.Schema
 
             if (convert)
             {
-                canonicalUri = nameTable.Add(uri.Substring(0, offset) + CultureInfo.InvariantCulture.TextInfo.ToUpper(uri.Substring(offset, uri.Length - offset)));
+                canonicalUri = nameTable.Add(string.Concat(uri.AsSpan(0, offset), CultureInfo.InvariantCulture.TextInfo.ToUpper(uri.Substring(offset, uri.Length - offset))));
             }
             else
             {
@@ -372,4 +290,3 @@ namespace System.Xml.Schema
         }
     }
 }
-

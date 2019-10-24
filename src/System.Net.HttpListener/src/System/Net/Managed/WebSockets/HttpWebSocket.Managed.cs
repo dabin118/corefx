@@ -54,11 +54,11 @@ namespace System.Net.WebSockets
             response.StatusDescription = HttpStatusDescription.Get(HttpStatusCode.SwitchingProtocols);
 
             HttpResponseStream responseStream = response.OutputStream as HttpResponseStream;
-            
+
             // Send websocket handshake headers
             await responseStream.WriteWebSocketHandshakeHeadersAsync().ConfigureAwait(false);
 
-            WebSocket webSocket = ManagedWebSocket.CreateFromConnectedStream(context.Connection.ConnectedStream, true, subProtocol, keepAliveInterval, receiveBufferSize, internalBuffer);
+            WebSocket webSocket = WebSocket.CreateFromStream(context.Connection.ConnectedStream, isServer:true, subProtocol, keepAliveInterval);
 
             HttpListenerWebSocketContext webSocketContext = new HttpListenerWebSocketContext(
                                                                 request.Url,
@@ -80,4 +80,3 @@ namespace System.Net.WebSockets
         private const bool WebSocketsSupported = true;
     }
 }
-

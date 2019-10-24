@@ -4,10 +4,11 @@
 
 using System.Collections.Generic;
 using System.IO;
-using System.Xml.Serialization;
-using System.Xml.Schema;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Xml.Serialization;
+using System.Xml.Schema;
 
 using CultureInfo = System.Globalization.CultureInfo;
 using IEnumerable = System.Collections.IEnumerable;
@@ -31,6 +32,7 @@ namespace System.Xml.Linq
     ///   </list>
     /// </remarks>
     [XmlSchemaProvider(null, IsAny = true)]
+    [System.ComponentModel.TypeDescriptionProvider("MS.Internal.Xml.Linq.ComponentModel.XTypeDescriptionProvider`1[[System.Xml.Linq.XElement, System.Xml.Linq, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089]],System.ComponentModel.TypeConverter")]
     public class XElement : XContainer, IXmlSerializable
     {
         /// <summary>
@@ -129,13 +131,7 @@ namespace System.Xml.Linq
             AddContentSkipNotify(other.content);
         }
 
-#if uap
-        // XmlSerializer needs to reflect on the default constructor of XElement.
-        // We need to make the ctor public on UWP to keep the metadata for it.
-        public XElement()
-#else
         internal XElement()
-#endif
             : this("default")
         {
         }
@@ -171,7 +167,7 @@ namespace System.Xml.Linq
         ///<overloads>
         /// Outputs this <see cref="XElement"/>'s underlying XML tree.  The output can
         /// be saved to a file, a <see cref="Stream"/>, a <see cref="TextWriter"/>,
-        /// or an <see cref="XmlWriter"/>.  Optionally whitespace can be preserved.  
+        /// or an <see cref="XmlWriter"/>.  Optionally whitespace can be preserved.
         /// </overloads>
         /// <summary>
         /// Output this <see cref="XElement"/> to a file.
@@ -179,9 +175,9 @@ namespace System.Xml.Linq
         /// <remarks>
         /// The format will be indented by default.  If you want
         /// no indenting then use the SaveOptions version of Save (see
-        /// <see cref="XElement.Save(string, SaveOptions)"/>) enabling 
-        /// SaveOptions.DisableFormatting. 
-        /// There is also an option SaveOptions.OmitDuplicateNamespaces for removing duplicate namespace declarations. 
+        /// <see cref="XElement.Save(string, SaveOptions)"/>) enabling
+        /// SaveOptions.DisableFormatting.
+        /// There is also an option SaveOptions.OmitDuplicateNamespaces for removing duplicate namespace declarations.
         /// Or instead use the SaveOptions as an annotation on this node or its ancestors, then this method will use those options.
         /// </remarks>
         /// <param name="fileName">
@@ -196,7 +192,7 @@ namespace System.Xml.Linq
         /// Output this <see cref="XElement"/> to a file.
         /// </summary>
         /// <param name="fileName">
-        /// The name of the file to output the XML to.  
+        /// The name of the file to output the XML to.
         /// </param>
         /// <param name="options">
         /// If SaveOptions.DisableFormatting is enabled the output is not indented.
@@ -328,7 +324,7 @@ namespace System.Xml.Linq
         /// <seealso cref="XNode.Ancestors()"/>
         /// </overloads>
         /// <summary>
-        /// Returns this <see cref="XElement"/> and all of it's ancestors up to 
+        /// Returns this <see cref="XElement"/> and all of it's ancestors up to
         /// the root node.
         /// <seealso cref="XNode.Ancestors()"/>
         /// </summary>
@@ -345,7 +341,7 @@ namespace System.Xml.Linq
         /// <summary>
         /// Returns the ancestor(s) of this <see cref="XElement"/> with the matching
         /// <see cref="XName"/>. If this <see cref="XElement"/>'s <see cref="XName"/>
-        /// matches the <see cref="XName"/> passed in then it will be included in the 
+        /// matches the <see cref="XName"/> passed in then it will be included in the
         /// resulting <see cref="IEnumerable"/> or <see cref="XElement"/>.
         /// <seealso cref="XNode.Ancestors()"/>
         /// </summary>
@@ -362,7 +358,7 @@ namespace System.Xml.Linq
         }
 
         /// <summary>
-        /// Returns the <see cref="XAttribute"/> associated with this <see cref="XElement"/> that has this 
+        /// Returns the <see cref="XAttribute"/> associated with this <see cref="XElement"/> that has this
         /// <see cref="XName"/>.
         /// </summary>
         /// <param name="name">
@@ -412,7 +408,7 @@ namespace System.Xml.Linq
         /// The <see cref="XName"/> of the targeted <see cref="XAttribute"/>.
         /// </param>
         /// <returns>
-        /// The <see cref="XAttribute"/>(s) with the matching 
+        /// The <see cref="XAttribute"/>(s) with the matching
         /// </returns>
         public IEnumerable<XAttribute> Attributes(XName name)
         {
@@ -465,7 +461,7 @@ namespace System.Xml.Linq
         }
 
         /// <summary>
-        /// Returns the default <see cref="XNamespace"/> of an <see cref="XElement"/> 
+        /// Returns the default <see cref="XNamespace"/> of an <see cref="XElement"/>
         /// </summary>
         public XNamespace GetDefaultNamespace()
         {
@@ -474,8 +470,8 @@ namespace System.Xml.Linq
         }
 
         /// <summary>
-        /// Get the namespace associated with a particular prefix for this <see cref="XElement"/> 
-        /// in its document context. 
+        /// Get the namespace associated with a particular prefix for this <see cref="XElement"/>
+        /// in its document context.
         /// </summary>
         /// <param name="prefix">The namespace prefix to look up</param>
         /// <returns>An <see cref="XNamespace"/> for the namespace bound to the prefix</returns>
@@ -542,7 +538,7 @@ namespace System.Xml.Linq
         }
 
         /// <overloads>
-        /// The Load method provides multiple strategies for creating a new 
+        /// The Load method provides multiple strategies for creating a new
         /// <see cref="XElement"/> and initializing it from a data source containing
         /// raw XML.  Load from a file (passing in a URI to the file), an
         /// <see cref="Stream"/>, a <see cref="TextReader"/>, or an
@@ -552,8 +548,8 @@ namespace System.Xml.Linq
         /// <seealso cref="XElement.Parse(string)"/>
         /// </overloads>
         /// <summary>
-        /// Create a new <see cref="XElement"/> based on the contents of the file 
-        /// referenced by the URI parameter passed in.  Note: Use 
+        /// Create a new <see cref="XElement"/> based on the contents of the file
+        /// referenced by the URI parameter passed in.  Note: Use
         /// <see cref="XElement.Parse(string)"/> to create an <see cref="XElement"/> from
         /// a string containing XML.
         /// <seealso cref="XmlReader.Create(string)"/>
@@ -579,10 +575,10 @@ namespace System.Xml.Linq
         }
 
         /// <summary>
-        /// Create a new <see cref="XElement"/> based on the contents of the file 
-        /// referenced by the URI parameter passed in.  Optionally, whitespace can be preserved.  
+        /// Create a new <see cref="XElement"/> based on the contents of the file
+        /// referenced by the URI parameter passed in.  Optionally, whitespace can be preserved.
         /// <see cref="XmlReader.Create(string)"/>
-        /// <seealso cref="XDocument.Load(string, LoadOptions)"/> 
+        /// <seealso cref="XDocument.Load(string, LoadOptions)"/>
         /// </summary>
         /// <remarks>
         /// This method uses the <see cref="XmlReader.Create(string)"/> method to create
@@ -614,7 +610,7 @@ namespace System.Xml.Linq
 
         /// <summary>
         /// Create a new <see cref="XElement"/> and initialize its underlying XML tree using
-        /// the passed <see cref="Stream"/> parameter.  
+        /// the passed <see cref="Stream"/> parameter.
         /// </summary>
         /// <param name="stream">
         /// A <see cref="Stream"/> containing the raw XML to read into the newly
@@ -696,7 +692,7 @@ namespace System.Xml.Linq
 
         /// <summary>
         /// Create a new <see cref="XElement"/> and initialize its underlying XML tree using
-        /// the passed <see cref="TextReader"/> parameter.  
+        /// the passed <see cref="TextReader"/> parameter.
         /// </summary>
         /// <param name="textReader">
         /// A <see cref="TextReader"/> containing the raw XML to read into the newly
@@ -863,7 +859,7 @@ namespace System.Xml.Linq
         /// whitespace can be preserved.
         /// </overloads>
         /// <summary>
-        /// Parses a string containing XML into an <see cref="XElement"/>.  
+        /// Parses a string containing XML into an <see cref="XElement"/>.
         /// </summary>
         /// <remarks>
         /// The XML must contain only one root node.
@@ -887,7 +883,7 @@ namespace System.Xml.Linq
         /// <list>
         /// <item>The XML must contain only one root node.</item>
         /// <item>
-        /// If LoadOptions.PreserveWhitespace is enabled the underlying 
+        /// If LoadOptions.PreserveWhitespace is enabled the underlying
         /// <see cref="XmlReaderSettings"/>'
         /// property <see cref="XmlReaderSettings.IgnoreWhitespace"/> will be set to false.
         /// </item>
@@ -1037,9 +1033,9 @@ namespace System.Xml.Linq
         /// <remarks>
         /// The format will be indented by default.  If you want
         /// no indenting then use the SaveOptions version of Save (see
-        /// <see cref="XElement.Save(Stream, SaveOptions)"/>) enabling 
+        /// <see cref="XElement.Save(Stream, SaveOptions)"/>) enabling
         /// SaveOptions.DisableFormatting.
-        /// There is also an option SaveOptions.OmitDuplicateNamespaces for removing duplicate namespace declarations. 
+        /// There is also an option SaveOptions.OmitDuplicateNamespaces for removing duplicate namespace declarations.
         /// Or instead use the SaveOptions as an annotation on this node or its ancestors, then this method will use those options.
         /// </remarks>
         /// <param name="stream">
@@ -1054,7 +1050,7 @@ namespace System.Xml.Linq
         /// Output this <see cref="XElement"/> to a <see cref="Stream"/>.
         /// </summary>
         /// <param name="stream">
-        /// The <see cref="Stream"/> to output the XML to.  
+        /// The <see cref="Stream"/> to output the XML to.
         /// </param>
         /// <param name="options">
         /// If SaveOptions.DisableFormatting is enabled the output is not indented.
@@ -1073,7 +1069,7 @@ namespace System.Xml.Linq
         /// Output this <see cref="XElement"/> to a <see cref="Stream"/>.
         /// </summary>
         /// <param name="stream">
-        /// The <see cref="Stream"/> to output the XML to.  
+        /// The <see cref="Stream"/> to output the XML to.
         /// </param>
         /// <param name="options">
         /// If SaveOptions.DisableFormatting is enabled the output is not indented.
@@ -1098,9 +1094,9 @@ namespace System.Xml.Linq
         /// <remarks>
         /// The format will be indented by default.  If you want
         /// no indenting then use the SaveOptions version of Save (see
-        /// <see cref="XElement.Save(TextWriter, SaveOptions)"/>) enabling 
+        /// <see cref="XElement.Save(TextWriter, SaveOptions)"/>) enabling
         /// SaveOptions.DisableFormatting.
-        /// There is also an option SaveOptions.OmitDuplicateNamespaces for removing duplicate namespace declarations. 
+        /// There is also an option SaveOptions.OmitDuplicateNamespaces for removing duplicate namespace declarations.
         /// Or instead use the SaveOptions as an annotation on this node or its ancestors, then this method will use those options.
         /// </remarks>
         /// <param name="textWriter">
@@ -1115,7 +1111,7 @@ namespace System.Xml.Linq
         /// Output this <see cref="XElement"/> to a <see cref="TextWriter"/>.
         /// </summary>
         /// <param name="textWriter">
-        /// The <see cref="TextWriter"/> to output the XML to.  
+        /// The <see cref="TextWriter"/> to output the XML to.
         /// </param>
         /// <param name="options">
         /// If SaveOptions.DisableFormatting is enabled the output is not indented.
@@ -1134,7 +1130,7 @@ namespace System.Xml.Linq
         /// Output this <see cref="XElement"/> to a <see cref="TextWriter"/>.
         /// </summary>
         /// <param name="textWriter">
-        /// The <see cref="TextWriter"/> to output the XML to.  
+        /// The <see cref="TextWriter"/> to output the XML to.
         /// </param>
         /// <param name="options">
         /// If SaveOptions.DisableFormatting is enabled the output is not indented.
@@ -1336,7 +1332,7 @@ namespace System.Xml.Linq
         /// </returns>
         [CLSCompliant(false)]
         [SuppressMessage("Microsoft.Usage", "CA2225:OperatorOverloadsHaveNamedAlternates", Justification = "Operator marked with CLSCompliant(false).")]
-        public static explicit operator string (XElement element)
+        public static explicit operator string(XElement element)
         {
             if (element == null) return null;
             return element.Value;
@@ -1359,7 +1355,7 @@ namespace System.Xml.Linq
         /// </exception>
         [CLSCompliant(false)]
         [SuppressMessage("Microsoft.Usage", "CA2225:OperatorOverloadsHaveNamedAlternates", Justification = "Operator marked with CLSCompliant(false).")]
-        public static explicit operator bool (XElement element)
+        public static explicit operator bool(XElement element)
         {
             if (element == null) throw new ArgumentNullException(nameof(element));
             return XmlConvert.ToBoolean(element.Value.ToLowerInvariant());
@@ -1379,7 +1375,7 @@ namespace System.Xml.Linq
         /// </exception>
         [CLSCompliant(false)]
         [SuppressMessage("Microsoft.Usage", "CA2225:OperatorOverloadsHaveNamedAlternates", Justification = "Operator marked with CLSCompliant(false).")]
-        public static explicit operator bool? (XElement element)
+        public static explicit operator bool?(XElement element)
         {
             if (element == null) return null;
             return XmlConvert.ToBoolean(element.Value.ToLowerInvariant());
@@ -1402,7 +1398,7 @@ namespace System.Xml.Linq
         /// </exception>
         [CLSCompliant(false)]
         [SuppressMessage("Microsoft.Usage", "CA2225:OperatorOverloadsHaveNamedAlternates", Justification = "Operator marked with CLSCompliant(false).")]
-        public static explicit operator int (XElement element)
+        public static explicit operator int(XElement element)
         {
             if (element == null) throw new ArgumentNullException(nameof(element));
             return XmlConvert.ToInt32(element.Value);
@@ -1422,7 +1418,7 @@ namespace System.Xml.Linq
         /// </exception>
         [CLSCompliant(false)]
         [SuppressMessage("Microsoft.Usage", "CA2225:OperatorOverloadsHaveNamedAlternates", Justification = "Operator marked with CLSCompliant(false).")]
-        public static explicit operator int? (XElement element)
+        public static explicit operator int?(XElement element)
         {
             if (element == null) return null;
             return XmlConvert.ToInt32(element.Value);
@@ -1445,7 +1441,7 @@ namespace System.Xml.Linq
         /// </exception>
         [CLSCompliant(false)]
         [SuppressMessage("Microsoft.Usage", "CA2225:OperatorOverloadsHaveNamedAlternates", Justification = "Operator marked with CLSCompliant(false).")]
-        public static explicit operator uint (XElement element)
+        public static explicit operator uint(XElement element)
         {
             if (element == null) throw new ArgumentNullException(nameof(element));
             return XmlConvert.ToUInt32(element.Value);
@@ -1465,7 +1461,7 @@ namespace System.Xml.Linq
         /// </exception>
         [CLSCompliant(false)]
         [SuppressMessage("Microsoft.Usage", "CA2225:OperatorOverloadsHaveNamedAlternates", Justification = "Operator marked with CLSCompliant(false).")]
-        public static explicit operator uint? (XElement element)
+        public static explicit operator uint?(XElement element)
         {
             if (element == null) return null;
             return XmlConvert.ToUInt32(element.Value);
@@ -1488,7 +1484,7 @@ namespace System.Xml.Linq
         /// </exception>
         [CLSCompliant(false)]
         [SuppressMessage("Microsoft.Usage", "CA2225:OperatorOverloadsHaveNamedAlternates", Justification = "Operator marked with CLSCompliant(false).")]
-        public static explicit operator long (XElement element)
+        public static explicit operator long(XElement element)
         {
             if (element == null) throw new ArgumentNullException(nameof(element));
             return XmlConvert.ToInt64(element.Value);
@@ -1508,7 +1504,7 @@ namespace System.Xml.Linq
         /// </exception>
         [CLSCompliant(false)]
         [SuppressMessage("Microsoft.Usage", "CA2225:OperatorOverloadsHaveNamedAlternates", Justification = "Operator marked with CLSCompliant(false).")]
-        public static explicit operator long? (XElement element)
+        public static explicit operator long?(XElement element)
         {
             if (element == null) return null;
             return XmlConvert.ToInt64(element.Value);
@@ -1531,7 +1527,7 @@ namespace System.Xml.Linq
         /// </exception>
         [CLSCompliant(false)]
         [SuppressMessage("Microsoft.Usage", "CA2225:OperatorOverloadsHaveNamedAlternates", Justification = "Operator marked with CLSCompliant(false).")]
-        public static explicit operator ulong (XElement element)
+        public static explicit operator ulong(XElement element)
         {
             if (element == null) throw new ArgumentNullException(nameof(element));
             return XmlConvert.ToUInt64(element.Value);
@@ -1551,7 +1547,7 @@ namespace System.Xml.Linq
         /// </exception>
         [CLSCompliant(false)]
         [SuppressMessage("Microsoft.Usage", "CA2225:OperatorOverloadsHaveNamedAlternates", Justification = "Operator marked with CLSCompliant(false).")]
-        public static explicit operator ulong? (XElement element)
+        public static explicit operator ulong?(XElement element)
         {
             if (element == null) return null;
             return XmlConvert.ToUInt64(element.Value);
@@ -1574,7 +1570,7 @@ namespace System.Xml.Linq
         /// </exception>
         [CLSCompliant(false)]
         [SuppressMessage("Microsoft.Usage", "CA2225:OperatorOverloadsHaveNamedAlternates", Justification = "Operator marked with CLSCompliant(false).")]
-        public static explicit operator float (XElement element)
+        public static explicit operator float(XElement element)
         {
             if (element == null) throw new ArgumentNullException(nameof(element));
             return XmlConvert.ToSingle(element.Value);
@@ -1594,7 +1590,7 @@ namespace System.Xml.Linq
         /// </exception>
         [CLSCompliant(false)]
         [SuppressMessage("Microsoft.Usage", "CA2225:OperatorOverloadsHaveNamedAlternates", Justification = "Operator marked with CLSCompliant(false).")]
-        public static explicit operator float? (XElement element)
+        public static explicit operator float?(XElement element)
         {
             if (element == null) return null;
             return XmlConvert.ToSingle(element.Value);
@@ -1617,7 +1613,7 @@ namespace System.Xml.Linq
         /// </exception>
         [CLSCompliant(false)]
         [SuppressMessage("Microsoft.Usage", "CA2225:OperatorOverloadsHaveNamedAlternates", Justification = "Operator marked with CLSCompliant(false).")]
-        public static explicit operator double (XElement element)
+        public static explicit operator double(XElement element)
         {
             if (element == null) throw new ArgumentNullException(nameof(element));
             return XmlConvert.ToDouble(element.Value);
@@ -1637,7 +1633,7 @@ namespace System.Xml.Linq
         /// </exception>
         [CLSCompliant(false)]
         [SuppressMessage("Microsoft.Usage", "CA2225:OperatorOverloadsHaveNamedAlternates", Justification = "Operator marked with CLSCompliant(false).")]
-        public static explicit operator double? (XElement element)
+        public static explicit operator double?(XElement element)
         {
             if (element == null) return null;
             return XmlConvert.ToDouble(element.Value);
@@ -1657,10 +1653,10 @@ namespace System.Xml.Linq
         /// </exception>
         /// <exception cref="InvalidOperationException">
         /// Thrown if the specified element is null.
-        /// </exception>        
+        /// </exception>
         [CLSCompliant(false)]
         [SuppressMessage("Microsoft.Usage", "CA2225:OperatorOverloadsHaveNamedAlternates", Justification = "Operator marked with CLSCompliant(false).")]
-        public static explicit operator decimal (XElement element)
+        public static explicit operator decimal(XElement element)
         {
             if (element == null) throw new ArgumentNullException(nameof(element));
             return XmlConvert.ToDecimal(element.Value);
@@ -1680,7 +1676,7 @@ namespace System.Xml.Linq
         /// </exception>
         [CLSCompliant(false)]
         [SuppressMessage("Microsoft.Usage", "CA2225:OperatorOverloadsHaveNamedAlternates", Justification = "Operator marked with CLSCompliant(false).")]
-        public static explicit operator decimal? (XElement element)
+        public static explicit operator decimal?(XElement element)
         {
             if (element == null) return null;
             return XmlConvert.ToDecimal(element.Value);
@@ -1700,7 +1696,7 @@ namespace System.Xml.Linq
         /// </exception>
         /// <exception cref="InvalidOperationException">
         /// Thrown if the specified element is null.
-        /// </exception>        
+        /// </exception>
         [CLSCompliant(false)]
         [SuppressMessage("Microsoft.Usage", "CA2225:OperatorOverloadsHaveNamedAlternates", Justification = "Operator marked with CLSCompliant(false).")]
         public static explicit operator DateTime(XElement element)
@@ -1723,7 +1719,7 @@ namespace System.Xml.Linq
         /// </exception>
         [CLSCompliant(false)]
         [SuppressMessage("Microsoft.Usage", "CA2225:OperatorOverloadsHaveNamedAlternates", Justification = "Operator marked with CLSCompliant(false).")]
-        public static explicit operator DateTime? (XElement element)
+        public static explicit operator DateTime?(XElement element)
         {
             if (element == null) return null;
             return DateTime.Parse(element.Value, CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.RoundtripKind);
@@ -1743,7 +1739,7 @@ namespace System.Xml.Linq
         /// </exception>
         /// <exception cref="InvalidOperationException">
         /// Thrown if the specified element is null.
-        /// </exception>        
+        /// </exception>
         [CLSCompliant(false)]
         [SuppressMessage("Microsoft.Usage", "CA2225:OperatorOverloadsHaveNamedAlternates", Justification = "Operator marked with CLSCompliant(false).")]
         public static explicit operator DateTimeOffset(XElement element)
@@ -1766,7 +1762,7 @@ namespace System.Xml.Linq
         /// </exception>
         [CLSCompliant(false)]
         [SuppressMessage("Microsoft.Usage", "CA2225:OperatorOverloadsHaveNamedAlternates", Justification = "Operator marked with CLSCompliant(false).")]
-        public static explicit operator DateTimeOffset? (XElement element)
+        public static explicit operator DateTimeOffset?(XElement element)
         {
             if (element == null) return null;
             return XmlConvert.ToDateTimeOffset(element.Value);
@@ -1809,7 +1805,7 @@ namespace System.Xml.Linq
         /// </exception>
         [CLSCompliant(false)]
         [SuppressMessage("Microsoft.Usage", "CA2225:OperatorOverloadsHaveNamedAlternates", Justification = "Operator marked with CLSCompliant(false).")]
-        public static explicit operator TimeSpan? (XElement element)
+        public static explicit operator TimeSpan?(XElement element)
         {
             if (element == null) return null;
             return XmlConvert.ToTimeSpan(element.Value);
@@ -1852,7 +1848,7 @@ namespace System.Xml.Linq
         /// </exception>
         [CLSCompliant(false)]
         [SuppressMessage("Microsoft.Usage", "CA2225:OperatorOverloadsHaveNamedAlternates", Justification = "Operator marked with CLSCompliant(false).")]
-        public static explicit operator Guid? (XElement element)
+        public static explicit operator Guid?(XElement element)
         {
             if (element == null) return null;
             return XmlConvert.ToGuid(element.Value);
@@ -1867,7 +1863,7 @@ namespace System.Xml.Linq
         }
 
         /// <summary>
-        /// Generates a <see cref="XElement"/> from its XML respresentation.
+        /// Generates a <see cref="XElement"/> from its XML representation.
         /// </summary>
         /// <param name="reader">
         /// The <see cref="XmlReader"/> stream from which the <see cref="XElement"/>
@@ -2041,7 +2037,7 @@ namespace System.Xml.Linq
         /// </summary>
         private void ReadElementFromImpl(XmlReader r, LoadOptions o)
         {
-            if(r.ReadState != ReadState.Interactive) throw new InvalidOperationException(SR.InvalidOperation_ExpectedInteractive);
+            if (r.ReadState != ReadState.Interactive) throw new InvalidOperationException(SR.InvalidOperation_ExpectedInteractive);
             name = XNamespace.Get(r.NamespaceURI).GetName(r.LocalName);
             if ((o & LoadOptions.SetBaseUri) != 0)
             {

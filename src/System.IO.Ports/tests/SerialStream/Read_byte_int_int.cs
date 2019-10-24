@@ -19,16 +19,16 @@ namespace System.IO.Ports.Tests
         private const int largeNumRndBytesToRead = 2048;
 
         // When we test Read and do not care about actually reading anything we must still
-        // create an byte array to pass into the method the following is the size of the 
+        // create an byte array to pass into the method the following is the size of the
         // byte array used in this situation
         private const int defaultByteArraySize = 1;
         private const int defaultByteOffset = 0;
         private const int defaultByteCount = 1;
 
-        // The maximum buffer size when a exception occurs
+        // The maximum buffer size when an exception occurs
         private const int maxBufferSizeForException = 255;
 
-        // The maximum buffer size when a exception is not expected
+        // The maximum buffer size when an exception is not expected
         private const int maxBufferSize = 8;
 
         #region Test Cases

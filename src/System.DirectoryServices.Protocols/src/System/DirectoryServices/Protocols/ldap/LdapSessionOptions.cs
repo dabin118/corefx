@@ -12,7 +12,6 @@ using System.Text;
 using System.Diagnostics;
 using System.Security.Authentication;
 using System.Runtime.CompilerServices;
-using System.Security.Permissions;
 
 namespace System.DirectoryServices.Protocols
 {
@@ -71,13 +70,13 @@ namespace System.DirectoryServices.Protocols
     [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
     public class SecurityPackageContextConnectionInformation
     {
-        private SecurityProtocol _securityProtocol;
-        private CipherAlgorithmType _identifier;
-        private int _strength;
-        private HashAlgorithmType _hashAlgorithm;
-        private int _hashStrength;
-        private int _keyExchangeAlgorithm;
-        private int _exchangeStrength;
+        private readonly SecurityProtocol _securityProtocol;
+        private readonly CipherAlgorithmType _identifier;
+        private readonly int _strength;
+        private readonly HashAlgorithmType _hashAlgorithm;
+        private readonly int _hashStrength;
+        private readonly int _keyExchangeAlgorithm;
+        private readonly int _exchangeStrength;
 
         internal SecurityPackageContextConnectionInformation()
         {
@@ -119,15 +118,15 @@ namespace System.DirectoryServices.Protocols
 
     public class LdapSessionOptions
     {
-        private LdapConnection _connection = null;
+        private readonly LdapConnection _connection = null;
         private ReferralCallback _callbackRoutine = new ReferralCallback();
         internal QueryClientCertificateCallback _clientCertificateDelegate = null;
         private VerifyServerCertificateCallback _serverCertificateDelegate = null;
 
-        private QUERYFORCONNECTIONInternal _queryDelegate = null;
-        private NOTIFYOFNEWCONNECTIONInternal _notifiyDelegate = null;
-        private DEREFERENCECONNECTIONInternal _dereferenceDelegate = null;
-        private VERIFYSERVERCERT _serverCertificateRoutine = null;
+        private readonly QUERYFORCONNECTIONInternal _queryDelegate = null;
+        private readonly NOTIFYOFNEWCONNECTIONInternal _notifiyDelegate = null;
+        private readonly DEREFERENCECONNECTIONInternal _dereferenceDelegate = null;
+        private readonly VERIFYSERVERCERT _serverCertificateRoutine = null;
 
         internal LdapSessionOptions(LdapConnection connection)
         {
@@ -237,7 +236,7 @@ namespace System.DirectoryServices.Protocols
             {
                 if (value < TimeSpan.Zero)
                 {
-                    throw new ArgumentException(SR.NoNegativeTime, nameof(value));
+                    throw new ArgumentException(SR.NoNegativeTimeLimit, nameof(value));
                 }
 
                 // Prevent integer overflow.
@@ -276,7 +275,7 @@ namespace System.DirectoryServices.Protocols
             {
                 if (value < TimeSpan.Zero)
                 {
-                    throw new ArgumentException(SR.NoNegativeTime, nameof(value));
+                    throw new ArgumentException(SR.NoNegativeTimeLimit, nameof(value));
                 }
 
                 // Prevent integer overflow.
@@ -418,7 +417,7 @@ namespace System.DirectoryServices.Protocols
             {
                 if (value < TimeSpan.Zero)
                 {
-                    throw new ArgumentException(SR.NoNegativeTime, nameof(value));
+                    throw new ArgumentException(SR.NoNegativeTimeLimit, nameof(value));
                 }
 
                 // Prevent integer overflow.
@@ -507,7 +506,7 @@ namespace System.DirectoryServices.Protocols
                     // A certificate callback is specified so automatic bind is disabled.
                     _connection.AutoBind = false;
                 }
-            
+
                 _clientCertificateDelegate = value;
             }
         }
@@ -633,7 +632,7 @@ namespace System.DirectoryServices.Protocols
                 int error = Wldap32.ldap_start_tls(_connection._ldapHandle, ref serverError, ref ldapResult, serverControlArray, clientControlArray);
                 if (ldapResult != IntPtr.Zero)
                 {
-                    // Parse the referral.                          
+                    // Parse the referral.
                     int resultError = Wldap32.ldap_parse_result_referral(_connection._ldapHandle, ldapResult, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero, ref referral, IntPtr.Zero, 0 /* not free it */);
                     if (resultError == 0 && referral != IntPtr.Zero)
                     {
@@ -673,7 +672,7 @@ namespace System.DirectoryServices.Protocols
                     if (Utility.IsResultCode((ResultCode)error))
                     {
                         // If the server failed request for whatever reason, the ldap_start_tls returns LDAP_OTHER
-                        // and the ServerReturnValue will contain the error code from the server.   
+                        // and the ServerReturnValue will contain the error code from the server.
                         if (error == (int)ResultCode.Other)
                         {
                             error = serverError;
@@ -919,7 +918,7 @@ namespace System.DirectoryServices.Protocols
 
                             // We don't have it yet, construct a new one.
                             tempReferralConnection = new LdapConnection(((LdapDirectoryIdentifier)(_connection.Directory)), _connection.GetCredential(), _connection.AuthType, ReferralFromConnection);
-                            
+
                             // Save it to the handle table.
                             LdapConnection.s_handleTable.Add(ReferralFromConnection, new WeakReference(tempReferralConnection));
                         }
@@ -972,10 +971,10 @@ namespace System.DirectoryServices.Protocols
                     {
                         // Check whether we have save it in the handle table before.
                         WeakReference reference = (WeakReference)(LdapConnection.s_handleTable[referralFromConnection]);
-                        if (reference != null && reference.IsAlive && null != ((LdapConnection)reference.Target)._ldapHandle)
+                        if (reference != null && reference.Target is LdapConnection conn && conn._ldapHandle != null)
                         {
                             // Save this before and object has not been garbage collected yet.
-                            tempReferralConnection = (LdapConnection)reference.Target;
+                            tempReferralConnection = conn;
                         }
                         else
                         {
@@ -987,7 +986,7 @@ namespace System.DirectoryServices.Protocols
 
                             // We don't have it yet, construct a new one.
                             tempReferralConnection = new LdapConnection(((LdapDirectoryIdentifier)(_connection.Directory)), _connection.GetCredential(), _connection.AuthType, referralFromConnection);
-                            
+
                             // Save it to the handle table.
                             LdapConnection.s_handleTable.Add(referralFromConnection, new WeakReference(tempReferralConnection));
                         }
@@ -1109,7 +1108,6 @@ namespace System.DirectoryServices.Protocols
             return value;
         }
 
-        [PermissionSet(SecurityAction.Assert, Unrestricted = true)]
         private static bool AddLdapHandleRef(LdapConnection ldapConnection)
         {
             bool success = false;
@@ -1126,7 +1124,6 @@ namespace System.DirectoryServices.Protocols
             return success;
         }
 
-        [PermissionSet(SecurityAction.Assert, Unrestricted = true)]
         private static void ReleaseLdapHandleRef(LdapConnection ldapConnection)
         {
             if (ldapConnection != null && ldapConnection._ldapHandle != null && !ldapConnection._ldapHandle.IsInvalid)

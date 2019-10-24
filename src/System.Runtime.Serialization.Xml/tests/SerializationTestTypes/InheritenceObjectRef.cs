@@ -1,4 +1,8 @@
-﻿using System;
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
+
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Runtime.Serialization;
@@ -44,8 +48,8 @@ namespace SerializationTestTypes
 
         public BaseDC(bool init)
         {
-            data = new DateTime().ToLongTimeString();
-            data2 = new DateTime().ToLongTimeString();
+            data = "TestString";
+            data2 = "TestString2";
         }
     }
 
@@ -88,8 +92,8 @@ namespace SerializationTestTypes
 
         public BaseSerializable(bool init)
         {
-            data = new DateTime().ToLongTimeString();
-            data2 = new DateTime().ToLongTimeString();
+            data = "TestString";
+            data2 = "TestString2";
             days = new string[] { "Base1", "Base2", "Base3", "Base4", "Base5", "Base6", "Base7" };
         }
     }
@@ -147,9 +151,9 @@ namespace SerializationTestTypes
         public DerivedDC(bool init)
             : base(init)
         {
-            data0 = new DateTime().ToLongTimeString();
-            data1 = new DateTime().ToLongTimeString();
-            data3 = new DateTime().ToLongTimeString();
+            data0 = "TestString0";
+            data1 = "TestString1";
+            data3 = "TestString3";
         }
     }
 
@@ -201,9 +205,9 @@ namespace SerializationTestTypes
         public DerivedSerializable(bool init)
             : base(init)
         {
-            data0 = new DateTime().ToLongTimeString();
-            data1 = new DateTime().ToLongTimeString();
-            data3 = new DateTime().ToLongTimeString();
+            data0 = "TestString0";
+            data1 = "TestString1";
+            data3 = "TestString3";
         }
     }
 
@@ -272,23 +276,9 @@ namespace SerializationTestTypes
         public Derived2DC(bool init)
             : base(init)
         {
-            data11 = new DateTime().ToLongTimeString();
-            data12 = new DateTime().ToLongTimeString();
-            data4 = new DateTime().ToLongTimeString();
-        }
-    }
-
-    public class DerivedPOCOBaseDCISRef : BaseDC
-    {
-        public SimpleDCWithRef SimpleDCWithRefData;
-        public SimpleDCWithRef RefData;
-
-        public DerivedPOCOBaseDCISRef() { }
-        public DerivedPOCOBaseDCISRef(bool init)
-            : base(init)
-        {
-            SimpleDCWithRefData = new SimpleDCWithRef(true);
-            RefData = SimpleDCWithRefData;
+            data11 = "TestString11";
+            data12 = "TestString12";
+            data4 = "TestString4";
         }
     }
 
@@ -300,7 +290,7 @@ namespace SerializationTestTypes
 
         public BaseDCNoIsRef()
         {
-            _data = String.Empty;
+            _data = string.Empty;
         }
     }
 
@@ -331,14 +321,14 @@ namespace SerializationTestTypes
         public void WriteXml(System.Xml.XmlWriter writer)
         {
             XmlDictionaryWriter xmlWriter = XmlDictionaryWriter.CreateDictionaryWriter(writer);
-            xmlWriter.WriteString(DateTime.MinValue.ToShortTimeString());
+            xmlWriter.WriteString("TestString");
         }
     }
 
     [CollectionDataContract(IsReference = false)]
     public class DerivedCDCFromBaseDC : BaseDC, IList<string>
     {
-        public string Data223 = String.Empty;
+        public string Data223 = string.Empty;
         private List<string> _internalData = new List<string>();
 
         public int IndexOf(string item)
@@ -466,9 +456,9 @@ namespace SerializationTestTypes
         public Derived2Serializable(bool init)
             : base(init)
         {
-            data00 = new DateTime().ToLongTimeString();
-            data122 = new DateTime().ToLongTimeString();
-            data4 = new DateTime().ToLongTimeString();
+            data00 = "TestString00";
+            data122 = "TestString122";
+            data4 = "TestString4";
         }
     }
 
@@ -523,9 +513,9 @@ namespace SerializationTestTypes
         public Derived2SerializablePositive(bool init)
             : base(init)
         {
-            data00 = DateTime.MaxValue.ToLongTimeString();
-            data122 = DateTime.MinValue.ToLongTimeString();
-            data4 = DateTime.MinValue.ToLongTimeString();
+            data00 = "TestString00";
+            data122 = "TestString122";
+            data4 = "TestString4";
         }
     }
 

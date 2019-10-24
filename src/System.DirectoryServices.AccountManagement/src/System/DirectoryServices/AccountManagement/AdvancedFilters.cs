@@ -6,7 +6,6 @@ using System;
 using System.Diagnostics;
 using System.Globalization;
 using System.Security.Principal;
-using System.Security.Permissions;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Collections;
@@ -15,14 +14,14 @@ namespace System.DirectoryServices.AccountManagement
 {
     public class AdvancedFilters
     {
-        internal protected AdvancedFilters(Principal p)
+        protected internal AdvancedFilters(Principal p)
         {
             _p = p;
         }
 
         private bool _badPasswordAttemptChanged = false;
         private QbeMatchType _badPasswordAttemptVal = null;
-        private Principal _p;
+        private readonly Principal _p;
 
         public void LastBadPasswordAttempt(DateTime lastAttempt, MatchType match)
         {
@@ -153,7 +152,6 @@ namespace System.DirectoryServices.AccountManagement
             }
         }
 
-        [System.Security.SecurityCritical]
         protected void AdvancedFilterSet(string attribute, object value, Type objectType, MatchType mt)
         {
             _p.AdvancedFilterSet(attribute, value, objectType, mt);
@@ -167,29 +165,16 @@ namespace System.DirectoryServices.AccountManagement
         {
             GlobalDebug.WriteLineIf(GlobalDebug.Info, "AdvancedFilters", "GetChangeStatusForProperty: name=" + propertyName);
 
-            switch (propertyName)
+            return propertyName switch
             {
-                case PropertyNames.PwdInfoLastBadPasswordAttempt:
-                    return _badPasswordAttemptChanged;
-
-                case PropertyNames.AcctInfoExpiredAccount:
-                    return _expirationTimeChanged;
-
-                case PropertyNames.AcctInfoBadLogonCount:
-                    return _badLogonCountChanged;
-
-                case PropertyNames.AcctInfoLastLogon:
-                    return _logonTimeChanged;
-
-                case PropertyNames.AcctInfoAcctLockoutTime:
-                    return _lockoutTimeChanged;
-
-                case PropertyNames.PwdInfoLastPasswordSet:
-                    return _passwordSetTimeChanged;
-
-                default:
-                    return null;
-            }
+                PropertyNames.PwdInfoLastBadPasswordAttempt => _badPasswordAttemptChanged,
+                PropertyNames.AcctInfoExpiredAccount => _expirationTimeChanged,
+                PropertyNames.AcctInfoBadLogonCount => _badLogonCountChanged,
+                PropertyNames.AcctInfoLastLogon => _logonTimeChanged,
+                PropertyNames.AcctInfoAcctLockoutTime => _lockoutTimeChanged,
+                PropertyNames.PwdInfoLastPasswordSet => _passwordSetTimeChanged,
+                _ => (bool?)null,
+            };
         }
 
         // Given a property name, returns the current value for the property.
@@ -202,40 +187,25 @@ namespace System.DirectoryServices.AccountManagement
         // If the property is a ValueCollection<T>, the return value is the ValueCollection<T> itself.
         // If the property is a X509Certificate2Collection, the return value is the X509Certificate2Collection itself.
         // If the property is a PrincipalCollection, the return value is the PrincipalCollection itself.
-        //[StrongNameIdentityPermission(SecurityAction.InheritanceDemand,  PublicKey = Microsoft.Internal.BuildInfo.WINDOWS_PUBLIC_KEY_STRING)]        
         internal object GetValueForProperty(string propertyName)
         {
             GlobalDebug.WriteLineIf(GlobalDebug.Info, "AdvancedFilters", "GetValueForProperty: name=" + propertyName);
 
-            switch (propertyName)
+            return propertyName switch
             {
-                case PropertyNames.PwdInfoLastBadPasswordAttempt:
-                    return _badPasswordAttemptVal;
-
-                case PropertyNames.AcctInfoExpiredAccount:
-                    return _expirationTimeVal;
-
-                case PropertyNames.AcctInfoBadLogonCount:
-                    return _badLogonCountVal;
-
-                case PropertyNames.AcctInfoLastLogon:
-                    return _logonTimeVal;
-
-                case PropertyNames.AcctInfoAcctLockoutTime:
-                    return _lockoutTimeVal;
-
-                case PropertyNames.PwdInfoLastPasswordSet:
-                    return _passwordSetTimeVal;
-
-                default:
-                    return null;
-            }
+                PropertyNames.PwdInfoLastBadPasswordAttempt => _badPasswordAttemptVal,
+                PropertyNames.AcctInfoExpiredAccount => _expirationTimeVal,
+                PropertyNames.AcctInfoBadLogonCount => _badLogonCountVal,
+                PropertyNames.AcctInfoLastLogon => _logonTimeVal,
+                PropertyNames.AcctInfoAcctLockoutTime => _lockoutTimeVal,
+                PropertyNames.PwdInfoLastPasswordSet => _passwordSetTimeVal,
+                _ => null,
+            };
         }
 
         // Reset all change-tracking status for all properties on the object to "unchanged".
         // This is used by StoreCtx.Insert() and StoreCtx.Update() to reset the change-tracking after they
         // have persisted all current changes to the store.
-        //[StrongNameIdentityPermission(SecurityAction.InheritanceDemand,  PublicKey = Microsoft.Internal.BuildInfo.WINDOWS_PUBLIC_KEY_STRING)]        
         internal virtual void ResetAllChangeStatus()
         {
             GlobalDebug.WriteLineIf(GlobalDebug.Info, "Principal", "ResetAllChangeStatus");

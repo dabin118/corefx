@@ -40,7 +40,7 @@ namespace System.Security.Cryptography.DeriveBytesTests
             using (var pdb = new PasswordDeriveBytes(TestPassword, null))
             {
                 Assert.Equal(DefaultIterationCount, pdb.IterationCount);
-                Assert.Equal(null, pdb.Salt);
+                Assert.Null(pdb.Salt);
                 Assert.Equal("SHA1", pdb.HashName);
             }
         }
@@ -196,7 +196,7 @@ namespace System.Security.Cryptography.DeriveBytesTests
         {
             using (var deriveBytes = new PasswordDeriveBytes(TestPassword, s_testSalt))
             {
-                AssertExtensions.Throws<ArgumentException>("", () => deriveBytes.GetBytes(0));
+                AssertExtensions.Throws<ArgumentException>(null, () => deriveBytes.GetBytes(0));
             }
         }
 

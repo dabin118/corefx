@@ -2,7 +2,10 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using System.Diagnostics;
 using System.Globalization;
+using System.Tests;
+using Microsoft.DotNet.RemoteExecutor;
 using Xunit;
 
 namespace System.Text.Tests
@@ -40,7 +43,7 @@ namespace System.Text.Tests
             public int CodePage { set; get; }
         }
 
-        private static CodePageMapping[] s_mapping = new CodePageMapping[] 
+        private static CodePageMapping[] s_mapping = new CodePageMapping[]
         {
             new CodePageMapping("ANSI_X3.4-1968", 20127 ),
             new CodePageMapping("ANSI_X3.4-1986", 20127 ),
@@ -99,12 +102,9 @@ namespace System.Text.Tests
         [Fact]
         public void GetEncoding_EncodingName()
         {
-            CultureInfo originalUICulture = CultureInfo.CurrentUICulture;
-            try
+            using (new ThreadCultureChange(CultureInfo.InvariantCulture))
             {
-                CultureInfo.CurrentCulture = new CultureInfo("en-US");
-
-                foreach (var map in s_mapping)
+                foreach (CodePageMapping map in s_mapping)
                 {
                     Encoding encoding = Encoding.GetEncoding(map.Name);
 
@@ -115,10 +115,6 @@ namespace System.Text.Tests
 
                     Assert.All(name, ch => Assert.InRange(ch, 0, 127));
                 }
-            }
-            finally
-            {
-                CultureInfo.CurrentUICulture = originalUICulture;
             }
         }
 

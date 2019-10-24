@@ -45,7 +45,7 @@ namespace System.Xml.XPath
         private XObject _source;
         private XElement _parent;
 
-        private XmlNameTable _nameTable;
+        private readonly XmlNameTable _nameTable;
 
         public XNodeNavigator(XNode node, XmlNameTable nameTable)
         {
@@ -853,7 +853,7 @@ namespace System.Xml.XPath
         }
     }
 
-    internal struct XPathEvaluator
+    internal readonly struct XPathEvaluator
     {
         public object Evaluate<T>(XNode node, string expression, IXmlNamespaceResolver resolver) where T : class
         {

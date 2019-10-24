@@ -2,9 +2,9 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 
 namespace System.Collections.ObjectModel
 {
@@ -12,75 +12,61 @@ namespace System.Collections.ObjectModel
     [DebuggerTypeProxy(typeof(CollectionDebugView<>))]
     [DebuggerDisplay("Count = {Count}")]
     [System.Runtime.CompilerServices.TypeForwardedFrom("mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089")]
-    public abstract class KeyedCollection<TKey, TItem> : Collection<TItem>
+    public abstract class KeyedCollection<TKey, TItem> : Collection<TItem> where TKey: notnull
     {
-        private const int defaultThreshold = 0;
+        private const int DefaultThreshold = 0;
 
         private readonly IEqualityComparer<TKey> comparer; // Do not rename (binary serialization)
-        private Dictionary<TKey, TItem> dict; // Do not rename (binary serialization)
+        private Dictionary<TKey, TItem>? dict; // Do not rename (binary serialization)
         private int keyCount; // Do not rename (binary serialization)
         private readonly int threshold; // Do not rename (binary serialization)
 
-        protected KeyedCollection() : this(null, defaultThreshold) { }
+        protected KeyedCollection() : this(null, DefaultThreshold)
+        {
+        }
 
-        protected KeyedCollection(IEqualityComparer<TKey> comparer) : this(comparer, defaultThreshold) { }
+        protected KeyedCollection(IEqualityComparer<TKey>? comparer) : this(comparer, DefaultThreshold)
+        {
+        }
 
-
-        protected KeyedCollection(IEqualityComparer<TKey> comparer, int dictionaryCreationThreshold)
+        protected KeyedCollection(IEqualityComparer<TKey>? comparer, int dictionaryCreationThreshold)
             : base(new List<TItem>()) // Be explicit about the use of List<T> so we can foreach over
                                       // Items internally without enumerator allocations.
         {
-            if (comparer == null)
-            {
-                comparer = EqualityComparer<TKey>.Default;
-            }
-
-            if (dictionaryCreationThreshold == -1)
-            {
-                dictionaryCreationThreshold = int.MaxValue;
-            }
-
             if (dictionaryCreationThreshold < -1)
             {
                 throw new ArgumentOutOfRangeException(nameof(dictionaryCreationThreshold), SR.ArgumentOutOfRange_InvalidThreshold);
             }
 
-            this.comparer = comparer;
-            threshold = dictionaryCreationThreshold;
+            this.comparer = comparer ?? EqualityComparer<TKey>.Default;
+            threshold = dictionaryCreationThreshold == -1 ? int.MaxValue : dictionaryCreationThreshold;
         }
 
         /// <summary>
         /// Enables the use of foreach internally without allocations using <see cref="List{T}"/>'s struct enumerator.
         /// </summary>
-        new private List<TItem> Items
+        private new List<TItem> Items
         {
             get
             {
                 Debug.Assert(base.Items is List<TItem>);
-
                 return (List<TItem>)base.Items;
             }
         }
 
-        public IEqualityComparer<TKey> Comparer
-        {
-            get
-            {
-                return comparer;
-            }
-        }
+        public IEqualityComparer<TKey> Comparer => comparer;
 
         public TItem this[TKey key]
         {
             get
             {
                 TItem item;
-                if (TryGetValue(key, out item))
+                if (TryGetValue(key, out item!))
                 {
                     return item;
                 }
 
-                throw new KeyNotFoundException();
+                throw new KeyNotFoundException(SR.Format(SR.Arg_KeyNotFoundWithKey, key.ToString()));
             }
         }
 
@@ -98,12 +84,16 @@ namespace System.Collections.ObjectModel
 
             foreach (TItem item in Items)
             {
-                if (comparer.Equals(GetKeyForItem(item), key)) return true;
+                if (comparer.Equals(GetKeyForItem(item), key))
+                {
+                    return true;
+                }
             }
+
             return false;
         }
 
-        public bool TryGetValue(TKey key, out TItem item)
+        public bool TryGetValue(TKey key, [MaybeNullWhen(false)] out TItem item)
         {
             if (key == null)
             {
@@ -112,7 +102,7 @@ namespace System.Collections.ObjectModel
 
             if (dict != null)
             {
-                return dict.TryGetValue(key, out item);
+                return dict.TryGetValue(key, out item!);
             }
 
             foreach (TItem itemInItems in Items)
@@ -125,7 +115,7 @@ namespace System.Collections.ObjectModel
                 }
             }
 
-            item = default(TItem);
+            item = default(TItem)!;
             return false;
         }
 
@@ -138,11 +128,11 @@ namespace System.Collections.ObjectModel
             }
 
             TItem itemInDict;
-            bool exist = dict.TryGetValue(key, out itemInDict);
-            if (exist)
+            if (dict.TryGetValue(key, out itemInDict!))
             {
                 return EqualityComparer<TItem>.Default.Equals(itemInDict, item);
             }
+
             return false;
         }
 
@@ -156,7 +146,7 @@ namespace System.Collections.ObjectModel
             if (dict != null)
             {
                 TItem item;
-                return dict.TryGetValue(key, out item) && Remove(item);
+                return dict.TryGetValue(key, out item!) && Remove(item);
             }
 
             for (int i = 0; i < Items.Count; i++)
@@ -167,20 +157,17 @@ namespace System.Collections.ObjectModel
                     return true;
                 }
             }
+
             return false;
         }
 
-        protected IDictionary<TKey, TItem> Dictionary
-        {
-            get { return dict; }
-        }
+        protected IDictionary<TKey, TItem>? Dictionary => dict;
 
         protected void ChangeItemKey(TItem item, TKey newKey)
         {
-            // Check if the item exists in the collection
             if (!ContainsItem(item))
             {
-                throw new ArgumentException(SR.Argument_ItemNotExist);
+                throw new ArgumentException(SR.Argument_ItemNotExist, nameof(item));
             }
 
             TKey oldKey = GetKeyForItem(item);
@@ -190,7 +177,6 @@ namespace System.Collections.ObjectModel
                 {
                     AddKey(newKey, item);
                 }
-
                 if (oldKey != null)
                 {
                     RemoveKey(oldKey);
@@ -201,11 +187,7 @@ namespace System.Collections.ObjectModel
         protected override void ClearItems()
         {
             base.ClearItems();
-            if (dict != null)
-            {
-                dict.Clear();
-            }
-
+            dict?.Clear();
             keyCount = 0;
         }
 
@@ -218,6 +200,7 @@ namespace System.Collections.ObjectModel
             {
                 AddKey(key, item);
             }
+
             base.InsertItem(index, item);
         }
 
@@ -228,6 +211,7 @@ namespace System.Collections.ObjectModel
             {
                 RemoveKey(key);
             }
+
             base.RemoveItem(index);
         }
 
@@ -255,6 +239,7 @@ namespace System.Collections.ObjectModel
                     RemoveKey(oldKey);
                 }
             }
+
             base.SetItem(index, item);
         }
 
@@ -267,13 +252,13 @@ namespace System.Collections.ObjectModel
             else if (keyCount == threshold)
             {
                 CreateDictionary();
-                dict.Add(key, item);
+                dict!.Add(key, item);
             }
             else
             {
                 if (Contains(key))
                 {
-                    throw new ArgumentException(SR.Format(SR.Argument_AddingDuplicate, key));
+                    throw new ArgumentException(SR.Format(SR.Argument_AddingDuplicate, key), nameof(key));
                 }
 
                 keyCount++;

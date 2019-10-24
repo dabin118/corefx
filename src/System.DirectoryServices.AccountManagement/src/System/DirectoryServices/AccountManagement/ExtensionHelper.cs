@@ -15,11 +15,10 @@ namespace System.DirectoryServices.AccountManagement
             _p = p;
         }
 
-        private Principal _p;
+        private readonly Principal _p;
 
         internal string RdnPrefix
         {
-            [System.Security.SecurityCritical]
             get
             {
                 DirectoryRdnPrefixAttribute[] MyAttribute =
@@ -46,7 +45,7 @@ namespace System.DirectoryServices.AccountManagement
             }
         }
 
-        static internal string ReadStructuralObjectClass(Type principalType)
+        internal static string ReadStructuralObjectClass(Type principalType)
         {
             DirectoryObjectClassAttribute[] MyAttribute =
             (DirectoryObjectClassAttribute[])Attribute.GetCustomAttributes(principalType, typeof(DirectoryObjectClassAttribute), false);
@@ -75,7 +74,6 @@ namespace System.DirectoryServices.AccountManagement
 
         internal string StructuralObjectClass
         {
-            [System.Security.SecurityCritical]
             get
             {
                 DirectoryObjectClassAttribute[] MyAttribute =
@@ -101,9 +99,9 @@ namespace System.DirectoryServices.AccountManagement
                 return defaultObjectClass;
             }
         }
-        /*        
+        /*
                 internal string SchemaAttributeName(string propertyName)
-                {            
+                {
                     System.Reflection.PropertyInfo propInfo = this.GetType().GetProperty(propertyName);
 
                     if ( null == propInfo )
@@ -135,4 +133,3 @@ namespace System.DirectoryServices.AccountManagement
 
     }
 }
-

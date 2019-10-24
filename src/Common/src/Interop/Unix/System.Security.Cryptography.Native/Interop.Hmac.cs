@@ -11,26 +11,21 @@ internal static partial class Interop
     internal static partial class Crypto
     {
         [DllImport(Libraries.CryptoNative, EntryPoint = "CryptoNative_HmacCreate")]
-        internal extern static unsafe SafeHmacCtxHandle HmacCreate(byte* key, int keyLen, IntPtr md);
+        internal static extern SafeHmacCtxHandle HmacCreate(ref byte key, int keyLen, IntPtr md);
 
         [DllImport(Libraries.CryptoNative, EntryPoint = "CryptoNative_HmacDestroy")]
-        internal extern static void HmacDestroy(IntPtr ctx);
+        internal static extern void HmacDestroy(IntPtr ctx);
 
         [DllImport(Libraries.CryptoNative, EntryPoint = "CryptoNative_HmacReset")]
-        internal extern static int HmacReset(SafeHmacCtxHandle ctx);
+        internal static extern int HmacReset(SafeHmacCtxHandle ctx);
 
-        internal static unsafe int HmacUpdate(SafeHmacCtxHandle ctx, ReadOnlySpan<byte> data, int len)
-        {
-            fixed (byte* dataPtr = &data.DangerousGetPinnableReference())
-            {
-                return HmacUpdate(ctx, dataPtr, len);
-            }
-        }
+        internal static int HmacUpdate(SafeHmacCtxHandle ctx, ReadOnlySpan<byte> data, int len) =>
+            HmacUpdate(ctx, ref MemoryMarshal.GetReference(data), len);
 
         [DllImport(Libraries.CryptoNative, EntryPoint = "CryptoNative_HmacUpdate")]
-        private extern static unsafe int HmacUpdate(SafeHmacCtxHandle ctx, byte* data, int len);
+        private static extern int HmacUpdate(SafeHmacCtxHandle ctx, ref byte data, int len);
 
         [DllImport(Libraries.CryptoNative, EntryPoint = "CryptoNative_HmacFinal")]
-        internal extern static unsafe int HmacFinal(SafeHmacCtxHandle ctx, byte* data, ref int len);
+        internal static extern int HmacFinal(SafeHmacCtxHandle ctx, ref byte data, ref int len);
     }
 }

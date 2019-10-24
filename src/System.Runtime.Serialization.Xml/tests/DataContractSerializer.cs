@@ -1,4 +1,4 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
@@ -19,6 +19,7 @@ using System.Xml;
 using System.Xml.Linq;
 using System.Xml.Schema;
 using Xunit;
+using System.Runtime.Serialization.Tests;
 
 
 public static partial class DataContractSerializerTests
@@ -28,12 +29,9 @@ public static partial class DataContractSerializerTests
 
     static DataContractSerializerTests()
     {
-        if (!PlatformDetection.IsFullFramework)
-        {
-            MethodInfo method = typeof(DataContractSerializer).GetMethod(SerializationOptionSetterName, BindingFlags.NonPublic | BindingFlags.Static);
-            Assert.True(method != null, $"No method named {SerializationOptionSetterName}");
-            method.Invoke(null, new object[] { 1 });
-        }
+        MethodInfo method = typeof(DataContractSerializer).GetMethod(SerializationOptionSetterName, BindingFlags.NonPublic | BindingFlags.Static);
+        Assert.True(method != null, $"No method named {SerializationOptionSetterName}");
+        method.Invoke(null, new object[] { 1 });
     }
 #endif
     [Fact]
@@ -64,54 +62,54 @@ public static partial class DataContractSerializerTests
         };
         for (int i = 0; i < objs.Length; ++i)
         {
-            Assert.StrictEqual(SerializeAndDeserialize<DateTimeOffset>(objs[i], serializedStrings[i]), objs[i]);
+            Assert.StrictEqual(DataContractSerializerHelper.SerializeAndDeserialize<DateTimeOffset>(objs[i], serializedStrings[i]), objs[i]);
         }
     }
 
     [Fact]
     public static void DCS_BoolAsRoot()
     {
-        Assert.StrictEqual(SerializeAndDeserialize<bool>(true, @"<boolean xmlns=""http://schemas.microsoft.com/2003/10/Serialization/"">true</boolean>"), true);
-        Assert.StrictEqual(SerializeAndDeserialize<bool>(false, @"<boolean xmlns=""http://schemas.microsoft.com/2003/10/Serialization/"">false</boolean>"), false);
+        Assert.True(DataContractSerializerHelper.SerializeAndDeserialize<bool>(true, @"<boolean xmlns=""http://schemas.microsoft.com/2003/10/Serialization/"">true</boolean>"));
+        Assert.False(DataContractSerializerHelper.SerializeAndDeserialize<bool>(false, @"<boolean xmlns=""http://schemas.microsoft.com/2003/10/Serialization/"">false</boolean>"));
     }
 
     [Fact]
     public static void DCS_ByteArrayAsRoot()
     {
-        Assert.Null(SerializeAndDeserialize<byte[]>(null, @"<base64Binary i:nil=""true"" xmlns=""http://schemas.microsoft.com/2003/10/Serialization/"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""/>"));
+        Assert.Null(DataContractSerializerHelper.SerializeAndDeserialize<byte[]>(null, @"<base64Binary i:nil=""true"" xmlns=""http://schemas.microsoft.com/2003/10/Serialization/"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""/>"));
         byte[] x = new byte[] { 1, 2 };
-        byte[] y = SerializeAndDeserialize<byte[]>(x, @"<base64Binary xmlns=""http://schemas.microsoft.com/2003/10/Serialization/"">AQI=</base64Binary>");
+        byte[] y = DataContractSerializerHelper.SerializeAndDeserialize<byte[]>(x, @"<base64Binary xmlns=""http://schemas.microsoft.com/2003/10/Serialization/"">AQI=</base64Binary>");
         Assert.Equal<byte>(x, y);
     }
 
     [Fact]
     public static void DCS_CharAsRoot()
     {
-        Assert.StrictEqual(SerializeAndDeserialize<char>(char.MinValue, @"<char xmlns=""http://schemas.microsoft.com/2003/10/Serialization/"">0</char>"), char.MinValue);
-        Assert.StrictEqual(SerializeAndDeserialize<char>(char.MaxValue, @"<char xmlns=""http://schemas.microsoft.com/2003/10/Serialization/"">65535</char>"), char.MaxValue);
-        Assert.StrictEqual(SerializeAndDeserialize<char>('a', @"<char xmlns=""http://schemas.microsoft.com/2003/10/Serialization/"">97</char>"), 'a');
-        Assert.StrictEqual(SerializeAndDeserialize<char>('ñ', @"<char xmlns=""http://schemas.microsoft.com/2003/10/Serialization/"">241</char>"), 'ñ');
-        Assert.StrictEqual(SerializeAndDeserialize<char>('漢', @"<char xmlns=""http://schemas.microsoft.com/2003/10/Serialization/"">28450</char>"), '漢');
+        Assert.StrictEqual(DataContractSerializerHelper.SerializeAndDeserialize<char>(char.MinValue, @"<char xmlns=""http://schemas.microsoft.com/2003/10/Serialization/"">0</char>"), char.MinValue);
+        Assert.StrictEqual(DataContractSerializerHelper.SerializeAndDeserialize<char>(char.MaxValue, @"<char xmlns=""http://schemas.microsoft.com/2003/10/Serialization/"">65535</char>"), char.MaxValue);
+        Assert.StrictEqual('a', DataContractSerializerHelper.SerializeAndDeserialize<char>('a', @"<char xmlns=""http://schemas.microsoft.com/2003/10/Serialization/"">97</char>"));
+        Assert.StrictEqual('\u00F1', DataContractSerializerHelper.SerializeAndDeserialize<char>('\u00F1', @"<char xmlns=""http://schemas.microsoft.com/2003/10/Serialization/"">241</char>"));
+        Assert.StrictEqual('\u6F22', DataContractSerializerHelper.SerializeAndDeserialize<char>('\u6F22', @"<char xmlns=""http://schemas.microsoft.com/2003/10/Serialization/"">28450</char>"));
     }
 
     [Fact]
     public static void DCS_ByteAsRoot()
     {
-        Assert.StrictEqual(SerializeAndDeserialize<byte>(10, @"<unsignedByte xmlns=""http://schemas.microsoft.com/2003/10/Serialization/"">10</unsignedByte>"), 10);
-        Assert.StrictEqual(SerializeAndDeserialize<byte>(byte.MinValue, @"<unsignedByte xmlns=""http://schemas.microsoft.com/2003/10/Serialization/"">0</unsignedByte>"), byte.MinValue);
-        Assert.StrictEqual(SerializeAndDeserialize<byte>(byte.MaxValue, @"<unsignedByte xmlns=""http://schemas.microsoft.com/2003/10/Serialization/"">255</unsignedByte>"), byte.MaxValue);
+        Assert.StrictEqual(10, DataContractSerializerHelper.SerializeAndDeserialize<byte>(10, @"<unsignedByte xmlns=""http://schemas.microsoft.com/2003/10/Serialization/"">10</unsignedByte>"));
+        Assert.StrictEqual(DataContractSerializerHelper.SerializeAndDeserialize<byte>(byte.MinValue, @"<unsignedByte xmlns=""http://schemas.microsoft.com/2003/10/Serialization/"">0</unsignedByte>"), byte.MinValue);
+        Assert.StrictEqual(DataContractSerializerHelper.SerializeAndDeserialize<byte>(byte.MaxValue, @"<unsignedByte xmlns=""http://schemas.microsoft.com/2003/10/Serialization/"">255</unsignedByte>"), byte.MaxValue);
     }
 
     [Fact]
     public static void DCS_DateTimeAsRoot()
     {
         var offsetMinutes = (int)TimeZoneInfo.Local.GetUtcOffset(new DateTime(2013, 1, 2)).TotalMinutes;
-        Assert.StrictEqual(SerializeAndDeserialize<DateTime>(new DateTime(2013, 1, 2), @"<dateTime xmlns=""http://schemas.microsoft.com/2003/10/Serialization/"">2013-01-02T00:00:00</dateTime>"), new DateTime(2013, 1, 2));
-        Assert.StrictEqual(SerializeAndDeserialize<DateTime>(new DateTime(2013, 1, 2, 3, 4, 5, 6, DateTimeKind.Local), string.Format(@"<dateTime xmlns=""http://schemas.microsoft.com/2003/10/Serialization/"">2013-01-02T03:04:05.006{0:+;-}{1}</dateTime>", offsetMinutes, new TimeSpan(0, offsetMinutes, 0).ToString(@"hh\:mm"))), new DateTime(2013, 1, 2, 3, 4, 5, 6, DateTimeKind.Local));
-        Assert.StrictEqual(SerializeAndDeserialize<DateTime>(new DateTime(2013, 1, 2, 3, 4, 5, 6, DateTimeKind.Unspecified), @"<dateTime xmlns=""http://schemas.microsoft.com/2003/10/Serialization/"">2013-01-02T03:04:05.006</dateTime>"), new DateTime(2013, 1, 2, 3, 4, 5, 6, DateTimeKind.Unspecified));
-        Assert.StrictEqual(SerializeAndDeserialize<DateTime>(new DateTime(2013, 1, 2, 3, 4, 5, 6, DateTimeKind.Utc), @"<dateTime xmlns=""http://schemas.microsoft.com/2003/10/Serialization/"">2013-01-02T03:04:05.006Z</dateTime>"), new DateTime(2013, 1, 2, 3, 4, 5, 6, DateTimeKind.Utc));
-        Assert.StrictEqual(SerializeAndDeserialize<DateTime>(DateTime.SpecifyKind(DateTime.MinValue, DateTimeKind.Utc), @"<dateTime xmlns=""http://schemas.microsoft.com/2003/10/Serialization/"">0001-01-01T00:00:00Z</dateTime>"), DateTime.SpecifyKind(DateTime.MinValue, DateTimeKind.Utc));
-        Assert.StrictEqual(SerializeAndDeserialize<DateTime>(DateTime.SpecifyKind(DateTime.MaxValue, DateTimeKind.Utc), @"<dateTime xmlns=""http://schemas.microsoft.com/2003/10/Serialization/"">9999-12-31T23:59:59.9999999Z</dateTime>"), DateTime.SpecifyKind(DateTime.MaxValue, DateTimeKind.Utc));
+        Assert.StrictEqual(DataContractSerializerHelper.SerializeAndDeserialize<DateTime>(new DateTime(2013, 1, 2), @"<dateTime xmlns=""http://schemas.microsoft.com/2003/10/Serialization/"">2013-01-02T00:00:00</dateTime>"), new DateTime(2013, 1, 2));
+        Assert.StrictEqual(DataContractSerializerHelper.SerializeAndDeserialize<DateTime>(new DateTime(2013, 1, 2, 3, 4, 5, 6, DateTimeKind.Local), string.Format(@"<dateTime xmlns=""http://schemas.microsoft.com/2003/10/Serialization/"">2013-01-02T03:04:05.006{0:+;-}{1}</dateTime>", offsetMinutes, new TimeSpan(0, offsetMinutes, 0).ToString(@"hh\:mm"))), new DateTime(2013, 1, 2, 3, 4, 5, 6, DateTimeKind.Local));
+        Assert.StrictEqual(DataContractSerializerHelper.SerializeAndDeserialize<DateTime>(new DateTime(2013, 1, 2, 3, 4, 5, 6, DateTimeKind.Unspecified), @"<dateTime xmlns=""http://schemas.microsoft.com/2003/10/Serialization/"">2013-01-02T03:04:05.006</dateTime>"), new DateTime(2013, 1, 2, 3, 4, 5, 6, DateTimeKind.Unspecified));
+        Assert.StrictEqual(DataContractSerializerHelper.SerializeAndDeserialize<DateTime>(new DateTime(2013, 1, 2, 3, 4, 5, 6, DateTimeKind.Utc), @"<dateTime xmlns=""http://schemas.microsoft.com/2003/10/Serialization/"">2013-01-02T03:04:05.006Z</dateTime>"), new DateTime(2013, 1, 2, 3, 4, 5, 6, DateTimeKind.Utc));
+        Assert.StrictEqual(DataContractSerializerHelper.SerializeAndDeserialize<DateTime>(DateTime.SpecifyKind(DateTime.MinValue, DateTimeKind.Utc), @"<dateTime xmlns=""http://schemas.microsoft.com/2003/10/Serialization/"">0001-01-01T00:00:00Z</dateTime>"), DateTime.SpecifyKind(DateTime.MinValue, DateTimeKind.Utc));
+        Assert.StrictEqual(DataContractSerializerHelper.SerializeAndDeserialize<DateTime>(DateTime.SpecifyKind(DateTime.MaxValue, DateTimeKind.Utc), @"<dateTime xmlns=""http://schemas.microsoft.com/2003/10/Serialization/"">9999-12-31T23:59:59.9999999Z</dateTime>"), DateTime.SpecifyKind(DateTime.MaxValue, DateTimeKind.Utc));
     }
 
     [Fact]
@@ -119,28 +117,33 @@ public static partial class DataContractSerializerTests
     {
         foreach (decimal value in new decimal[] { (decimal)-1.2, (decimal)0, (decimal)2.3, decimal.MinValue, decimal.MaxValue })
         {
-            Assert.StrictEqual(SerializeAndDeserialize<decimal>(value, string.Format(@"<decimal xmlns=""http://schemas.microsoft.com/2003/10/Serialization/"">{0}</decimal>", value.ToString(CultureInfo.InvariantCulture))), value);
+            Assert.StrictEqual(DataContractSerializerHelper.SerializeAndDeserialize<decimal>(value, string.Format(@"<decimal xmlns=""http://schemas.microsoft.com/2003/10/Serialization/"">{0}</decimal>", value.ToString(CultureInfo.InvariantCulture))), value);
         }
     }
 
     [Fact]
     public static void DCS_DoubleAsRoot()
     {
-        Assert.StrictEqual(SerializeAndDeserialize<double>(-1.2, @"<double xmlns=""http://schemas.microsoft.com/2003/10/Serialization/"">-1.2</double>"), -1.2);
-        Assert.StrictEqual(SerializeAndDeserialize<double>(0, @"<double xmlns=""http://schemas.microsoft.com/2003/10/Serialization/"">0</double>"), 0);
-        Assert.StrictEqual(SerializeAndDeserialize<double>(2.3, @"<double xmlns=""http://schemas.microsoft.com/2003/10/Serialization/"">2.3</double>"), 2.3);
-        Assert.StrictEqual(SerializeAndDeserialize<double>(double.MinValue, @"<double xmlns=""http://schemas.microsoft.com/2003/10/Serialization/"">-1.7976931348623157E+308</double>"), double.MinValue);
-        Assert.StrictEqual(SerializeAndDeserialize<double>(double.MaxValue, @"<double xmlns=""http://schemas.microsoft.com/2003/10/Serialization/"">1.7976931348623157E+308</double>"), double.MaxValue);
+        Assert.StrictEqual(DataContractSerializerHelper.SerializeAndDeserialize<double>(-1.2, @"<double xmlns=""http://schemas.microsoft.com/2003/10/Serialization/"">-1.2</double>"), -1.2);
+        Assert.StrictEqual(0, DataContractSerializerHelper.SerializeAndDeserialize<double>(0, @"<double xmlns=""http://schemas.microsoft.com/2003/10/Serialization/"">0</double>"));
+        Assert.StrictEqual(2.3, DataContractSerializerHelper.SerializeAndDeserialize<double>(2.3, @"<double xmlns=""http://schemas.microsoft.com/2003/10/Serialization/"">2.3</double>"));
+        Assert.StrictEqual(DataContractSerializerHelper.SerializeAndDeserialize<double>(double.MinValue, @"<double xmlns=""http://schemas.microsoft.com/2003/10/Serialization/"">-1.7976931348623157E+308</double>"), double.MinValue);
+        Assert.StrictEqual(DataContractSerializerHelper.SerializeAndDeserialize<double>(double.MaxValue, @"<double xmlns=""http://schemas.microsoft.com/2003/10/Serialization/"">1.7976931348623157E+308</double>"), double.MaxValue);
     }
 
     [Fact]
     public static void DCS_FloatAsRoot()
     {
-        Assert.StrictEqual(SerializeAndDeserialize<float>((float)-1.2, @"<float xmlns=""http://schemas.microsoft.com/2003/10/Serialization/"">-1.2</float>"), (float)-1.2);
-        Assert.StrictEqual(SerializeAndDeserialize<float>((float)0, @"<float xmlns=""http://schemas.microsoft.com/2003/10/Serialization/"">0</float>"), (float)0);
-        Assert.StrictEqual(SerializeAndDeserialize<float>((float)2.3, @"<float xmlns=""http://schemas.microsoft.com/2003/10/Serialization/"">2.3</float>"), (float)2.3);
-        Assert.StrictEqual(SerializeAndDeserialize<float>(float.MinValue, @"<float xmlns=""http://schemas.microsoft.com/2003/10/Serialization/"">-3.40282347E+38</float>"), float.MinValue);
-        Assert.StrictEqual(SerializeAndDeserialize<float>(float.MaxValue, @"<float xmlns=""http://schemas.microsoft.com/2003/10/Serialization/"">3.40282347E+38</float>"), float.MaxValue);
+        Assert.StrictEqual(DataContractSerializerHelper.SerializeAndDeserialize<float>((float)-1.2, @"<float xmlns=""http://schemas.microsoft.com/2003/10/Serialization/"">-1.2</float>"), (float)-1.2);
+        Assert.StrictEqual(DataContractSerializerHelper.SerializeAndDeserialize<float>((float)0, @"<float xmlns=""http://schemas.microsoft.com/2003/10/Serialization/"">0</float>"), (float)0);
+        Assert.StrictEqual(DataContractSerializerHelper.SerializeAndDeserialize<float>((float)2.3, @"<float xmlns=""http://schemas.microsoft.com/2003/10/Serialization/"">2.3</float>"), (float)2.3);
+    }
+
+    [Fact]
+    public static void DCS_FloatAsRoot_NotNetFramework()
+    {
+        Assert.StrictEqual(DataContractSerializerHelper.SerializeAndDeserialize<float>(float.MinValue, @"<float xmlns=""http://schemas.microsoft.com/2003/10/Serialization/"">-3.4028235E+38</float>"), float.MinValue);
+        Assert.StrictEqual(DataContractSerializerHelper.SerializeAndDeserialize<float>(float.MaxValue, @"<float xmlns=""http://schemas.microsoft.com/2003/10/Serialization/"">3.4028235E+38</float>"), float.MaxValue);
     }
 
     [Fact]
@@ -148,7 +151,7 @@ public static partial class DataContractSerializerTests
     {
         foreach (Guid value in new Guid[] { Guid.NewGuid(), Guid.Empty })
         {
-            Assert.StrictEqual(SerializeAndDeserialize<Guid>(value, string.Format(@"<guid xmlns=""http://schemas.microsoft.com/2003/10/Serialization/"">{0}</guid>", value.ToString())), value);
+            Assert.StrictEqual(DataContractSerializerHelper.SerializeAndDeserialize<Guid>(value, string.Format(@"<guid xmlns=""http://schemas.microsoft.com/2003/10/Serialization/"">{0}</guid>", value.ToString())), value);
         }
     }
 
@@ -157,7 +160,7 @@ public static partial class DataContractSerializerTests
     {
         foreach (int value in new int[] { -1, 0, 2, int.MinValue, int.MaxValue })
         {
-            Assert.StrictEqual(SerializeAndDeserialize<int>(value, string.Format(@"<int xmlns=""http://schemas.microsoft.com/2003/10/Serialization/"">{0}</int>", value)), value);
+            Assert.StrictEqual(DataContractSerializerHelper.SerializeAndDeserialize<int>(value, string.Format(@"<int xmlns=""http://schemas.microsoft.com/2003/10/Serialization/"">{0}</int>", value)), value);
         }
     }
 
@@ -166,24 +169,24 @@ public static partial class DataContractSerializerTests
     {
         foreach (long value in new long[] { (long)-1, (long)0, (long)2, long.MinValue, long.MaxValue })
         {
-            Assert.StrictEqual(SerializeAndDeserialize<long>(value, string.Format(@"<long xmlns=""http://schemas.microsoft.com/2003/10/Serialization/"">{0}</long>", value)), value);
+            Assert.StrictEqual(DataContractSerializerHelper.SerializeAndDeserialize<long>(value, string.Format(@"<long xmlns=""http://schemas.microsoft.com/2003/10/Serialization/"">{0}</long>", value)), value);
         }
     }
 
     [Fact]
     public static void DCS_ObjectAsRoot()
     {
-        Assert.StrictEqual(SerializeAndDeserialize<object>(1, @"<z:anyType i:type=""a:int"" xmlns:z=""http://schemas.microsoft.com/2003/10/Serialization/"" xmlns:a=""http://www.w3.org/2001/XMLSchema"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance"">1</z:anyType>"), 1);
-        Assert.StrictEqual(SerializeAndDeserialize<object>(true, @"<z:anyType i:type=""a:boolean"" xmlns:z=""http://schemas.microsoft.com/2003/10/Serialization/"" xmlns:a=""http://www.w3.org/2001/XMLSchema"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance"">true</z:anyType>"), true);
-        Assert.StrictEqual(SerializeAndDeserialize<object>("abc", @"<z:anyType i:type=""a:string"" xmlns:z=""http://schemas.microsoft.com/2003/10/Serialization/"" xmlns:a=""http://www.w3.org/2001/XMLSchema"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance"">abc</z:anyType>"), "abc");
-        Assert.StrictEqual(SerializeAndDeserialize<object>(null, @"<z:anyType i:nil=""true"" xmlns:z=""http://schemas.microsoft.com/2003/10/Serialization/"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""/>"), null);
+        Assert.StrictEqual(1, DataContractSerializerHelper.SerializeAndDeserialize<object>(1, @"<z:anyType i:type=""a:int"" xmlns:z=""http://schemas.microsoft.com/2003/10/Serialization/"" xmlns:a=""http://www.w3.org/2001/XMLSchema"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance"">1</z:anyType>"));
+        Assert.StrictEqual(true, DataContractSerializerHelper.SerializeAndDeserialize<object>(true, @"<z:anyType i:type=""a:boolean"" xmlns:z=""http://schemas.microsoft.com/2003/10/Serialization/"" xmlns:a=""http://www.w3.org/2001/XMLSchema"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance"">true</z:anyType>"));
+        Assert.StrictEqual("abc", DataContractSerializerHelper.SerializeAndDeserialize<object>("abc", @"<z:anyType i:type=""a:string"" xmlns:z=""http://schemas.microsoft.com/2003/10/Serialization/"" xmlns:a=""http://www.w3.org/2001/XMLSchema"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance"">abc</z:anyType>"));
+        Assert.Null(DataContractSerializerHelper.SerializeAndDeserialize<object>(null, @"<z:anyType i:nil=""true"" xmlns:z=""http://schemas.microsoft.com/2003/10/Serialization/"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""/>"));
     }
 
     [Fact]
     public static void DCS_XmlQualifiedNameAsRoot()
     {
-        Assert.StrictEqual(SerializeAndDeserialize<XmlQualifiedName>(new XmlQualifiedName("abc", "def"), @"<z:QName xmlns:z=""http://schemas.microsoft.com/2003/10/Serialization/"" xmlns:a=""def"">a:abc</z:QName>"), new XmlQualifiedName("abc", "def"));
-        Assert.StrictEqual(SerializeAndDeserialize<XmlQualifiedName>(XmlQualifiedName.Empty, @"<z:QName xmlns:z=""http://schemas.microsoft.com/2003/10/Serialization/""/>"), XmlQualifiedName.Empty);
+        Assert.StrictEqual(DataContractSerializerHelper.SerializeAndDeserialize<XmlQualifiedName>(new XmlQualifiedName("abc", "def"), @"<z:QName xmlns:z=""http://schemas.microsoft.com/2003/10/Serialization/"" xmlns:a=""def"">a:abc</z:QName>"), new XmlQualifiedName("abc", "def"));
+        Assert.StrictEqual(DataContractSerializerHelper.SerializeAndDeserialize<XmlQualifiedName>(XmlQualifiedName.Empty, @"<z:QName xmlns:z=""http://schemas.microsoft.com/2003/10/Serialization/""/>"), XmlQualifiedName.Empty);
     }
 
     [Fact]
@@ -191,7 +194,7 @@ public static partial class DataContractSerializerTests
     {
         foreach (short value in new short[] { (short)-1.2, (short)0, (short)2.3, short.MinValue, short.MaxValue })
         {
-            Assert.StrictEqual(SerializeAndDeserialize<short>(value, string.Format(@"<short xmlns=""http://schemas.microsoft.com/2003/10/Serialization/"">{0}</short>", value)), value);
+            Assert.StrictEqual(DataContractSerializerHelper.SerializeAndDeserialize<short>(value, string.Format(@"<short xmlns=""http://schemas.microsoft.com/2003/10/Serialization/"">{0}</short>", value)), value);
         }
     }
 
@@ -200,28 +203,28 @@ public static partial class DataContractSerializerTests
     {
         foreach (sbyte value in new sbyte[] { (sbyte)3, (sbyte)0, sbyte.MinValue, sbyte.MaxValue })
         {
-            Assert.StrictEqual(SerializeAndDeserialize<sbyte>(value, string.Format(@"<byte xmlns=""http://schemas.microsoft.com/2003/10/Serialization/"">{0}</byte>", value)), value);
+            Assert.StrictEqual(DataContractSerializerHelper.SerializeAndDeserialize<sbyte>(value, string.Format(@"<byte xmlns=""http://schemas.microsoft.com/2003/10/Serialization/"">{0}</byte>", value)), value);
         }
     }
 
     [Fact]
     public static void DCS_StringAsRoot()
     {
-        Assert.StrictEqual(SerializeAndDeserialize<string>("abc", @"<string xmlns=""http://schemas.microsoft.com/2003/10/Serialization/"">abc</string>"), "abc");
-        Assert.StrictEqual(SerializeAndDeserialize<string>("  a b  ", @"<string xmlns=""http://schemas.microsoft.com/2003/10/Serialization/"">  a b  </string>"), "  a b  ");
-        Assert.StrictEqual(SerializeAndDeserialize<string>(null, @"<string i:nil=""true"" xmlns=""http://schemas.microsoft.com/2003/10/Serialization/"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""/>"), null);
-        Assert.StrictEqual(SerializeAndDeserialize<string>("", @"<string xmlns=""http://schemas.microsoft.com/2003/10/Serialization/""/>"), "");
-        Assert.StrictEqual(SerializeAndDeserialize<string>(" ", @"<string xmlns=""http://schemas.microsoft.com/2003/10/Serialization/""> </string>"), " ");
-        Assert.StrictEqual(SerializeAndDeserialize<string>("Hello World! 漢 ñ", @"<string xmlns=""http://schemas.microsoft.com/2003/10/Serialization/"">Hello World! 漢 ñ</string>"), "Hello World! 漢 ñ");
+        Assert.Equal("abc", DataContractSerializerHelper.SerializeAndDeserialize<string>("abc", @"<string xmlns=""http://schemas.microsoft.com/2003/10/Serialization/"">abc</string>"));
+        Assert.Equal("  a b  ", DataContractSerializerHelper.SerializeAndDeserialize<string>("  a b  ", @"<string xmlns=""http://schemas.microsoft.com/2003/10/Serialization/"">  a b  </string>"));
+        Assert.Null(DataContractSerializerHelper.SerializeAndDeserialize<string>(null, @"<string i:nil=""true"" xmlns=""http://schemas.microsoft.com/2003/10/Serialization/"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""/>"));
+        Assert.Equal("", DataContractSerializerHelper.SerializeAndDeserialize<string>("", @"<string xmlns=""http://schemas.microsoft.com/2003/10/Serialization/""/>"));
+        Assert.Equal(" ", DataContractSerializerHelper.SerializeAndDeserialize<string>(" ", @"<string xmlns=""http://schemas.microsoft.com/2003/10/Serialization/""> </string>"));
+        Assert.Equal("Hello World! \u6F22 \u00F1", DataContractSerializerHelper.SerializeAndDeserialize<string>("Hello World! \u6F22 \u00F1", "<string xmlns=\"http://schemas.microsoft.com/2003/10/Serialization/\">Hello World! \u6F22 \u00F1</string>"));
     }
 
     [Fact]
     public static void DCS_TimeSpanAsRoot()
     {
-        Assert.StrictEqual(SerializeAndDeserialize<TimeSpan>(new TimeSpan(1, 2, 3), @"<duration xmlns=""http://schemas.microsoft.com/2003/10/Serialization/"">PT1H2M3S</duration>"), new TimeSpan(1, 2, 3));
-        Assert.StrictEqual(SerializeAndDeserialize<TimeSpan>(TimeSpan.Zero, @"<duration xmlns=""http://schemas.microsoft.com/2003/10/Serialization/"">PT0S</duration>"), TimeSpan.Zero);
-        Assert.StrictEqual(SerializeAndDeserialize<TimeSpan>(TimeSpan.MinValue, @"<duration xmlns=""http://schemas.microsoft.com/2003/10/Serialization/"">-P10675199DT2H48M5.4775808S</duration>"), TimeSpan.MinValue);
-        Assert.StrictEqual(SerializeAndDeserialize<TimeSpan>(TimeSpan.MaxValue, @"<duration xmlns=""http://schemas.microsoft.com/2003/10/Serialization/"">P10675199DT2H48M5.4775807S</duration>"), TimeSpan.MaxValue);
+        Assert.StrictEqual(DataContractSerializerHelper.SerializeAndDeserialize<TimeSpan>(new TimeSpan(1, 2, 3), @"<duration xmlns=""http://schemas.microsoft.com/2003/10/Serialization/"">PT1H2M3S</duration>"), new TimeSpan(1, 2, 3));
+        Assert.StrictEqual(DataContractSerializerHelper.SerializeAndDeserialize<TimeSpan>(TimeSpan.Zero, @"<duration xmlns=""http://schemas.microsoft.com/2003/10/Serialization/"">PT0S</duration>"), TimeSpan.Zero);
+        Assert.StrictEqual(DataContractSerializerHelper.SerializeAndDeserialize<TimeSpan>(TimeSpan.MinValue, @"<duration xmlns=""http://schemas.microsoft.com/2003/10/Serialization/"">-P10675199DT2H48M5.4775808S</duration>"), TimeSpan.MinValue);
+        Assert.StrictEqual(DataContractSerializerHelper.SerializeAndDeserialize<TimeSpan>(TimeSpan.MaxValue, @"<duration xmlns=""http://schemas.microsoft.com/2003/10/Serialization/"">P10675199DT2H48M5.4775807S</duration>"), TimeSpan.MaxValue);
     }
 
     [Fact]
@@ -229,7 +232,7 @@ public static partial class DataContractSerializerTests
     {
         foreach (uint value in new uint[] { (uint)3, (uint)0, uint.MinValue, uint.MaxValue })
         {
-            Assert.StrictEqual<uint>(SerializeAndDeserialize<uint>(value, string.Format(@"<unsignedInt xmlns=""http://schemas.microsoft.com/2003/10/Serialization/"">{0}</unsignedInt>", value)), value);
+            Assert.StrictEqual<uint>(DataContractSerializerHelper.SerializeAndDeserialize<uint>(value, string.Format(@"<unsignedInt xmlns=""http://schemas.microsoft.com/2003/10/Serialization/"">{0}</unsignedInt>", value)), value);
         }
     }
 
@@ -238,7 +241,7 @@ public static partial class DataContractSerializerTests
     {
         foreach (ulong value in new ulong[] { (ulong)3, (ulong)0, ulong.MinValue, ulong.MaxValue })
         {
-            Assert.StrictEqual(SerializeAndDeserialize<ulong>(value, string.Format(@"<unsignedLong xmlns=""http://schemas.microsoft.com/2003/10/Serialization/"">{0}</unsignedLong>", value)), value);
+            Assert.StrictEqual(DataContractSerializerHelper.SerializeAndDeserialize<ulong>(value, string.Format(@"<unsignedLong xmlns=""http://schemas.microsoft.com/2003/10/Serialization/"">{0}</unsignedLong>", value)), value);
         }
     }
 
@@ -247,22 +250,22 @@ public static partial class DataContractSerializerTests
     {
         foreach (ushort value in new ushort[] { (ushort)3, (ushort)0, ushort.MinValue, ushort.MaxValue })
         {
-            Assert.StrictEqual(SerializeAndDeserialize<ushort>(value, string.Format(@"<unsignedShort xmlns=""http://schemas.microsoft.com/2003/10/Serialization/"">{0}</unsignedShort>", value)), value);
+            Assert.StrictEqual(DataContractSerializerHelper.SerializeAndDeserialize<ushort>(value, string.Format(@"<unsignedShort xmlns=""http://schemas.microsoft.com/2003/10/Serialization/"">{0}</unsignedShort>", value)), value);
         }
     }
 
     [Fact]
     public static void DCS_UriAsRoot()
     {
-        Assert.StrictEqual(SerializeAndDeserialize<Uri>(new Uri("http://abc/"), @"<anyURI xmlns=""http://schemas.microsoft.com/2003/10/Serialization/"">http://abc/</anyURI>"), new Uri("http://abc/"));
-        Assert.StrictEqual(SerializeAndDeserialize<Uri>(new Uri("http://abc/def/x.aspx?p1=12&p2=34"), @"<anyURI xmlns=""http://schemas.microsoft.com/2003/10/Serialization/"">http://abc/def/x.aspx?p1=12&amp;p2=34</anyURI>"), new Uri("http://abc/def/x.aspx?p1=12&p2=34"));
+        Assert.StrictEqual(DataContractSerializerHelper.SerializeAndDeserialize<Uri>(new Uri("http://abc/"), @"<anyURI xmlns=""http://schemas.microsoft.com/2003/10/Serialization/"">http://abc/</anyURI>"), new Uri("http://abc/"));
+        Assert.StrictEqual(DataContractSerializerHelper.SerializeAndDeserialize<Uri>(new Uri("http://abc/def/x.aspx?p1=12&p2=34"), @"<anyURI xmlns=""http://schemas.microsoft.com/2003/10/Serialization/"">http://abc/def/x.aspx?p1=12&amp;p2=34</anyURI>"), new Uri("http://abc/def/x.aspx?p1=12&p2=34"));
     }
 
     [Fact]
     public static void DCS_ArrayAsRoot()
     {
         SimpleType[] x = new SimpleType[] { new SimpleType { P1 = "abc", P2 = 11 }, new SimpleType { P1 = "def", P2 = 12 } };
-        SimpleType[] y = SerializeAndDeserialize<SimpleType[]>(x, @"<ArrayOfSimpleType xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><SimpleType><P1>abc</P1><P2>11</P2></SimpleType><SimpleType><P1>def</P1><P2>12</P2></SimpleType></ArrayOfSimpleType>");
+        SimpleType[] y = DataContractSerializerHelper.SerializeAndDeserialize<SimpleType[]>(x, @"<ArrayOfSimpleType xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><SimpleType><P1>abc</P1><P2>11</P2></SimpleType><SimpleType><P1>def</P1><P2>12</P2></SimpleType></ArrayOfSimpleType>");
 
         Utils.Equal<SimpleType>(x, y, (a, b) => { return SimpleType.AreEqual(a, b); });
     }
@@ -277,7 +280,7 @@ public static partial class DataContractSerializerTests
             P1 = new SimpleType[] { new SimpleType { P1 = "ef", P2 = 5 }, new SimpleType { P1 = "gh", P2 = 7 } },
             P2 = new int[] { 11, 12 }
         };
-        TypeWithGetSetArrayMembers y = SerializeAndDeserialize<TypeWithGetSetArrayMembers>(x, @"<TypeWithGetSetArrayMembers xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><F1><SimpleType><P1>ab</P1><P2>1</P2></SimpleType><SimpleType><P1>cd</P1><P2>2</P2></SimpleType></F1><F2 xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""><a:int>-1</a:int><a:int>3</a:int></F2><P1><SimpleType><P1>ef</P1><P2>5</P2></SimpleType><SimpleType><P1>gh</P1><P2>7</P2></SimpleType></P1><P2 xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""><a:int>11</a:int><a:int>12</a:int></P2></TypeWithGetSetArrayMembers>");
+        TypeWithGetSetArrayMembers y = DataContractSerializerHelper.SerializeAndDeserialize<TypeWithGetSetArrayMembers>(x, @"<TypeWithGetSetArrayMembers xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><F1><SimpleType><P1>ab</P1><P2>1</P2></SimpleType><SimpleType><P1>cd</P1><P2>2</P2></SimpleType></F1><F2 xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""><a:int>-1</a:int><a:int>3</a:int></F2><P1><SimpleType><P1>ef</P1><P2>5</P2></SimpleType><SimpleType><P1>gh</P1><P2>7</P2></SimpleType></P1><P2 xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""><a:int>11</a:int><a:int>12</a:int></P2></TypeWithGetSetArrayMembers>");
 
         Assert.NotNull(y);
         Utils.Equal<SimpleType>(x.F1, y.F1, (a, b) => { return SimpleType.AreEqual(a, b); });
@@ -295,7 +298,7 @@ public static partial class DataContractSerializerTests
         x.P2[0] = -1;
         x.P2[1] = 3;
 
-        TypeWithGetOnlyArrayProperties y = SerializeAndDeserialize<TypeWithGetOnlyArrayProperties>(x, @"<TypeWithGetOnlyArrayProperties xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><P1><SimpleType><P1>ab</P1><P2>1</P2></SimpleType><SimpleType><P1>cd</P1><P2>2</P2></SimpleType></P1><P2 xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""><a:int>-1</a:int><a:int>3</a:int></P2></TypeWithGetOnlyArrayProperties>");
+        TypeWithGetOnlyArrayProperties y = DataContractSerializerHelper.SerializeAndDeserialize<TypeWithGetOnlyArrayProperties>(x, @"<TypeWithGetOnlyArrayProperties xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><P1><SimpleType><P1>ab</P1><P2>1</P2></SimpleType><SimpleType><P1>cd</P1><P2>2</P2></SimpleType></P1><P2 xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""><a:int>-1</a:int><a:int>3</a:int></P2></TypeWithGetOnlyArrayProperties>");
 
         Assert.NotNull(y);
         Utils.Equal<SimpleType>(x.P1, y.P1, (a, b) => { return SimpleType.AreEqual(a, b); });
@@ -309,7 +312,7 @@ public static partial class DataContractSerializerTests
         x.Add("one", 1);
         x.Add("two", 2);
 
-        Dictionary<string, int> y = SerializeAndDeserialize<Dictionary<string, int>>(x, @"<ArrayOfKeyValueOfstringint xmlns=""http://schemas.microsoft.com/2003/10/Serialization/Arrays"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><KeyValueOfstringint><Key>one</Key><Value>1</Value></KeyValueOfstringint><KeyValueOfstringint><Key>two</Key><Value>2</Value></KeyValueOfstringint></ArrayOfKeyValueOfstringint>");
+        Dictionary<string, int> y = DataContractSerializerHelper.SerializeAndDeserialize<Dictionary<string, int>>(x, @"<ArrayOfKeyValueOfstringint xmlns=""http://schemas.microsoft.com/2003/10/Serialization/Arrays"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><KeyValueOfstringint><Key>one</Key><Value>1</Value></KeyValueOfstringint><KeyValueOfstringint><Key>two</Key><Value>2</Value></KeyValueOfstringint></ArrayOfKeyValueOfstringint>");
 
         Assert.NotNull(y);
         Assert.True(y.Count == 2);
@@ -342,7 +345,7 @@ public static partial class DataContractSerializerTests
         x.RO2.Add(true, 'a');
         x.RO2.Add(false, 'b');
 
-        TypeWithDictionaryGenericMembers y = SerializeAndDeserialize<TypeWithDictionaryGenericMembers>(x, @"<TypeWithDictionaryGenericMembers xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><F1 xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""><a:KeyValueOfstringint><a:Key>ab</a:Key><a:Value>12</a:Value></a:KeyValueOfstringint><a:KeyValueOfstringint><a:Key>cd</a:Key><a:Value>15</a:Value></a:KeyValueOfstringint></F1><F2 xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""><a:KeyValueOfstringint><a:Key>ef</a:Key><a:Value>17</a:Value></a:KeyValueOfstringint><a:KeyValueOfstringint><a:Key>gh</a:Key><a:Value>19</a:Value></a:KeyValueOfstringint></F2><P1 xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""><a:KeyValueOfstringint><a:Key>12</a:Key><a:Value>120</a:Value></a:KeyValueOfstringint><a:KeyValueOfstringint><a:Key>13</a:Key><a:Value>130</a:Value></a:KeyValueOfstringint></P1><P2 xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""><a:KeyValueOfstringint><a:Key>14</a:Key><a:Value>140</a:Value></a:KeyValueOfstringint><a:KeyValueOfstringint><a:Key>15</a:Key><a:Value>150</a:Value></a:KeyValueOfstringint></P2><RO1 xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""><a:KeyValueOfbooleanchar><a:Key>true</a:Key><a:Value>116</a:Value></a:KeyValueOfbooleanchar><a:KeyValueOfbooleanchar><a:Key>false</a:Key><a:Value>102</a:Value></a:KeyValueOfbooleanchar></RO1><RO2 xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""><a:KeyValueOfbooleanchar><a:Key>true</a:Key><a:Value>97</a:Value></a:KeyValueOfbooleanchar><a:KeyValueOfbooleanchar><a:Key>false</a:Key><a:Value>98</a:Value></a:KeyValueOfbooleanchar></RO2></TypeWithDictionaryGenericMembers>");
+        TypeWithDictionaryGenericMembers y = DataContractSerializerHelper.SerializeAndDeserialize<TypeWithDictionaryGenericMembers>(x, @"<TypeWithDictionaryGenericMembers xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><F1 xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""><a:KeyValueOfstringint><a:Key>ab</a:Key><a:Value>12</a:Value></a:KeyValueOfstringint><a:KeyValueOfstringint><a:Key>cd</a:Key><a:Value>15</a:Value></a:KeyValueOfstringint></F1><F2 xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""><a:KeyValueOfstringint><a:Key>ef</a:Key><a:Value>17</a:Value></a:KeyValueOfstringint><a:KeyValueOfstringint><a:Key>gh</a:Key><a:Value>19</a:Value></a:KeyValueOfstringint></F2><P1 xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""><a:KeyValueOfstringint><a:Key>12</a:Key><a:Value>120</a:Value></a:KeyValueOfstringint><a:KeyValueOfstringint><a:Key>13</a:Key><a:Value>130</a:Value></a:KeyValueOfstringint></P1><P2 xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""><a:KeyValueOfstringint><a:Key>14</a:Key><a:Value>140</a:Value></a:KeyValueOfstringint><a:KeyValueOfstringint><a:Key>15</a:Key><a:Value>150</a:Value></a:KeyValueOfstringint></P2><RO1 xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""><a:KeyValueOfbooleanchar><a:Key>true</a:Key><a:Value>116</a:Value></a:KeyValueOfbooleanchar><a:KeyValueOfbooleanchar><a:Key>false</a:Key><a:Value>102</a:Value></a:KeyValueOfbooleanchar></RO1><RO2 xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""><a:KeyValueOfbooleanchar><a:Key>true</a:Key><a:Value>97</a:Value></a:KeyValueOfbooleanchar><a:KeyValueOfbooleanchar><a:Key>false</a:Key><a:Value>98</a:Value></a:KeyValueOfbooleanchar></RO2></TypeWithDictionaryGenericMembers>");
         Assert.NotNull(y);
 
         Assert.NotNull(y.F1);
@@ -383,7 +386,7 @@ public static partial class DataContractSerializerTests
         x.Add(1, "one");
         x.Add(2, "two");
 
-        MyDictionary y = SerializeAndDeserialize<MyDictionary>(x, @"<ArrayOfKeyValueOfanyTypeanyType xmlns=""http://schemas.microsoft.com/2003/10/Serialization/Arrays"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><KeyValueOfanyTypeanyType><Key i:type=""a:int"" xmlns:a=""http://www.w3.org/2001/XMLSchema"">1</Key><Value i:type=""a:string"" xmlns:a=""http://www.w3.org/2001/XMLSchema"">one</Value></KeyValueOfanyTypeanyType><KeyValueOfanyTypeanyType><Key i:type=""a:int"" xmlns:a=""http://www.w3.org/2001/XMLSchema"">2</Key><Value i:type=""a:string"" xmlns:a=""http://www.w3.org/2001/XMLSchema"">two</Value></KeyValueOfanyTypeanyType></ArrayOfKeyValueOfanyTypeanyType>");
+        MyDictionary y = DataContractSerializerHelper.SerializeAndDeserialize<MyDictionary>(x, @"<ArrayOfKeyValueOfanyTypeanyType xmlns=""http://schemas.microsoft.com/2003/10/Serialization/Arrays"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><KeyValueOfanyTypeanyType><Key i:type=""a:int"" xmlns:a=""http://www.w3.org/2001/XMLSchema"">1</Key><Value i:type=""a:string"" xmlns:a=""http://www.w3.org/2001/XMLSchema"">one</Value></KeyValueOfanyTypeanyType><KeyValueOfanyTypeanyType><Key i:type=""a:int"" xmlns:a=""http://www.w3.org/2001/XMLSchema"">2</Key><Value i:type=""a:string"" xmlns:a=""http://www.w3.org/2001/XMLSchema"">two</Value></KeyValueOfanyTypeanyType></ArrayOfKeyValueOfanyTypeanyType>");
 
         Assert.NotNull(y);
         Assert.True(y.Count == 2);
@@ -418,7 +421,7 @@ public static partial class DataContractSerializerTests
         x.RO2.Add(true, 'a');
         x.RO2.Add(false, 'b');
 
-        TypeWithDictionaryMembers y = SerializeAndDeserialize<TypeWithDictionaryMembers>(x, @"<TypeWithDictionaryMembers xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><F1 xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""><a:KeyValueOfanyTypeanyType><a:Key i:type=""b:string"" xmlns:b=""http://www.w3.org/2001/XMLSchema"">ab</a:Key><a:Value i:type=""b:int"" xmlns:b=""http://www.w3.org/2001/XMLSchema"">12</a:Value></a:KeyValueOfanyTypeanyType><a:KeyValueOfanyTypeanyType><a:Key i:type=""b:string"" xmlns:b=""http://www.w3.org/2001/XMLSchema"">cd</a:Key><a:Value i:type=""b:int"" xmlns:b=""http://www.w3.org/2001/XMLSchema"">15</a:Value></a:KeyValueOfanyTypeanyType></F1><F2 xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""><a:KeyValueOfanyTypeanyType><a:Key i:type=""b:string"" xmlns:b=""http://www.w3.org/2001/XMLSchema"">ef</a:Key><a:Value i:type=""b:int"" xmlns:b=""http://www.w3.org/2001/XMLSchema"">17</a:Value></a:KeyValueOfanyTypeanyType><a:KeyValueOfanyTypeanyType><a:Key i:type=""b:string"" xmlns:b=""http://www.w3.org/2001/XMLSchema"">gh</a:Key><a:Value i:type=""b:int"" xmlns:b=""http://www.w3.org/2001/XMLSchema"">19</a:Value></a:KeyValueOfanyTypeanyType></F2><P1 xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""><a:KeyValueOfanyTypeanyType><a:Key i:type=""b:string"" xmlns:b=""http://www.w3.org/2001/XMLSchema"">12</a:Key><a:Value i:type=""b:int"" xmlns:b=""http://www.w3.org/2001/XMLSchema"">120</a:Value></a:KeyValueOfanyTypeanyType><a:KeyValueOfanyTypeanyType><a:Key i:type=""b:string"" xmlns:b=""http://www.w3.org/2001/XMLSchema"">13</a:Key><a:Value i:type=""b:int"" xmlns:b=""http://www.w3.org/2001/XMLSchema"">130</a:Value></a:KeyValueOfanyTypeanyType></P1><P2 xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""><a:KeyValueOfanyTypeanyType><a:Key i:type=""b:string"" xmlns:b=""http://www.w3.org/2001/XMLSchema"">14</a:Key><a:Value i:type=""b:int"" xmlns:b=""http://www.w3.org/2001/XMLSchema"">140</a:Value></a:KeyValueOfanyTypeanyType><a:KeyValueOfanyTypeanyType><a:Key i:type=""b:string"" xmlns:b=""http://www.w3.org/2001/XMLSchema"">15</a:Key><a:Value i:type=""b:int"" xmlns:b=""http://www.w3.org/2001/XMLSchema"">150</a:Value></a:KeyValueOfanyTypeanyType></P2><RO1 xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""><a:KeyValueOfanyTypeanyType><a:Key i:type=""b:boolean"" xmlns:b=""http://www.w3.org/2001/XMLSchema"">true</a:Key><a:Value i:type=""b:char"" xmlns:b=""http://schemas.microsoft.com/2003/10/Serialization/"">116</a:Value></a:KeyValueOfanyTypeanyType><a:KeyValueOfanyTypeanyType><a:Key i:type=""b:boolean"" xmlns:b=""http://www.w3.org/2001/XMLSchema"">false</a:Key><a:Value i:type=""b:char"" xmlns:b=""http://schemas.microsoft.com/2003/10/Serialization/"">102</a:Value></a:KeyValueOfanyTypeanyType></RO1><RO2 xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""><a:KeyValueOfanyTypeanyType><a:Key i:type=""b:boolean"" xmlns:b=""http://www.w3.org/2001/XMLSchema"">true</a:Key><a:Value i:type=""b:char"" xmlns:b=""http://schemas.microsoft.com/2003/10/Serialization/"">97</a:Value></a:KeyValueOfanyTypeanyType><a:KeyValueOfanyTypeanyType><a:Key i:type=""b:boolean"" xmlns:b=""http://www.w3.org/2001/XMLSchema"">false</a:Key><a:Value i:type=""b:char"" xmlns:b=""http://schemas.microsoft.com/2003/10/Serialization/"">98</a:Value></a:KeyValueOfanyTypeanyType></RO2></TypeWithDictionaryMembers>");
+        TypeWithDictionaryMembers y = DataContractSerializerHelper.SerializeAndDeserialize<TypeWithDictionaryMembers>(x, @"<TypeWithDictionaryMembers xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><F1 xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""><a:KeyValueOfanyTypeanyType><a:Key i:type=""b:string"" xmlns:b=""http://www.w3.org/2001/XMLSchema"">ab</a:Key><a:Value i:type=""b:int"" xmlns:b=""http://www.w3.org/2001/XMLSchema"">12</a:Value></a:KeyValueOfanyTypeanyType><a:KeyValueOfanyTypeanyType><a:Key i:type=""b:string"" xmlns:b=""http://www.w3.org/2001/XMLSchema"">cd</a:Key><a:Value i:type=""b:int"" xmlns:b=""http://www.w3.org/2001/XMLSchema"">15</a:Value></a:KeyValueOfanyTypeanyType></F1><F2 xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""><a:KeyValueOfanyTypeanyType><a:Key i:type=""b:string"" xmlns:b=""http://www.w3.org/2001/XMLSchema"">ef</a:Key><a:Value i:type=""b:int"" xmlns:b=""http://www.w3.org/2001/XMLSchema"">17</a:Value></a:KeyValueOfanyTypeanyType><a:KeyValueOfanyTypeanyType><a:Key i:type=""b:string"" xmlns:b=""http://www.w3.org/2001/XMLSchema"">gh</a:Key><a:Value i:type=""b:int"" xmlns:b=""http://www.w3.org/2001/XMLSchema"">19</a:Value></a:KeyValueOfanyTypeanyType></F2><P1 xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""><a:KeyValueOfanyTypeanyType><a:Key i:type=""b:string"" xmlns:b=""http://www.w3.org/2001/XMLSchema"">12</a:Key><a:Value i:type=""b:int"" xmlns:b=""http://www.w3.org/2001/XMLSchema"">120</a:Value></a:KeyValueOfanyTypeanyType><a:KeyValueOfanyTypeanyType><a:Key i:type=""b:string"" xmlns:b=""http://www.w3.org/2001/XMLSchema"">13</a:Key><a:Value i:type=""b:int"" xmlns:b=""http://www.w3.org/2001/XMLSchema"">130</a:Value></a:KeyValueOfanyTypeanyType></P1><P2 xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""><a:KeyValueOfanyTypeanyType><a:Key i:type=""b:string"" xmlns:b=""http://www.w3.org/2001/XMLSchema"">14</a:Key><a:Value i:type=""b:int"" xmlns:b=""http://www.w3.org/2001/XMLSchema"">140</a:Value></a:KeyValueOfanyTypeanyType><a:KeyValueOfanyTypeanyType><a:Key i:type=""b:string"" xmlns:b=""http://www.w3.org/2001/XMLSchema"">15</a:Key><a:Value i:type=""b:int"" xmlns:b=""http://www.w3.org/2001/XMLSchema"">150</a:Value></a:KeyValueOfanyTypeanyType></P2><RO1 xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""><a:KeyValueOfanyTypeanyType><a:Key i:type=""b:boolean"" xmlns:b=""http://www.w3.org/2001/XMLSchema"">true</a:Key><a:Value i:type=""b:char"" xmlns:b=""http://schemas.microsoft.com/2003/10/Serialization/"">116</a:Value></a:KeyValueOfanyTypeanyType><a:KeyValueOfanyTypeanyType><a:Key i:type=""b:boolean"" xmlns:b=""http://www.w3.org/2001/XMLSchema"">false</a:Key><a:Value i:type=""b:char"" xmlns:b=""http://schemas.microsoft.com/2003/10/Serialization/"">102</a:Value></a:KeyValueOfanyTypeanyType></RO1><RO2 xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""><a:KeyValueOfanyTypeanyType><a:Key i:type=""b:boolean"" xmlns:b=""http://www.w3.org/2001/XMLSchema"">true</a:Key><a:Value i:type=""b:char"" xmlns:b=""http://schemas.microsoft.com/2003/10/Serialization/"">97</a:Value></a:KeyValueOfanyTypeanyType><a:KeyValueOfanyTypeanyType><a:Key i:type=""b:boolean"" xmlns:b=""http://www.w3.org/2001/XMLSchema"">false</a:Key><a:Value i:type=""b:char"" xmlns:b=""http://schemas.microsoft.com/2003/10/Serialization/"">98</a:Value></a:KeyValueOfanyTypeanyType></RO2></TypeWithDictionaryMembers>");
         Assert.NotNull(y);
 
         Assert.NotNull(y.F1);
@@ -460,7 +463,7 @@ public static partial class DataContractSerializerTests
         dict.DictionaryProperty.Add("key1", "value1");
         dict.DictionaryProperty.Add("key2", "value2");
 
-        var dict2 = SerializeAndDeserialize<TypeWithIDictionaryPropertyInitWithConcreteType>(dict, @"<TypeWithIDictionaryPropertyInitWithConcreteType xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><DictionaryProperty xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""><a:KeyValueOfstringstring><a:Key>key1</a:Key><a:Value>value1</a:Value></a:KeyValueOfstringstring><a:KeyValueOfstringstring><a:Key>key2</a:Key><a:Value>value2</a:Value></a:KeyValueOfstringstring></DictionaryProperty></TypeWithIDictionaryPropertyInitWithConcreteType>");
+        var dict2 = DataContractSerializerHelper.SerializeAndDeserialize<TypeWithIDictionaryPropertyInitWithConcreteType>(dict, @"<TypeWithIDictionaryPropertyInitWithConcreteType xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><DictionaryProperty xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""><a:KeyValueOfstringstring><a:Key>key1</a:Key><a:Value>value1</a:Value></a:KeyValueOfstringstring><a:KeyValueOfstringstring><a:Key>key2</a:Key><a:Value>value2</a:Value></a:KeyValueOfstringstring></DictionaryProperty></TypeWithIDictionaryPropertyInitWithConcreteType>");
 
         Assert.True(dict2 != null && dict2.DictionaryProperty != null);
         Assert.True(dict.DictionaryProperty.Count == dict2.DictionaryProperty.Count);
@@ -477,7 +480,7 @@ public static partial class DataContractSerializerTests
         x.Add("zero");
         x.Add("one");
 
-        List<string> y = SerializeAndDeserialize<List<string>>(x, @"<ArrayOfstring xmlns=""http://schemas.microsoft.com/2003/10/Serialization/Arrays"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><string>zero</string><string>one</string></ArrayOfstring>");
+        List<string> y = DataContractSerializerHelper.SerializeAndDeserialize<List<string>>(x, @"<ArrayOfstring xmlns=""http://schemas.microsoft.com/2003/10/Serialization/Arrays"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><string>zero</string><string>one</string></ArrayOfstring>");
 
         Assert.NotNull(y);
         Assert.True(y.Count == 2);
@@ -512,7 +515,7 @@ public static partial class DataContractSerializerTests
         x.RO2.Add('c');
         x.RO2.Add('d');
 
-        TypeWithListGenericMembers y = SerializeAndDeserialize<TypeWithListGenericMembers>(x, @"<TypeWithListGenericMembers xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><F1 xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""><a:string>zero</a:string><a:string>one</a:string></F1><F2 xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""><a:string>abc</a:string><a:string>def</a:string></F2><P1 xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""><a:int>10</a:int><a:int>20</a:int></P1><P2 xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""><a:int>12</a:int><a:int>34</a:int></P2><RO1 xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""><a:char>97</a:char><a:char>98</a:char></RO1><RO2 xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""><a:char>99</a:char><a:char>100</a:char></RO2></TypeWithListGenericMembers>");
+        TypeWithListGenericMembers y = DataContractSerializerHelper.SerializeAndDeserialize<TypeWithListGenericMembers>(x, @"<TypeWithListGenericMembers xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><F1 xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""><a:string>zero</a:string><a:string>one</a:string></F1><F2 xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""><a:string>abc</a:string><a:string>def</a:string></F2><P1 xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""><a:int>10</a:int><a:int>20</a:int></P1><P2 xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""><a:int>12</a:int><a:int>34</a:int></P2><RO1 xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""><a:char>97</a:char><a:char>98</a:char></RO1><RO2 xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""><a:char>99</a:char><a:char>100</a:char></RO2></TypeWithListGenericMembers>");
         Assert.NotNull(y);
 
         Assert.NotNull(y.F1);
@@ -550,13 +553,13 @@ public static partial class DataContractSerializerTests
     public static void DCS_CollectionGenericRoot()
     {
         MyCollection<string> x = new MyCollection<string>("a1", "a2");
-        MyCollection<string> y = SerializeAndDeserialize<MyCollection<string>>(x, @"<ArrayOfstring xmlns=""http://schemas.microsoft.com/2003/10/Serialization/Arrays"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><string>a1</string><string>a2</string></ArrayOfstring>");
+        MyCollection<string> y = DataContractSerializerHelper.SerializeAndDeserialize<MyCollection<string>>(x, @"<ArrayOfstring xmlns=""http://schemas.microsoft.com/2003/10/Serialization/Arrays"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><string>a1</string><string>a2</string></ArrayOfstring>");
 
         Assert.NotNull(y);
         Assert.True(y.Count == 2);
         foreach (var item in x)
         {
-            Assert.True(y.Contains(item));
+            Assert.Contains(item, y);
         }
     }
 
@@ -573,7 +576,7 @@ public static partial class DataContractSerializerTests
         x.RO1.Add("abc");
         x.RO2.Add("xyz");
 
-        TypeWithCollectionGenericMembers y = SerializeAndDeserialize<TypeWithCollectionGenericMembers>(x, @"<TypeWithCollectionGenericMembers xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><F1 xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""><a:string>a1</a:string><a:string>a2</a:string></F1><F2 xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""><a:string>b1</a:string><a:string>b2</a:string></F2><P1 xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""><a:string>c1</a:string><a:string>c2</a:string></P1><P2 xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""><a:string>d1</a:string><a:string>d2</a:string></P2><RO1 xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""><a:string>abc</a:string></RO1><RO2 xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""><a:string>xyz</a:string></RO2></TypeWithCollectionGenericMembers>");
+        TypeWithCollectionGenericMembers y = DataContractSerializerHelper.SerializeAndDeserialize<TypeWithCollectionGenericMembers>(x, @"<TypeWithCollectionGenericMembers xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><F1 xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""><a:string>a1</a:string><a:string>a2</a:string></F1><F2 xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""><a:string>b1</a:string><a:string>b2</a:string></F2><P1 xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""><a:string>c1</a:string><a:string>c2</a:string></P1><P2 xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""><a:string>d1</a:string><a:string>d2</a:string></P2><RO1 xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""><a:string>abc</a:string></RO1><RO2 xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""><a:string>xyz</a:string></RO2></TypeWithCollectionGenericMembers>");
         Assert.NotNull(y);
         Assert.True(y.F1.Count == 2, getCheckFailureMsg("F1"));
         Assert.True(y.F2.Count == 2, getCheckFailureMsg("F2"));
@@ -615,7 +618,7 @@ public static partial class DataContractSerializerTests
     public static void DCS_ListRoot()
     {
         MyList x = new MyList("a1", "a2");
-        MyList y = SerializeAndDeserialize<MyList>(x, @"<ArrayOfanyType xmlns=""http://schemas.microsoft.com/2003/10/Serialization/Arrays"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><anyType i:type=""a:string"" xmlns:a=""http://www.w3.org/2001/XMLSchema"">a1</anyType><anyType i:type=""a:string"" xmlns:a=""http://www.w3.org/2001/XMLSchema"">a2</anyType></ArrayOfanyType>");
+        MyList y = DataContractSerializerHelper.SerializeAndDeserialize<MyList>(x, @"<ArrayOfanyType xmlns=""http://schemas.microsoft.com/2003/10/Serialization/Arrays"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><anyType i:type=""a:string"" xmlns:a=""http://www.w3.org/2001/XMLSchema"">a1</anyType><anyType i:type=""a:string"" xmlns:a=""http://www.w3.org/2001/XMLSchema"">a2</anyType></ArrayOfanyType>");
 
         Assert.NotNull(y);
         Assert.True(y.Count == 2);
@@ -639,7 +642,7 @@ public static partial class DataContractSerializerTests
         x.RO1.Add("abc");
         x.RO2.Add("xyz");
 
-        TypeWithListMembers y = SerializeAndDeserialize<TypeWithListMembers>(x, @"<TypeWithListMembers xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><F1 xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""><a:anyType i:type=""b:string"" xmlns:b=""http://www.w3.org/2001/XMLSchema"">a1</a:anyType><a:anyType i:type=""b:string"" xmlns:b=""http://www.w3.org/2001/XMLSchema"">a2</a:anyType></F1><F2 xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""><a:anyType i:type=""b:string"" xmlns:b=""http://www.w3.org/2001/XMLSchema"">b1</a:anyType><a:anyType i:type=""b:string"" xmlns:b=""http://www.w3.org/2001/XMLSchema"">b2</a:anyType></F2><P1 xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""><a:anyType i:type=""b:string"" xmlns:b=""http://www.w3.org/2001/XMLSchema"">c1</a:anyType><a:anyType i:type=""b:string"" xmlns:b=""http://www.w3.org/2001/XMLSchema"">c2</a:anyType></P1><P2 xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""><a:anyType i:type=""b:string"" xmlns:b=""http://www.w3.org/2001/XMLSchema"">d1</a:anyType><a:anyType i:type=""b:string"" xmlns:b=""http://www.w3.org/2001/XMLSchema"">d2</a:anyType></P2><RO1 xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""><a:anyType i:type=""b:string"" xmlns:b=""http://www.w3.org/2001/XMLSchema"">abc</a:anyType></RO1><RO2 xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""><a:anyType i:type=""b:string"" xmlns:b=""http://www.w3.org/2001/XMLSchema"">xyz</a:anyType></RO2></TypeWithListMembers>");
+        TypeWithListMembers y = DataContractSerializerHelper.SerializeAndDeserialize<TypeWithListMembers>(x, @"<TypeWithListMembers xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><F1 xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""><a:anyType i:type=""b:string"" xmlns:b=""http://www.w3.org/2001/XMLSchema"">a1</a:anyType><a:anyType i:type=""b:string"" xmlns:b=""http://www.w3.org/2001/XMLSchema"">a2</a:anyType></F1><F2 xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""><a:anyType i:type=""b:string"" xmlns:b=""http://www.w3.org/2001/XMLSchema"">b1</a:anyType><a:anyType i:type=""b:string"" xmlns:b=""http://www.w3.org/2001/XMLSchema"">b2</a:anyType></F2><P1 xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""><a:anyType i:type=""b:string"" xmlns:b=""http://www.w3.org/2001/XMLSchema"">c1</a:anyType><a:anyType i:type=""b:string"" xmlns:b=""http://www.w3.org/2001/XMLSchema"">c2</a:anyType></P1><P2 xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""><a:anyType i:type=""b:string"" xmlns:b=""http://www.w3.org/2001/XMLSchema"">d1</a:anyType><a:anyType i:type=""b:string"" xmlns:b=""http://www.w3.org/2001/XMLSchema"">d2</a:anyType></P2><RO1 xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""><a:anyType i:type=""b:string"" xmlns:b=""http://www.w3.org/2001/XMLSchema"">abc</a:anyType></RO1><RO2 xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""><a:anyType i:type=""b:string"" xmlns:b=""http://www.w3.org/2001/XMLSchema"">xyz</a:anyType></RO2></TypeWithListMembers>");
         Assert.NotNull(y);
         Assert.True(y.F1.Count == 2, getCheckFailureMsg("F1"));
         Assert.True(y.F2.Count == 2, getCheckFailureMsg("F2"));
@@ -664,13 +667,13 @@ public static partial class DataContractSerializerTests
     public static void DCS_EnumerableGenericRoot()
     {
         MyEnumerable<string> x = new MyEnumerable<string>("a1", "a2");
-        MyEnumerable<string> y = SerializeAndDeserialize<MyEnumerable<string>>(x, @"<ArrayOfstring xmlns=""http://schemas.microsoft.com/2003/10/Serialization/Arrays"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><string>a1</string><string>a2</string></ArrayOfstring>");
+        MyEnumerable<string> y = DataContractSerializerHelper.SerializeAndDeserialize<MyEnumerable<string>>(x, @"<ArrayOfstring xmlns=""http://schemas.microsoft.com/2003/10/Serialization/Arrays"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><string>a1</string><string>a2</string></ArrayOfstring>");
 
         Assert.NotNull(y);
         Assert.True(y.Count == 2);
 
         string actual = string.Join("", y);
-        Assert.StrictEqual(actual, "a1a2");
+        Assert.Equal("a1a2", actual);
     }
 
     [Fact]
@@ -685,7 +688,7 @@ public static partial class DataContractSerializerTests
         };
         x.RO1.Add("abc");
 
-        TypeWithEnumerableGenericMembers y = SerializeAndDeserialize<TypeWithEnumerableGenericMembers>(x, @"<TypeWithEnumerableGenericMembers xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><F1 xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""><a:string>a1</a:string><a:string>a2</a:string></F1><F2 xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""><a:string>b1</a:string><a:string>b2</a:string></F2><P1 xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""><a:string>c1</a:string><a:string>c2</a:string></P1><P2 xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""><a:string>d1</a:string><a:string>d2</a:string></P2><RO1 xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""><a:string>abc</a:string></RO1></TypeWithEnumerableGenericMembers>");
+        TypeWithEnumerableGenericMembers y = DataContractSerializerHelper.SerializeAndDeserialize<TypeWithEnumerableGenericMembers>(x, @"<TypeWithEnumerableGenericMembers xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><F1 xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""><a:string>a1</a:string><a:string>a2</a:string></F1><F2 xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""><a:string>b1</a:string><a:string>b2</a:string></F2><P1 xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""><a:string>c1</a:string><a:string>c2</a:string></P1><P2 xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""><a:string>d1</a:string><a:string>d2</a:string></P2><RO1 xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""><a:string>abc</a:string></RO1></TypeWithEnumerableGenericMembers>");
 
         Assert.NotNull(y);
         Assert.True(y.F1.Count == 2);
@@ -699,7 +702,7 @@ public static partial class DataContractSerializerTests
     public static void DCS_CollectionRoot()
     {
         MyCollection x = new MyCollection('a', 45);
-        MyCollection y = SerializeAndDeserialize<MyCollection>(x, @"<ArrayOfanyType xmlns=""http://schemas.microsoft.com/2003/10/Serialization/Arrays"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><anyType i:type=""a:char"" xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/"">97</anyType><anyType i:type=""a:int"" xmlns:a=""http://www.w3.org/2001/XMLSchema"">45</anyType></ArrayOfanyType>");
+        MyCollection y = DataContractSerializerHelper.SerializeAndDeserialize<MyCollection>(x, @"<ArrayOfanyType xmlns=""http://schemas.microsoft.com/2003/10/Serialization/Arrays"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><anyType i:type=""a:char"" xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/"">97</anyType><anyType i:type=""a:int"" xmlns:a=""http://www.w3.org/2001/XMLSchema"">45</anyType></ArrayOfanyType>");
 
         Assert.NotNull(y);
         Assert.True(y.Count == 2);
@@ -719,7 +722,7 @@ public static partial class DataContractSerializerTests
         };
         x.RO1.Add("abc");
 
-        TypeWithCollectionMembers y = SerializeAndDeserialize<TypeWithCollectionMembers>(x, @"<TypeWithCollectionMembers xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><F1 xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""><a:anyType i:type=""b:char"" xmlns:b=""http://schemas.microsoft.com/2003/10/Serialization/"">97</a:anyType><a:anyType i:type=""b:int"" xmlns:b=""http://www.w3.org/2001/XMLSchema"">45</a:anyType></F1><F2 xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""><a:anyType i:type=""b:string"" xmlns:b=""http://www.w3.org/2001/XMLSchema"">ab</a:anyType><a:anyType i:type=""b:boolean"" xmlns:b=""http://www.w3.org/2001/XMLSchema"">true</a:anyType></F2><P1 xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""><a:anyType i:type=""b:string"" xmlns:b=""http://www.w3.org/2001/XMLSchema"">x</a:anyType><a:anyType i:type=""b:string"" xmlns:b=""http://www.w3.org/2001/XMLSchema"">y</a:anyType></P1><P2 xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""><a:anyType i:type=""b:boolean"" xmlns:b=""http://www.w3.org/2001/XMLSchema"">false</a:anyType><a:anyType i:type=""b:boolean"" xmlns:b=""http://www.w3.org/2001/XMLSchema"">true</a:anyType></P2><RO1 xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""><a:anyType i:type=""b:string"" xmlns:b=""http://www.w3.org/2001/XMLSchema"">abc</a:anyType></RO1></TypeWithCollectionMembers>");
+        TypeWithCollectionMembers y = DataContractSerializerHelper.SerializeAndDeserialize<TypeWithCollectionMembers>(x, @"<TypeWithCollectionMembers xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><F1 xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""><a:anyType i:type=""b:char"" xmlns:b=""http://schemas.microsoft.com/2003/10/Serialization/"">97</a:anyType><a:anyType i:type=""b:int"" xmlns:b=""http://www.w3.org/2001/XMLSchema"">45</a:anyType></F1><F2 xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""><a:anyType i:type=""b:string"" xmlns:b=""http://www.w3.org/2001/XMLSchema"">ab</a:anyType><a:anyType i:type=""b:boolean"" xmlns:b=""http://www.w3.org/2001/XMLSchema"">true</a:anyType></F2><P1 xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""><a:anyType i:type=""b:string"" xmlns:b=""http://www.w3.org/2001/XMLSchema"">x</a:anyType><a:anyType i:type=""b:string"" xmlns:b=""http://www.w3.org/2001/XMLSchema"">y</a:anyType></P1><P2 xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""><a:anyType i:type=""b:boolean"" xmlns:b=""http://www.w3.org/2001/XMLSchema"">false</a:anyType><a:anyType i:type=""b:boolean"" xmlns:b=""http://www.w3.org/2001/XMLSchema"">true</a:anyType></P2><RO1 xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""><a:anyType i:type=""b:string"" xmlns:b=""http://www.w3.org/2001/XMLSchema"">abc</a:anyType></RO1></TypeWithCollectionMembers>");
         Assert.NotNull(y);
 
         Assert.NotNull(y.F1);
@@ -748,7 +751,7 @@ public static partial class DataContractSerializerTests
     public static void DCS_EnumerableRoot()
     {
         MyEnumerable x = new MyEnumerable("abc", 3);
-        MyEnumerable y = SerializeAndDeserialize<MyEnumerable>(x, @"<ArrayOfanyType xmlns=""http://schemas.microsoft.com/2003/10/Serialization/Arrays"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><anyType i:type=""a:string"" xmlns:a=""http://www.w3.org/2001/XMLSchema"">abc</anyType><anyType i:type=""a:int"" xmlns:a=""http://www.w3.org/2001/XMLSchema"">3</anyType></ArrayOfanyType>");
+        MyEnumerable y = DataContractSerializerHelper.SerializeAndDeserialize<MyEnumerable>(x, @"<ArrayOfanyType xmlns=""http://schemas.microsoft.com/2003/10/Serialization/Arrays"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><anyType i:type=""a:string"" xmlns:a=""http://www.w3.org/2001/XMLSchema"">abc</anyType><anyType i:type=""a:int"" xmlns:a=""http://www.w3.org/2001/XMLSchema"">3</anyType></ArrayOfanyType>");
 
         Assert.NotNull(y);
         Assert.True(y.Count == 2);
@@ -768,7 +771,7 @@ public static partial class DataContractSerializerTests
         };
         x.RO1.Add('x');
 
-        TypeWithEnumerableMembers y = SerializeAndDeserialize<TypeWithEnumerableMembers>(x, @"<TypeWithEnumerableMembers xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><F1 xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""><a:anyType i:type=""b:char"" xmlns:b=""http://schemas.microsoft.com/2003/10/Serialization/"">97</a:anyType><a:anyType i:type=""b:int"" xmlns:b=""http://www.w3.org/2001/XMLSchema"">45</a:anyType></F1><F2 xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""><a:anyType i:type=""b:string"" xmlns:b=""http://www.w3.org/2001/XMLSchema"">ab</a:anyType><a:anyType i:type=""b:boolean"" xmlns:b=""http://www.w3.org/2001/XMLSchema"">true</a:anyType></F2><P1 xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""><a:anyType i:type=""b:string"" xmlns:b=""http://www.w3.org/2001/XMLSchema"">x</a:anyType><a:anyType i:type=""b:string"" xmlns:b=""http://www.w3.org/2001/XMLSchema"">y</a:anyType></P1><P2 xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""><a:anyType i:type=""b:boolean"" xmlns:b=""http://www.w3.org/2001/XMLSchema"">false</a:anyType><a:anyType i:type=""b:boolean"" xmlns:b=""http://www.w3.org/2001/XMLSchema"">true</a:anyType></P2><RO1 xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""><a:anyType i:type=""b:char"" xmlns:b=""http://schemas.microsoft.com/2003/10/Serialization/"">120</a:anyType></RO1></TypeWithEnumerableMembers>");
+        TypeWithEnumerableMembers y = DataContractSerializerHelper.SerializeAndDeserialize<TypeWithEnumerableMembers>(x, @"<TypeWithEnumerableMembers xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><F1 xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""><a:anyType i:type=""b:char"" xmlns:b=""http://schemas.microsoft.com/2003/10/Serialization/"">97</a:anyType><a:anyType i:type=""b:int"" xmlns:b=""http://www.w3.org/2001/XMLSchema"">45</a:anyType></F1><F2 xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""><a:anyType i:type=""b:string"" xmlns:b=""http://www.w3.org/2001/XMLSchema"">ab</a:anyType><a:anyType i:type=""b:boolean"" xmlns:b=""http://www.w3.org/2001/XMLSchema"">true</a:anyType></F2><P1 xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""><a:anyType i:type=""b:string"" xmlns:b=""http://www.w3.org/2001/XMLSchema"">x</a:anyType><a:anyType i:type=""b:string"" xmlns:b=""http://www.w3.org/2001/XMLSchema"">y</a:anyType></P1><P2 xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""><a:anyType i:type=""b:boolean"" xmlns:b=""http://www.w3.org/2001/XMLSchema"">false</a:anyType><a:anyType i:type=""b:boolean"" xmlns:b=""http://www.w3.org/2001/XMLSchema"">true</a:anyType></P2><RO1 xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""><a:anyType i:type=""b:char"" xmlns:b=""http://schemas.microsoft.com/2003/10/Serialization/"">120</a:anyType></RO1></TypeWithEnumerableMembers>");
         Assert.NotNull(y);
 
         Assert.True(y.F1.Count == 2);
@@ -800,7 +803,7 @@ public static partial class DataContractSerializerTests
             PropY = 45,
         };
 
-        MyTypeA y = SerializeAndDeserialize<MyTypeA>(x, @"<MyTypeA xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><P_Col_Array i:nil=""true""/><PropX i:type=""MyTypeC""><PropA i:nil=""true""/><PropC>97</PropC><PropB>true</PropB></PropX><PropY>45</PropY></MyTypeA>");
+        MyTypeA y = DataContractSerializerHelper.SerializeAndDeserialize<MyTypeA>(x, @"<MyTypeA xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><P_Col_Array i:nil=""true""/><PropX i:type=""MyTypeC""><PropA i:nil=""true""/><PropC>97</PropC><PropB>true</PropB></PropX><PropY>45</PropY></MyTypeA>");
 
         Assert.NotNull(y);
         Assert.NotNull(y.PropX);
@@ -817,33 +820,33 @@ public static partial class DataContractSerializerTests
             Name = "foo",
         };
 
-        TypeWithPrivateFieldAndPrivateGetPublicSetProperty y = SerializeAndDeserialize<TypeWithPrivateFieldAndPrivateGetPublicSetProperty>(x, @"<TypeWithPrivateFieldAndPrivateGetPublicSetProperty xmlns=""http://schemas.datacontract.org/2004/07/"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""></TypeWithPrivateFieldAndPrivateGetPublicSetProperty>");
+        TypeWithPrivateFieldAndPrivateGetPublicSetProperty y = DataContractSerializerHelper.SerializeAndDeserialize<TypeWithPrivateFieldAndPrivateGetPublicSetProperty>(x, @"<TypeWithPrivateFieldAndPrivateGetPublicSetProperty xmlns=""http://schemas.datacontract.org/2004/07/"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""></TypeWithPrivateFieldAndPrivateGetPublicSetProperty>");
         Assert.Null(y.GetName());
     }
 
     [Fact]
     public static void DCS_DataContractAttribute()
     {
-        SerializeAndDeserialize<DCA_1>(new DCA_1 { P1 = "xyz" }, @"<DCA_1 xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""/>");
-        SerializeAndDeserialize<DCA_2>(new DCA_2 { P1 = "xyz" }, @"<abc xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""/>");
-        SerializeAndDeserialize<DCA_3>(new DCA_3 { P1 = "xyz" }, @"<DCA_3 xmlns=""def"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""/>");
-        SerializeAndDeserialize<DCA_4>(new DCA_4 { P1 = "xyz" }, @"<DCA_4 z:Id=""i1"" xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance"" xmlns:z=""http://schemas.microsoft.com/2003/10/Serialization/""/>");
-        SerializeAndDeserialize<DCA_5>(new DCA_5 { P1 = "xyz" }, @"<abc xmlns=""def"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""/>");
+        DataContractSerializerHelper.SerializeAndDeserialize<DCA_1>(new DCA_1 { P1 = "xyz" }, @"<DCA_1 xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""/>");
+        DataContractSerializerHelper.SerializeAndDeserialize<DCA_2>(new DCA_2 { P1 = "xyz" }, @"<abc xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""/>");
+        DataContractSerializerHelper.SerializeAndDeserialize<DCA_3>(new DCA_3 { P1 = "xyz" }, @"<DCA_3 xmlns=""def"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""/>");
+        DataContractSerializerHelper.SerializeAndDeserialize<DCA_4>(new DCA_4 { P1 = "xyz" }, @"<DCA_4 z:Id=""i1"" xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance"" xmlns:z=""http://schemas.microsoft.com/2003/10/Serialization/""/>");
+        DataContractSerializerHelper.SerializeAndDeserialize<DCA_5>(new DCA_5 { P1 = "xyz" }, @"<abc xmlns=""def"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""/>");
     }
 
     [Fact]
     public static void DCS_DataMemberAttribute()
     {
-        SerializeAndDeserialize<DMA_1>(new DMA_1 { P1 = "abc", P2 = 12, P3 = true, P4 = 'a', P5 = 10, MyDataMemberInAnotherNamespace = new MyDataContractClass04_1() { MyDataMember = "Test" }, Order100 = true, OrderMaxValue = false }, @"<DMA_1 xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><MyDataMemberInAnotherNamespace xmlns:a=""http://MyDataContractClass04_1.com/""><a:MyDataMember>Test</a:MyDataMember></MyDataMemberInAnotherNamespace><P1>abc</P1><P4>97</P4><P5>10</P5><xyz>12</xyz><P3>true</P3><Order100>true</Order100><OrderMaxValue>false</OrderMaxValue></DMA_1>");
+        DataContractSerializerHelper.SerializeAndDeserialize<DMA_1>(new DMA_1 { P1 = "abc", P2 = 12, P3 = true, P4 = 'a', P5 = 10, MyDataMemberInAnotherNamespace = new MyDataContractClass04_1() { MyDataMember = "Test" }, Order100 = true, OrderMaxValue = false }, @"<DMA_1 xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><MyDataMemberInAnotherNamespace xmlns:a=""http://MyDataContractClass04_1.com/""><a:MyDataMember>Test</a:MyDataMember></MyDataMemberInAnotherNamespace><P1>abc</P1><P4>97</P4><P5>10</P5><xyz>12</xyz><P3>true</P3><Order100>true</Order100><OrderMaxValue>false</OrderMaxValue></DMA_1>");
     }
 
     [Fact]
     public static void DCS_IgnoreDataMemberAttribute()
     {
         IDMA_1 x = new IDMA_1 { MyDataMember = "MyDataMember", MyIgnoreDataMember = "MyIgnoreDataMember", MyUnsetDataMember = "MyUnsetDataMember" };
-        IDMA_1 y = SerializeAndDeserialize<IDMA_1>(x, @"<IDMA_1 xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><MyDataMember>MyDataMember</MyDataMember></IDMA_1>");
+        IDMA_1 y = DataContractSerializerHelper.SerializeAndDeserialize<IDMA_1>(x, @"<IDMA_1 xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><MyDataMember>MyDataMember</MyDataMember></IDMA_1>");
         Assert.NotNull(y);
-        Assert.StrictEqual(x.MyDataMember, y.MyDataMember);
+        Assert.Equal(x.MyDataMember, y.MyDataMember);
         Assert.Null(y.MyIgnoreDataMember);
         Assert.Null(y.MyUnsetDataMember);
     }
@@ -852,21 +855,21 @@ public static partial class DataContractSerializerTests
     public static void DCS_EnumAsRoot()
     {
         //The approved types for an enum are byte, sbyte, short, ushort, int, uint, long, or ulong.
-        Assert.StrictEqual(SerializeAndDeserialize<MyEnum>(MyEnum.Two, @"<MyEnum xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"">Two</MyEnum>"), MyEnum.Two);
-        Assert.StrictEqual(SerializeAndDeserialize<ByteEnum>(ByteEnum.Option1, @"<ByteEnum xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"">Option1</ByteEnum>"), ByteEnum.Option1);
-        Assert.StrictEqual(SerializeAndDeserialize<SByteEnum>(SByteEnum.Option1, @"<SByteEnum xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"">Option1</SByteEnum>"), SByteEnum.Option1);
-        Assert.StrictEqual(SerializeAndDeserialize<ShortEnum>(ShortEnum.Option1, @"<ShortEnum xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"">Option1</ShortEnum>"), ShortEnum.Option1);
-        Assert.StrictEqual(SerializeAndDeserialize<IntEnum>(IntEnum.Option1, @"<IntEnum xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"">Option1</IntEnum>"), IntEnum.Option1);
-        Assert.StrictEqual(SerializeAndDeserialize<UIntEnum>(UIntEnum.Option1, @"<UIntEnum xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"">Option1</UIntEnum>"), UIntEnum.Option1);
-        Assert.StrictEqual(SerializeAndDeserialize<LongEnum>(LongEnum.Option1, @"<LongEnum xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"">Option1</LongEnum>"), LongEnum.Option1);
-        Assert.StrictEqual(SerializeAndDeserialize<ULongEnum>(ULongEnum.Option1, @"<ULongEnum xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"">Option1</ULongEnum>"), ULongEnum.Option1);
+        Assert.StrictEqual(MyEnum.Two, DataContractSerializerHelper.SerializeAndDeserialize<MyEnum>(MyEnum.Two, @"<MyEnum xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"">Two</MyEnum>"));
+        Assert.StrictEqual(ByteEnum.Option1, DataContractSerializerHelper.SerializeAndDeserialize<ByteEnum>(ByteEnum.Option1, @"<ByteEnum xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"">Option1</ByteEnum>"));
+        Assert.StrictEqual(SByteEnum.Option1, DataContractSerializerHelper.SerializeAndDeserialize<SByteEnum>(SByteEnum.Option1, @"<SByteEnum xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"">Option1</SByteEnum>"));
+        Assert.StrictEqual(ShortEnum.Option1, DataContractSerializerHelper.SerializeAndDeserialize<ShortEnum>(ShortEnum.Option1, @"<ShortEnum xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"">Option1</ShortEnum>"));
+        Assert.StrictEqual(IntEnum.Option1, DataContractSerializerHelper.SerializeAndDeserialize(IntEnum.Option1, @"<IntEnum xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"">Option1</IntEnum>"));
+        Assert.StrictEqual(UIntEnum.Option1, DataContractSerializerHelper.SerializeAndDeserialize<UIntEnum>(UIntEnum.Option1, @"<UIntEnum xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"">Option1</UIntEnum>"));
+        Assert.StrictEqual(LongEnum.Option1, DataContractSerializerHelper.SerializeAndDeserialize(LongEnum.Option1, @"<LongEnum xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"">Option1</LongEnum>"));
+        Assert.StrictEqual(ULongEnum.Option1, DataContractSerializerHelper.SerializeAndDeserialize<ULongEnum>(ULongEnum.Option1, @"<ULongEnum xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"">Option1</ULongEnum>"));
     }
 
     [Fact]
     public static void DCS_EnumAsMember()
     {
         TypeWithEnumMembers x = new TypeWithEnumMembers { F1 = MyEnum.Three, P1 = MyEnum.Two };
-        TypeWithEnumMembers y = SerializeAndDeserialize<TypeWithEnumMembers>(x, @"<TypeWithEnumMembers xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><F1>Three</F1><P1>Two</P1></TypeWithEnumMembers>");
+        TypeWithEnumMembers y = DataContractSerializerHelper.SerializeAndDeserialize<TypeWithEnumMembers>(x, @"<TypeWithEnumMembers xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><F1>Three</F1><P1>Two</P1></TypeWithEnumMembers>");
 
         Assert.NotNull(y);
         Assert.StrictEqual(x.F1, y.F1);
@@ -877,7 +880,7 @@ public static partial class DataContractSerializerTests
     public static void DCS_DCClassWithEnumAndStruct()
     {
         var x = new DCClassWithEnumAndStruct(true);
-        var y = SerializeAndDeserialize<DCClassWithEnumAndStruct>(x, @"<DCClassWithEnumAndStruct xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><MyEnum1>One</MyEnum1><MyStruct><Data>Data</Data></MyStruct></DCClassWithEnumAndStruct>");
+        var y = DataContractSerializerHelper.SerializeAndDeserialize<DCClassWithEnumAndStruct>(x, @"<DCClassWithEnumAndStruct xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><MyEnum1>One</MyEnum1><MyStruct><Data>Data</Data></MyStruct></DCClassWithEnumAndStruct>");
 
         Assert.StrictEqual(x.MyStruct, y.MyStruct);
         Assert.StrictEqual(x.MyEnum1, y.MyEnum1);
@@ -891,11 +894,11 @@ public static partial class DataContractSerializerTests
         subDictionary.Add("subkey1", "subkey1value");
         x.Add("Key1", subDictionary);
 
-        Dictionary<string, object> y = SerializeAndDeserialize<Dictionary<string, object>>(x, @"<ArrayOfKeyValueOfstringanyType xmlns=""http://schemas.microsoft.com/2003/10/Serialization/Arrays"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><KeyValueOfstringanyType><Key>Key1</Key><Value i:type=""ArrayOfKeyValueOfstringanyType""><KeyValueOfstringanyType><Key>subkey1</Key><Value i:type=""a:string"" xmlns:a=""http://www.w3.org/2001/XMLSchema"">subkey1value</Value></KeyValueOfstringanyType></Value></KeyValueOfstringanyType></ArrayOfKeyValueOfstringanyType>");
+        Dictionary<string, object> y = DataContractSerializerHelper.SerializeAndDeserialize<Dictionary<string, object>>(x, @"<ArrayOfKeyValueOfstringanyType xmlns=""http://schemas.microsoft.com/2003/10/Serialization/Arrays"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><KeyValueOfstringanyType><Key>Key1</Key><Value i:type=""ArrayOfKeyValueOfstringanyType""><KeyValueOfstringanyType><Key>subkey1</Key><Value i:type=""a:string"" xmlns:a=""http://www.w3.org/2001/XMLSchema"">subkey1value</Value></KeyValueOfstringanyType></Value></KeyValueOfstringanyType></ArrayOfKeyValueOfstringanyType>");
         Assert.NotNull(y);
-        Assert.StrictEqual(y.Count, 1);
+        Assert.StrictEqual(1, y.Count);
         Assert.True(y["Key1"] is Dictionary<string, object>);
-        Assert.StrictEqual(((y["Key1"] as Dictionary<string, object>)["subkey1"]) as string, "subkey1value");
+        Assert.Equal("subkey1value", ((y["Key1"] as Dictionary<string, object>)["subkey1"]) as string);
     }
 
     [Fact]
@@ -905,7 +908,7 @@ public static partial class DataContractSerializerTests
         {
             ByteArray = new byte[] { 1, 2 }
         };
-        BuiltInTypes y = SerializeAndDeserialize<BuiltInTypes>(x, @"<BuiltInTypes xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><ByteArray>AQI=</ByteArray></BuiltInTypes>");
+        BuiltInTypes y = DataContractSerializerHelper.SerializeAndDeserialize<BuiltInTypes>(x, @"<BuiltInTypes xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><ByteArray>AQI=</ByteArray></BuiltInTypes>");
 
         Assert.NotNull(y);
         Assert.Equal<byte>(x.ByteArray, y.ByteArray);
@@ -915,7 +918,7 @@ public static partial class DataContractSerializerTests
     public static void DCS_CircularLink()
     {
         CircularLinkDerived circularLinkDerived = new CircularLinkDerived(true);
-        SerializeAndDeserialize<CircularLinkDerived>(circularLinkDerived, @"<CircularLinkDerived z:Id=""i1"" xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance"" xmlns:z=""http://schemas.microsoft.com/2003/10/Serialization/""><Link z:Id=""i2""><Link z:Id=""i3""><Link z:Ref=""i1""/><RandomHangingLink i:nil=""true""/></Link><RandomHangingLink i:nil=""true""/></Link><RandomHangingLink z:Id=""i4""><Link z:Id=""i5""><Link z:Id=""i6"" i:type=""CircularLinkDerived""><Link z:Ref=""i4""/><RandomHangingLink i:nil=""true""/></Link><RandomHangingLink i:nil=""true""/></Link><RandomHangingLink i:nil=""true""/></RandomHangingLink></CircularLinkDerived>");
+        DataContractSerializerHelper.SerializeAndDeserialize<CircularLinkDerived>(circularLinkDerived, @"<CircularLinkDerived z:Id=""i1"" xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance"" xmlns:z=""http://schemas.microsoft.com/2003/10/Serialization/""><Link z:Id=""i2""><Link z:Id=""i3""><Link z:Ref=""i1""/><RandomHangingLink i:nil=""true""/></Link><RandomHangingLink i:nil=""true""/></Link><RandomHangingLink z:Id=""i4""><Link z:Id=""i5""><Link z:Id=""i6"" i:type=""CircularLinkDerived""><Link z:Ref=""i4""/><RandomHangingLink i:nil=""true""/></Link><RandomHangingLink i:nil=""true""/></Link><RandomHangingLink i:nil=""true""/></RandomHangingLink></CircularLinkDerived>");
     }
 
     [Fact]
@@ -926,15 +929,15 @@ public static partial class DataContractSerializerTests
             ScreenDpi = 440,
             ScreenOrientation = "horizontal"
         };
-        var actual = SerializeAndDeserialize(obj, "<AppEnvironment xmlns=\"http://schemas.datacontract.org/2004/07/\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><screen_dpi_x0028_x_x003A_y_x0029_>440</screen_dpi_x0028_x_x003A_y_x0029_><screen_x003A_orientation>horizontal</screen_x003A_orientation></AppEnvironment>");
+        var actual = DataContractSerializerHelper.SerializeAndDeserialize(obj, "<AppEnvironment xmlns=\"http://schemas.datacontract.org/2004/07/\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><screen_dpi_x0028_x_x003A_y_x0029_>440</screen_dpi_x0028_x_x003A_y_x0029_><screen_x003A_orientation>horizontal</screen_x003A_orientation></AppEnvironment>");
         Assert.StrictEqual(obj.ScreenDpi, actual.ScreenDpi);
-        Assert.StrictEqual(obj.ScreenOrientation, actual.ScreenOrientation);
+        Assert.Equal(obj.ScreenOrientation, actual.ScreenOrientation);
     }
 
     [Fact]
     public static void DCS_GenericBase()
     {
-        var actual = SerializeAndDeserialize<GenericBase2<SimpleBaseDerived, SimpleBaseDerived2>>(new GenericBase2<SimpleBaseDerived, SimpleBaseDerived2>(true), @"<GenericBase2OfSimpleBaseDerivedSimpleBaseDerived2zbP0weY4 z:Id=""i1"" xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance"" xmlns:z=""http://schemas.microsoft.com/2003/10/Serialization/""><genericData1 z:Id=""i2""><BaseData/><DerivedData/></genericData1><genericData2 z:Id=""i3""><BaseData/><DerivedData/></genericData2></GenericBase2OfSimpleBaseDerivedSimpleBaseDerived2zbP0weY4>");
+        var actual = DataContractSerializerHelper.SerializeAndDeserialize<GenericBase2<SimpleBaseDerived, SimpleBaseDerived2>>(new GenericBase2<SimpleBaseDerived, SimpleBaseDerived2>(true), @"<GenericBase2OfSimpleBaseDerivedSimpleBaseDerived2zbP0weY4 z:Id=""i1"" xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance"" xmlns:z=""http://schemas.microsoft.com/2003/10/Serialization/""><genericData1 z:Id=""i2""><BaseData/><DerivedData/></genericData1><genericData2 z:Id=""i3""><BaseData/><DerivedData/></genericData2></GenericBase2OfSimpleBaseDerivedSimpleBaseDerived2zbP0weY4>");
 
         Assert.True(actual.genericData1 is SimpleBaseDerived);
         Assert.True(actual.genericData2 is SimpleBaseDerived2);
@@ -943,7 +946,7 @@ public static partial class DataContractSerializerTests
     [Fact]
     public static void DCS_GenericContainer()
     {
-        SerializeAndDeserialize<GenericContainer>(new GenericContainer(true), @"<GenericContainer z:Id=""i1"" xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance"" xmlns:z=""http://schemas.microsoft.com/2003/10/Serialization/""><GenericData z:Id=""i2"" i:type=""GenericBaseOfSimpleBaseContainervjX03eZJ""><genericData z:Id=""i3"" i:type=""SimpleBaseContainer""><Base1 i:nil=""true""/><Base2 i:nil=""true""/></genericData></GenericData></GenericContainer>");
+        DataContractSerializerHelper.SerializeAndDeserialize<GenericContainer>(new GenericContainer(true), @"<GenericContainer z:Id=""i1"" xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance"" xmlns:z=""http://schemas.microsoft.com/2003/10/Serialization/""><GenericData z:Id=""i2"" i:type=""GenericBaseOfSimpleBaseContainervjX03eZJ""><genericData z:Id=""i3"" i:type=""SimpleBaseContainer""><Base1 i:nil=""true""/><Base2 i:nil=""true""/></genericData></GenericData></GenericContainer>");
     }
 
     [Fact]
@@ -951,34 +954,34 @@ public static partial class DataContractSerializerTests
     {
         var x = new DictionaryWithVariousKeyValueTypes(true);
 
-        var y = SerializeAndDeserialize<DictionaryWithVariousKeyValueTypes>(x, @"<DictionaryWithVariousKeyValueTypes xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><WithEnums xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""><a:KeyValueOfMyEnumMyEnumzbP0weY4><a:Key>Two</a:Key><a:Value>Three</a:Value></a:KeyValueOfMyEnumMyEnumzbP0weY4><a:KeyValueOfMyEnumMyEnumzbP0weY4><a:Key>One</a:Key><a:Value>One</a:Value></a:KeyValueOfMyEnumMyEnumzbP0weY4></WithEnums><WithNullables xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""><a:KeyValueOfNullableOfshortNullableOfboolean_ShTDFhl_P><a:Key>-32768</a:Key><a:Value>true</a:Value></a:KeyValueOfNullableOfshortNullableOfboolean_ShTDFhl_P><a:KeyValueOfNullableOfshortNullableOfboolean_ShTDFhl_P><a:Key>0</a:Key><a:Value>false</a:Value></a:KeyValueOfNullableOfshortNullableOfboolean_ShTDFhl_P><a:KeyValueOfNullableOfshortNullableOfboolean_ShTDFhl_P><a:Key>32767</a:Key><a:Value i:nil=""true""/></a:KeyValueOfNullableOfshortNullableOfboolean_ShTDFhl_P></WithNullables><WithStructs xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""><a:KeyValueOfStructNotSerializableStructNotSerializablezbP0weY4><a:Key><value>10</value></a:Key><a:Value><value>12</value></a:Value></a:KeyValueOfStructNotSerializableStructNotSerializablezbP0weY4><a:KeyValueOfStructNotSerializableStructNotSerializablezbP0weY4><a:Key><value>2147483647</value></a:Key><a:Value><value>-2147483648</value></a:Value></a:KeyValueOfStructNotSerializableStructNotSerializablezbP0weY4></WithStructs></DictionaryWithVariousKeyValueTypes>");
+        var y = DataContractSerializerHelper.SerializeAndDeserialize<DictionaryWithVariousKeyValueTypes>(x, @"<DictionaryWithVariousKeyValueTypes xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><WithEnums xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""><a:KeyValueOfMyEnumMyEnumzbP0weY4><a:Key>Two</a:Key><a:Value>Three</a:Value></a:KeyValueOfMyEnumMyEnumzbP0weY4><a:KeyValueOfMyEnumMyEnumzbP0weY4><a:Key>One</a:Key><a:Value>One</a:Value></a:KeyValueOfMyEnumMyEnumzbP0weY4></WithEnums><WithNullables xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""><a:KeyValueOfNullableOfshortNullableOfboolean_ShTDFhl_P><a:Key>-32768</a:Key><a:Value>true</a:Value></a:KeyValueOfNullableOfshortNullableOfboolean_ShTDFhl_P><a:KeyValueOfNullableOfshortNullableOfboolean_ShTDFhl_P><a:Key>0</a:Key><a:Value>false</a:Value></a:KeyValueOfNullableOfshortNullableOfboolean_ShTDFhl_P><a:KeyValueOfNullableOfshortNullableOfboolean_ShTDFhl_P><a:Key>32767</a:Key><a:Value i:nil=""true""/></a:KeyValueOfNullableOfshortNullableOfboolean_ShTDFhl_P></WithNullables><WithStructs xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""><a:KeyValueOfStructNotSerializableStructNotSerializablezbP0weY4><a:Key><value>10</value></a:Key><a:Value><value>12</value></a:Value></a:KeyValueOfStructNotSerializableStructNotSerializablezbP0weY4><a:KeyValueOfStructNotSerializableStructNotSerializablezbP0weY4><a:Key><value>2147483647</value></a:Key><a:Value><value>-2147483648</value></a:Value></a:KeyValueOfStructNotSerializableStructNotSerializablezbP0weY4></WithStructs></DictionaryWithVariousKeyValueTypes>");
 
-        Assert.StrictEqual(y.WithEnums[MyEnum.Two], MyEnum.Three);
-        Assert.StrictEqual(y.WithEnums[MyEnum.One], MyEnum.One);
-        Assert.StrictEqual(y.WithStructs[new StructNotSerializable() { value = 10 }], new StructNotSerializable() { value = 12 });
-        Assert.StrictEqual(y.WithStructs[new StructNotSerializable() { value = int.MaxValue }], new StructNotSerializable() { value = int.MinValue });
-        Assert.StrictEqual(y.WithNullables[Int16.MinValue], true);
-        Assert.StrictEqual(y.WithNullables[0], false);
-        Assert.StrictEqual(y.WithNullables[Int16.MaxValue], null);
+        Assert.StrictEqual(MyEnum.Three, y.WithEnums[MyEnum.Two]);
+        Assert.StrictEqual(MyEnum.One, y.WithEnums[MyEnum.One]);
+        Assert.StrictEqual(new StructNotSerializable() { value = 12 }, y.WithStructs[new StructNotSerializable() { value = 10 }]);
+        Assert.StrictEqual(new StructNotSerializable() { value = int.MinValue }, y.WithStructs[new StructNotSerializable() { value = int.MaxValue }]);
+        Assert.StrictEqual(true, y.WithNullables[short.MinValue]);
+        Assert.StrictEqual(false, y.WithNullables[0]);
+        Assert.Null(y.WithNullables[short.MaxValue]);
     }
 
     [Fact]
     public static void DCS_TypesWithArrayOfOtherTypes()
     {
         var x = new TypeHasArrayOfASerializedAsB(true);
-        var y = SerializeAndDeserialize<TypeHasArrayOfASerializedAsB>(x, @"<TypeHasArrayOfASerializedAsB xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><Items><TypeA><Name>typeAValue</Name></TypeA><TypeA><Name>typeBValue</Name></TypeA></Items></TypeHasArrayOfASerializedAsB>");
+        var y = DataContractSerializerHelper.SerializeAndDeserialize<TypeHasArrayOfASerializedAsB>(x, @"<TypeHasArrayOfASerializedAsB xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><Items><TypeA><Name>typeAValue</Name></TypeA><TypeA><Name>typeBValue</Name></TypeA></Items></TypeHasArrayOfASerializedAsB>");
 
-        Assert.StrictEqual(x.Items[0].Name, y.Items[0].Name);
-        Assert.StrictEqual(x.Items[1].Name, y.Items[1].Name);
+        Assert.Equal(x.Items[0].Name, y.Items[0].Name);
+        Assert.Equal(x.Items[1].Name, y.Items[1].Name);
     }
 
     [Fact]
     public static void DCS_WithDuplicateNames()
     {
         var x = new WithDuplicateNames(true);
-        var y = SerializeAndDeserialize<WithDuplicateNames>(x, @"<WithDuplicateNames xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><ClassA1 xmlns:a=""http://schemas.datacontract.org/2004/07/DuplicateTypeNamesTest.ns1""><a:Name>Hello World! 漢 ñ</a:Name></ClassA1><ClassA2 xmlns:a=""http://schemas.datacontract.org/2004/07/DuplicateTypeNamesTest.ns2""><a:Nombre/></ClassA2><EnumA1>two</EnumA1><EnumA2>dos</EnumA2><StructA1 xmlns:a=""http://schemas.datacontract.org/2004/07/DuplicateTypeNamesTest.ns1""><a:Text/></StructA1><StructA2 xmlns:a=""http://schemas.datacontract.org/2004/07/DuplicateTypeNamesTest.ns2""><a:Texto/></StructA2></WithDuplicateNames>");
+        var y = DataContractSerializerHelper.SerializeAndDeserialize<WithDuplicateNames>(x, "<WithDuplicateNames xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><ClassA1 xmlns:a=\"http://schemas.datacontract.org/2004/07/DuplicateTypeNamesTest.ns1\"><a:Name>Hello World! \u6F22 \u00F1</a:Name></ClassA1><ClassA2 xmlns:a=\"http://schemas.datacontract.org/2004/07/DuplicateTypeNamesTest.ns2\"><a:Nombre/></ClassA2><EnumA1>two</EnumA1><EnumA2>dos</EnumA2><StructA1 xmlns:a=\"http://schemas.datacontract.org/2004/07/DuplicateTypeNamesTest.ns1\"><a:Text/></StructA1><StructA2 xmlns:a=\"http://schemas.datacontract.org/2004/07/DuplicateTypeNamesTest.ns2\"><a:Texto/></StructA2></WithDuplicateNames>");
 
-        Assert.StrictEqual(x.ClassA1.Name, y.ClassA1.Name);
+        Assert.Equal(x.ClassA1.Name, y.ClassA1.Name);
         Assert.StrictEqual(x.StructA1, y.StructA1);
         Assert.StrictEqual(x.EnumA1, y.EnumA1);
         Assert.StrictEqual(x.EnumA2, y.EnumA2);
@@ -991,7 +994,7 @@ public static partial class DataContractSerializerTests
         var original = new XElement("ElementName1");
         original.SetAttributeValue(XName.Get("Attribute1"), "AttributeValue1");
         original.SetValue("Value1");
-        var actual = SerializeAndDeserialize<XElement>(original, @"<ElementName1 Attribute1=""AttributeValue1"">Value1</ElementName1>");
+        var actual = DataContractSerializerHelper.SerializeAndDeserialize<XElement>(original, @"<ElementName1 Attribute1=""AttributeValue1"">Value1</ElementName1>");
 
         VerifyXElementObject(original, actual);
     }
@@ -1000,19 +1003,19 @@ public static partial class DataContractSerializerTests
     public static void DCS_WithXElement()
     {
         var original = new WithXElement(true);
-        var actual = SerializeAndDeserialize<WithXElement>(original, @"<WithXElement xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><e><ElementName1 Attribute1=""AttributeValue1"" xmlns="""">Value1</ElementName1></e></WithXElement>");
+        var actual = DataContractSerializerHelper.SerializeAndDeserialize<WithXElement>(original, @"<WithXElement xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><e><ElementName1 Attribute1=""AttributeValue1"" xmlns="""">Value1</ElementName1></e></WithXElement>");
 
         VerifyXElementObject(original.e, actual.e);
     }
 
     private static void VerifyXElementObject(XElement x1, XElement x2, bool checkFirstAttribute = true)
     {
-        Assert.StrictEqual(x1.Value, x2.Value);
+        Assert.Equal(x1.Value, x2.Value);
         Assert.StrictEqual(x1.Name, x2.Name);
         if (checkFirstAttribute)
         {
             Assert.StrictEqual(x1.FirstAttribute.Name, x2.FirstAttribute.Name);
-            Assert.StrictEqual(x1.FirstAttribute.Value, x2.FirstAttribute.Value);
+            Assert.Equal(x1.FirstAttribute.Value, x2.FirstAttribute.Value);
         }
     }
 
@@ -1020,7 +1023,7 @@ public static partial class DataContractSerializerTests
     public static void DCS_WithXElementWithNestedXElement()
     {
         var original = new WithXElementWithNestedXElement(true);
-        var actual = SerializeAndDeserialize<WithXElementWithNestedXElement>(original, @"<WithXElementWithNestedXElement xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><e1><ElementName1 Attribute1=""AttributeValue1"" xmlns=""""><ElementName2 Attribute2=""AttributeValue2"">Value2</ElementName2></ElementName1></e1></WithXElementWithNestedXElement>");
+        var actual = DataContractSerializerHelper.SerializeAndDeserialize<WithXElementWithNestedXElement>(original, @"<WithXElementWithNestedXElement xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><e1><ElementName1 Attribute1=""AttributeValue1"" xmlns=""""><ElementName2 Attribute2=""AttributeValue2"">Value2</ElementName2></ElementName1></e1></WithXElementWithNestedXElement>");
 
         VerifyXElementObject(original.e1, actual.e1);
         VerifyXElementObject((XElement)original.e1.FirstNode, (XElement)actual.e1.FirstNode);
@@ -1030,7 +1033,7 @@ public static partial class DataContractSerializerTests
     public static void DCS_WithArrayOfXElement()
     {
         var original = new WithArrayOfXElement(true);
-        var actual = SerializeAndDeserialize<WithArrayOfXElement>(original, @"<WithArrayOfXElement xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><a xmlns:a=""http://schemas.datacontract.org/2004/07/System.Xml.Linq""><a:XElement><item xmlns=""http://p.com/"">item0</item></a:XElement><a:XElement><item xmlns=""http://p.com/"">item1</item></a:XElement><a:XElement><item xmlns=""http://p.com/"">item2</item></a:XElement></a></WithArrayOfXElement>");
+        var actual = DataContractSerializerHelper.SerializeAndDeserialize<WithArrayOfXElement>(original, @"<WithArrayOfXElement xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><a xmlns:a=""http://schemas.datacontract.org/2004/07/System.Xml.Linq""><a:XElement><item xmlns=""http://p.com/"">item0</item></a:XElement><a:XElement><item xmlns=""http://p.com/"">item1</item></a:XElement><a:XElement><item xmlns=""http://p.com/"">item2</item></a:XElement></a></WithArrayOfXElement>");
 
         Assert.StrictEqual(original.a.Length, actual.a.Length);
         VerifyXElementObject(original.a[0], actual.a[0], checkFirstAttribute: false);
@@ -1042,7 +1045,7 @@ public static partial class DataContractSerializerTests
     public static void DCS_WithListOfXElement()
     {
         var original = new WithListOfXElement(true);
-        var actual = SerializeAndDeserialize<WithListOfXElement>(original, @"<WithListOfXElement xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><list xmlns:a=""http://schemas.datacontract.org/2004/07/System.Xml.Linq""><a:XElement><item xmlns=""http://p.com/"">item0</item></a:XElement><a:XElement><item xmlns=""http://p.com/"">item1</item></a:XElement><a:XElement><item xmlns=""http://p.com/"">item2</item></a:XElement></list></WithListOfXElement>");
+        var actual = DataContractSerializerHelper.SerializeAndDeserialize<WithListOfXElement>(original, @"<WithListOfXElement xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><list xmlns:a=""http://schemas.datacontract.org/2004/07/System.Xml.Linq""><a:XElement><item xmlns=""http://p.com/"">item0</item></a:XElement><a:XElement><item xmlns=""http://p.com/"">item1</item></a:XElement><a:XElement><item xmlns=""http://p.com/"">item2</item></a:XElement></list></WithListOfXElement>");
 
         Assert.StrictEqual(original.list.Count, actual.list.Count);
         VerifyXElementObject(original.list[0], actual.list[0], checkFirstAttribute: false);
@@ -1054,43 +1057,43 @@ public static partial class DataContractSerializerTests
     public static void DCS_DerivedTypeWithDifferentOverrides()
     {
         var x = new DerivedTypeWithDifferentOverrides() { Name1 = "Name1", Name2 = "Name2", Name3 = "Name3", Name4 = "Name4", Name5 = "Name5" };
-        var y = SerializeAndDeserialize<DerivedTypeWithDifferentOverrides>(x, @"<DerivedTypeWithDifferentOverrides xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><Name1>Name1</Name1><Name2 i:nil=""true""/><Name3 i:nil=""true""/><Name4 i:nil=""true""/><Name5 i:nil=""true""/><Name6 i:nil=""true""/><Name2>Name2</Name2><Name3>Name3</Name3><Name5>Name5</Name5></DerivedTypeWithDifferentOverrides>");
+        var y = DataContractSerializerHelper.SerializeAndDeserialize<DerivedTypeWithDifferentOverrides>(x, @"<DerivedTypeWithDifferentOverrides xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><Name1>Name1</Name1><Name2 i:nil=""true""/><Name3 i:nil=""true""/><Name4 i:nil=""true""/><Name5 i:nil=""true""/><Name6 i:nil=""true""/><Name2>Name2</Name2><Name3>Name3</Name3><Name5>Name5</Name5></DerivedTypeWithDifferentOverrides>");
 
-        Assert.StrictEqual(x.Name1, y.Name1);
-        Assert.StrictEqual(x.Name2, y.Name2);
-        Assert.StrictEqual(x.Name3, y.Name3);
+        Assert.Equal(x.Name1, y.Name1);
+        Assert.Equal(x.Name2, y.Name2);
+        Assert.Equal(x.Name3, y.Name3);
         Assert.Null(y.Name4);
-        Assert.StrictEqual(x.Name5, y.Name5);
+        Assert.Equal(x.Name5, y.Name5);
     }
 
     [Fact]
     public static void DCS_TypeNamesWithSpecialCharacters()
     {
-        var x = new __TypeNameWithSpecialCharacters漢ñ() { PropertyNameWithSpecialCharacters漢ñ = "Test" };
-        var y = SerializeAndDeserialize<__TypeNameWithSpecialCharacters漢ñ>(x, @"<__TypeNameWithSpecialCharacters漢ñ xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><PropertyNameWithSpecialCharacters漢ñ>Test</PropertyNameWithSpecialCharacters漢ñ></__TypeNameWithSpecialCharacters漢ñ>");
+        var x = new __TypeNameWithSpecialCharacters\u6F22\u00F1() { PropertyNameWithSpecialCharacters\u6F22\u00F1 = "Test" };
+        var y = DataContractSerializerHelper.SerializeAndDeserialize<__TypeNameWithSpecialCharacters\u6F22\u00F1>(x, "<__TypeNameWithSpecialCharacters\u6F22\u00F1 xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><PropertyNameWithSpecialCharacters\u6F22\u00F1>Test</PropertyNameWithSpecialCharacters\u6F22\u00F1></__TypeNameWithSpecialCharacters\u6F22\u00F1>");
 
-        Assert.StrictEqual(x.PropertyNameWithSpecialCharacters漢ñ, y.PropertyNameWithSpecialCharacters漢ñ);
+        Assert.Equal(x.PropertyNameWithSpecialCharacters\u6F22\u00F1, y.PropertyNameWithSpecialCharacters\u6F22\u00F1);
     }
 
     [Fact]
     public static void DCS_JaggedArrayAsRoot()
     {
         int[][] jaggedIntegerArray = new int[][] { new int[] { 1, 3, 5, 7, 9 }, new int[] { 0, 2, 4, 6 }, new int[] { 11, 22 } };
-        var actualJaggedIntegerArray = SerializeAndDeserialize<int[][]>(jaggedIntegerArray, @"<ArrayOfArrayOfint xmlns=""http://schemas.microsoft.com/2003/10/Serialization/Arrays"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><ArrayOfint><int>1</int><int>3</int><int>5</int><int>7</int><int>9</int></ArrayOfint><ArrayOfint><int>0</int><int>2</int><int>4</int><int>6</int></ArrayOfint><ArrayOfint><int>11</int><int>22</int></ArrayOfint></ArrayOfArrayOfint>");
+        var actualJaggedIntegerArray = DataContractSerializerHelper.SerializeAndDeserialize<int[][]>(jaggedIntegerArray, @"<ArrayOfArrayOfint xmlns=""http://schemas.microsoft.com/2003/10/Serialization/Arrays"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><ArrayOfint><int>1</int><int>3</int><int>5</int><int>7</int><int>9</int></ArrayOfint><ArrayOfint><int>0</int><int>2</int><int>4</int><int>6</int></ArrayOfint><ArrayOfint><int>11</int><int>22</int></ArrayOfint></ArrayOfArrayOfint>");
 
         Assert.Equal<int>(jaggedIntegerArray[0], actualJaggedIntegerArray[0]);
         Assert.Equal<int>(jaggedIntegerArray[1], actualJaggedIntegerArray[1]);
         Assert.Equal<int>(jaggedIntegerArray[2], actualJaggedIntegerArray[2]);
 
         string[][] jaggedStringArray = new string[][] { new string[] { "1", "3", "5", "7", "9" }, new string[] { "0", "2", "4", "6" }, new string[] { "11", "22" } };
-        var actualJaggedStringArray = SerializeAndDeserialize<string[][]>(jaggedStringArray, @"<ArrayOfArrayOfstring xmlns=""http://schemas.microsoft.com/2003/10/Serialization/Arrays"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><ArrayOfstring><string>1</string><string>3</string><string>5</string><string>7</string><string>9</string></ArrayOfstring><ArrayOfstring><string>0</string><string>2</string><string>4</string><string>6</string></ArrayOfstring><ArrayOfstring><string>11</string><string>22</string></ArrayOfstring></ArrayOfArrayOfstring>");
+        var actualJaggedStringArray = DataContractSerializerHelper.SerializeAndDeserialize<string[][]>(jaggedStringArray, @"<ArrayOfArrayOfstring xmlns=""http://schemas.microsoft.com/2003/10/Serialization/Arrays"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><ArrayOfstring><string>1</string><string>3</string><string>5</string><string>7</string><string>9</string></ArrayOfstring><ArrayOfstring><string>0</string><string>2</string><string>4</string><string>6</string></ArrayOfstring><ArrayOfstring><string>11</string><string>22</string></ArrayOfstring></ArrayOfArrayOfstring>");
 
         Assert.Equal<string>(jaggedStringArray[0], actualJaggedStringArray[0]);
         Assert.Equal<string>(jaggedStringArray[1], actualJaggedStringArray[1]);
         Assert.Equal<string>(jaggedStringArray[2], actualJaggedStringArray[2]);
 
         object[] objectArray = new object[] { 1, 1.0F, 1.0, "string", Guid.Parse("2054fd3e-e118-476a-9962-1a882be51860"), new DateTime(2013, 1, 2) };
-        var actualObjectArray = SerializeAndDeserialize<object[]>(objectArray, @"<ArrayOfanyType xmlns=""http://schemas.microsoft.com/2003/10/Serialization/Arrays"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><anyType i:type=""a:int"" xmlns:a=""http://www.w3.org/2001/XMLSchema"">1</anyType><anyType i:type=""a:float"" xmlns:a=""http://www.w3.org/2001/XMLSchema"">1</anyType><anyType i:type=""a:double"" xmlns:a=""http://www.w3.org/2001/XMLSchema"">1</anyType><anyType i:type=""a:string"" xmlns:a=""http://www.w3.org/2001/XMLSchema"">string</anyType><anyType i:type=""a:guid"" xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/"">2054fd3e-e118-476a-9962-1a882be51860</anyType><anyType i:type=""a:dateTime"" xmlns:a=""http://www.w3.org/2001/XMLSchema"">2013-01-02T00:00:00</anyType></ArrayOfanyType>");
+        var actualObjectArray = DataContractSerializerHelper.SerializeAndDeserialize<object[]>(objectArray, @"<ArrayOfanyType xmlns=""http://schemas.microsoft.com/2003/10/Serialization/Arrays"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><anyType i:type=""a:int"" xmlns:a=""http://www.w3.org/2001/XMLSchema"">1</anyType><anyType i:type=""a:float"" xmlns:a=""http://www.w3.org/2001/XMLSchema"">1</anyType><anyType i:type=""a:double"" xmlns:a=""http://www.w3.org/2001/XMLSchema"">1</anyType><anyType i:type=""a:string"" xmlns:a=""http://www.w3.org/2001/XMLSchema"">string</anyType><anyType i:type=""a:guid"" xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/"">2054fd3e-e118-476a-9962-1a882be51860</anyType><anyType i:type=""a:dateTime"" xmlns:a=""http://www.w3.org/2001/XMLSchema"">2013-01-02T00:00:00</anyType></ArrayOfanyType>");
 
         Assert.True(1 == (int)actualObjectArray[0]);
         Assert.True(1.0F == (float)actualObjectArray[1]);
@@ -1100,7 +1103,7 @@ public static partial class DataContractSerializerTests
         Assert.True(new DateTime(2013, 1, 2) == (DateTime)actualObjectArray[5]);
 
         int[][][] jaggedIntegerArray2 = new int[][][] { new int[][] { new int[] { 1 }, new int[] { 3 } }, new int[][] { new int[] { 0 } }, new int[][] { new int[] { } } };
-        var actualJaggedIntegerArray2 = SerializeAndDeserialize<int[][][]>(jaggedIntegerArray2, @"<ArrayOfArrayOfArrayOfint xmlns=""http://schemas.microsoft.com/2003/10/Serialization/Arrays"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><ArrayOfArrayOfint><ArrayOfint><int>1</int></ArrayOfint><ArrayOfint><int>3</int></ArrayOfint></ArrayOfArrayOfint><ArrayOfArrayOfint><ArrayOfint><int>0</int></ArrayOfint></ArrayOfArrayOfint><ArrayOfArrayOfint><ArrayOfint/></ArrayOfArrayOfint></ArrayOfArrayOfArrayOfint>");
+        var actualJaggedIntegerArray2 = DataContractSerializerHelper.SerializeAndDeserialize<int[][][]>(jaggedIntegerArray2, @"<ArrayOfArrayOfArrayOfint xmlns=""http://schemas.microsoft.com/2003/10/Serialization/Arrays"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><ArrayOfArrayOfint><ArrayOfint><int>1</int></ArrayOfint><ArrayOfint><int>3</int></ArrayOfint></ArrayOfArrayOfint><ArrayOfArrayOfint><ArrayOfint><int>0</int></ArrayOfint></ArrayOfArrayOfint><ArrayOfArrayOfint><ArrayOfint/></ArrayOfArrayOfint></ArrayOfArrayOfArrayOfint>");
 
         Assert.True(actualJaggedIntegerArray2.Length == 3);
         Assert.True(actualJaggedIntegerArray2[0][0][0] == 1);
@@ -1115,10 +1118,11 @@ public static partial class DataContractSerializerTests
         var myresolver = new MyResolver();
         var settings = new DataContractSerializerSettings() { DataContractResolver = myresolver, KnownTypes = new Type[] { typeof(MyOtherType) } };
         var input = new MyType() { Value = new MyOtherType() { Str = "Hello World" } };
-        var output = SerializeAndDeserialize<MyType>(input, @"<MyType xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><Value i:type=""MyOtherType""><Str>Hello World</Str></Value></MyType>", settings);
+        var output = DataContractSerializerHelper.SerializeAndDeserialize<MyType>(input, @"<MyType xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><Value i:type=""MyOtherType""><Str>Hello World</Str></Value></MyType>", settings);
 
         Assert.True(myresolver.ResolveNameInvoked, "myresolver.ResolveNameInvoked is false");
         Assert.True(myresolver.TryResolveTypeInvoked, "myresolver.TryResolveTypeInvoked is false");
+        Assert.True(myresolver.DeclaredTypeIsNotNull, "myresolver.DeclaredTypeIsNotNull is false");
         Assert.True(input.OnSerializingMethodInvoked, "input.OnSerializingMethodInvoked is false");
         Assert.True(input.OnSerializedMethodInvoked, "input.OnSerializedMethodInvoked is false");
         Assert.True(output.OnDeserializingMethodInvoked, "output.OnDeserializingMethodInvoked is false");
@@ -1173,7 +1177,7 @@ public static partial class DataContractSerializerTests
         original.Add("a");
         original.Add("b");
 
-        var actual = SerializeAndDeserialize<EnumerableStruct>(original, @"<ArrayOfstring xmlns=""http://schemas.microsoft.com/2003/10/Serialization/Arrays"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><string i:type=""a:string"" xmlns:a=""http://www.w3.org/2001/XMLSchema"">a</string><string i:type=""a:string"" xmlns:a=""http://www.w3.org/2001/XMLSchema"">b</string></ArrayOfstring>");
+        var actual = DataContractSerializerHelper.SerializeAndDeserialize<EnumerableStruct>(original, @"<ArrayOfstring xmlns=""http://schemas.microsoft.com/2003/10/Serialization/Arrays"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><string i:type=""a:string"" xmlns:a=""http://www.w3.org/2001/XMLSchema"">a</string><string i:type=""a:string"" xmlns:a=""http://www.w3.org/2001/XMLSchema"">b</string></ArrayOfstring>");
 
         Assert.Equal((IEnumerable<string>)actual, (IEnumerable<string>)original);
     }
@@ -1186,7 +1190,7 @@ public static partial class DataContractSerializerTests
         original.Add(new DateTime(200, DateTimeKind.Utc));
         original.Add(new DateTime(300, DateTimeKind.Utc));
 
-        var actual = SerializeAndDeserialize<EnumerableCollection>(original, @"<ArrayOfdateTime xmlns=""http://schemas.microsoft.com/2003/10/Serialization/Arrays"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><dateTime i:type=""a:dateTime"" xmlns:a=""http://www.w3.org/2001/XMLSchema"">0001-01-01T00:00:00.00001Z</dateTime><dateTime i:type=""a:dateTime"" xmlns:a=""http://www.w3.org/2001/XMLSchema"">0001-01-01T00:00:00.00002Z</dateTime><dateTime i:type=""a:dateTime"" xmlns:a=""http://www.w3.org/2001/XMLSchema"">0001-01-01T00:00:00.00003Z</dateTime></ArrayOfdateTime>");
+        var actual = DataContractSerializerHelper.SerializeAndDeserialize<EnumerableCollection>(original, @"<ArrayOfdateTime xmlns=""http://schemas.microsoft.com/2003/10/Serialization/Arrays"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><dateTime i:type=""a:dateTime"" xmlns:a=""http://www.w3.org/2001/XMLSchema"">0001-01-01T00:00:00.00001Z</dateTime><dateTime i:type=""a:dateTime"" xmlns:a=""http://www.w3.org/2001/XMLSchema"">0001-01-01T00:00:00.00002Z</dateTime><dateTime i:type=""a:dateTime"" xmlns:a=""http://www.w3.org/2001/XMLSchema"">0001-01-01T00:00:00.00003Z</dateTime></ArrayOfdateTime>");
 
         Assert.Equal((IEnumerable<DateTime>)actual, (IEnumerable<DateTime>)original);
     }
@@ -1196,16 +1200,16 @@ public static partial class DataContractSerializerTests
     {
         var value = new DerivedClassWithSameProperty() { DateTimeProperty = new DateTime(100), IntProperty = 5, StringProperty = "TestString", ListProperty = new List<string>() };
         value.ListProperty.AddRange(new string[] { "one", "two", "three" });
-        var actual = SerializeAndDeserialize<DerivedClassWithSameProperty>(value, @"<DerivedClassWithSameProperty xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><DateTimeProperty>0001-01-01T00:00:00</DateTimeProperty><IntProperty>0</IntProperty><ListProperty i:nil=""true"" xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""/><StringProperty i:nil=""true""/><DateTimeProperty>0001-01-01T00:00:00.00001</DateTimeProperty><IntProperty>5</IntProperty><ListProperty xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""><a:string>one</a:string><a:string>two</a:string><a:string>three</a:string></ListProperty><StringProperty>TestString</StringProperty></DerivedClassWithSameProperty>");
+        var actual = DataContractSerializerHelper.SerializeAndDeserialize<DerivedClassWithSameProperty>(value, @"<DerivedClassWithSameProperty xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><DateTimeProperty>0001-01-01T00:00:00</DateTimeProperty><IntProperty>0</IntProperty><ListProperty i:nil=""true"" xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""/><StringProperty i:nil=""true""/><DateTimeProperty>0001-01-01T00:00:00.00001</DateTimeProperty><IntProperty>5</IntProperty><ListProperty xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""><a:string>one</a:string><a:string>two</a:string><a:string>three</a:string></ListProperty><StringProperty>TestString</StringProperty></DerivedClassWithSameProperty>");
 
         Assert.StrictEqual(value.DateTimeProperty, actual.DateTimeProperty);
         Assert.StrictEqual(value.IntProperty, actual.IntProperty);
-        Assert.StrictEqual(value.StringProperty, actual.StringProperty);
+        Assert.Equal(value.StringProperty, actual.StringProperty);
         Assert.NotNull(actual.ListProperty);
         Assert.True(value.ListProperty.Count == actual.ListProperty.Count);
-        Assert.StrictEqual("one", actual.ListProperty[0]);
-        Assert.StrictEqual("two", actual.ListProperty[1]);
-        Assert.StrictEqual("three", actual.ListProperty[2]);
+        Assert.Equal("one", actual.ListProperty[0]);
+        Assert.Equal("two", actual.ListProperty[1]);
+        Assert.Equal("three", actual.ListProperty[2]);
     }
 
     [Fact]
@@ -1213,19 +1217,19 @@ public static partial class DataContractSerializerTests
     {
         var value = new ContainsLinkedList(true);
 
-        SerializeAndDeserialize<ContainsLinkedList>(value, @"<ContainsLinkedList xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><Data><SimpleDCWithRef><Data><Data>23:59:59</Data></Data><RefData><Data>23:59:59</Data></RefData></SimpleDCWithRef><SimpleDCWithRef><Data><Data>23:59:59</Data></Data><RefData><Data>23:59:59</Data></RefData></SimpleDCWithRef><SimpleDCWithRef><Data><Data>23:59:59</Data></Data><RefData><Data>23:59:59</Data></RefData></SimpleDCWithRef><SimpleDCWithRef><Data><Data>23:59:59</Data></Data><RefData><Data>23:59:59</Data></RefData></SimpleDCWithRef><SimpleDCWithRef><Data><Data>23:59:59</Data></Data><RefData><Data>23:59:59</Data></RefData></SimpleDCWithRef><SimpleDCWithRef><Data><Data>23:59:59</Data></Data><RefData><Data>23:59:59</Data></RefData></SimpleDCWithRef><SimpleDCWithRef><Data><Data>23:59:59</Data></Data><RefData><Data>23:59:59</Data></RefData></SimpleDCWithRef></Data></ContainsLinkedList>");
+        DataContractSerializerHelper.SerializeAndDeserialize<ContainsLinkedList>(value, @"<ContainsLinkedList xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><Data><SimpleDCWithRef><Data><Data>23:59:59</Data></Data><RefData><Data>23:59:59</Data></RefData></SimpleDCWithRef><SimpleDCWithRef><Data><Data>23:59:59</Data></Data><RefData><Data>23:59:59</Data></RefData></SimpleDCWithRef><SimpleDCWithRef><Data><Data>23:59:59</Data></Data><RefData><Data>23:59:59</Data></RefData></SimpleDCWithRef><SimpleDCWithRef><Data><Data>23:59:59</Data></Data><RefData><Data>23:59:59</Data></RefData></SimpleDCWithRef><SimpleDCWithRef><Data><Data>23:59:59</Data></Data><RefData><Data>23:59:59</Data></RefData></SimpleDCWithRef><SimpleDCWithRef><Data><Data>23:59:59</Data></Data><RefData><Data>23:59:59</Data></RefData></SimpleDCWithRef><SimpleDCWithRef><Data><Data>23:59:59</Data></Data><RefData><Data>23:59:59</Data></RefData></SimpleDCWithRef></Data></ContainsLinkedList>");
     }
 
     [Fact]
     public static void DCS_SimpleCollectionDataContract()
     {
         var value = new SimpleCDC(true);
-        var actual = SerializeAndDeserialize<SimpleCDC>(value, @"<SimpleCDC xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><Item>One</Item><Item>Two</Item><Item>Three</Item></SimpleCDC>");
+        var actual = DataContractSerializerHelper.SerializeAndDeserialize<SimpleCDC>(value, @"<SimpleCDC xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><Item>One</Item><Item>Two</Item><Item>Three</Item></SimpleCDC>");
 
         Assert.True(actual.Count == 3);
-        Assert.True(actual.Contains("One"));
-        Assert.True(actual.Contains("Two"));
-        Assert.True(actual.Contains("Three"));
+        Assert.Contains("One", actual);
+        Assert.Contains("Two", actual);
+        Assert.Contains("Three", actual);
     }
 
     [Fact]
@@ -1235,14 +1239,14 @@ public static partial class DataContractSerializerTests
         value.Items.AddLast("One");
         value.Items.AddLast("Two");
         value.Items.AddLast("Three");
-        SerializeAndDeserialize<MyDerivedCollectionContainer>(value, @"<MyDerivedCollectionContainer xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><Items><string>One</string><string>Two</string><string>Three</string></Items></MyDerivedCollectionContainer>");
+        DataContractSerializerHelper.SerializeAndDeserialize<MyDerivedCollectionContainer>(value, @"<MyDerivedCollectionContainer xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><Items><string>One</string><string>Two</string><string>Three</string></Items></MyDerivedCollectionContainer>");
     }
 
     [Fact]
     public static void DCS_EnumFlags()
     {
         EnumFlags value1 = EnumFlags.One | EnumFlags.Four;
-        var value2 = SerializeAndDeserialize<EnumFlags>(value1, @"<EnumFlags xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"">One Four</EnumFlags>");
+        var value2 = DataContractSerializerHelper.SerializeAndDeserialize<EnumFlags>(value1, @"<EnumFlags xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"">One Four</EnumFlags>");
         Assert.StrictEqual(value1, value2);
     }
 
@@ -1250,11 +1254,11 @@ public static partial class DataContractSerializerTests
     public static void DCS_SerializeClassThatImplementsInteface()
     {
         ClassImplementsInterface value = new ClassImplementsInterface() { ClassID = "ClassID", DisplayName = "DisplayName", Id = "Id", IsLoaded = true };
-        var actual = SerializeAndDeserialize<ClassImplementsInterface>(value, @"<ClassImplementsInterface xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><DisplayName>DisplayName</DisplayName><Id>Id</Id></ClassImplementsInterface>");
+        var actual = DataContractSerializerHelper.SerializeAndDeserialize<ClassImplementsInterface>(value, @"<ClassImplementsInterface xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><DisplayName>DisplayName</DisplayName><Id>Id</Id></ClassImplementsInterface>");
 
 
-        Assert.StrictEqual(value.DisplayName, actual.DisplayName);
-        Assert.StrictEqual(value.Id, actual.Id);
+        Assert.Equal(value.DisplayName, actual.DisplayName);
+        Assert.Equal(value.Id, actual.Id);
     }
 
     [Fact]
@@ -1271,7 +1275,7 @@ public static partial class DataContractSerializerTests
         };
 
         // Act
-        var actual = SerializeAndDeserialize(item, baseline);
+        var actual = DataContractSerializerHelper.SerializeAndDeserialize(item, baseline);
 
         // Assert
         Assert.StrictEqual(item.OptionalInt, actual.OptionalInt);
@@ -1287,7 +1291,7 @@ public static partial class DataContractSerializerTests
     public static void DCS_SimpleStructWithProperties()
     {
         SimpleStructWithProperties x = new SimpleStructWithProperties() { Num = 1, Text = "Foo" };
-        var y = SerializeAndDeserialize(x, "<SimpleStructWithProperties xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><Num>1</Num><Text>Foo</Text></SimpleStructWithProperties>");
+        var y = DataContractSerializerHelper.SerializeAndDeserialize(x, "<SimpleStructWithProperties xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><Num>1</Num><Text>Foo</Text></SimpleStructWithProperties>");
 
         Assert.True(x.Num == y.Num, "x.Num != y.Num");
         Assert.True(x.Text == y.Text, "x.Text != y.Text");
@@ -1297,7 +1301,7 @@ public static partial class DataContractSerializerTests
     public static void DCS_InternalTypeSerialization()
     {
         var value = new InternalType() { InternalProperty = 12 };
-        var deserializedValue = SerializeAndDeserialize<InternalType>(value, @"<InternalType xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><InternalProperty>12</InternalProperty><PrivateProperty>100</PrivateProperty></InternalType>");
+        var deserializedValue = DataContractSerializerHelper.SerializeAndDeserialize<InternalType>(value, @"<InternalType xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><InternalProperty>12</InternalProperty><PrivateProperty>100</PrivateProperty></InternalType>");
         Assert.StrictEqual(deserializedValue.InternalProperty, value.InternalProperty);
         Assert.StrictEqual(deserializedValue.GetPrivatePropertyValue(), value.GetPrivatePropertyValue());
     }
@@ -1306,7 +1310,7 @@ public static partial class DataContractSerializerTests
     public static void DCS_PrivateTypeSerialization()
     {
         var value = new PrivateType();
-        var deserializedValue = SerializeAndDeserialize<PrivateType>(value, @"<DataContractSerializerTests.PrivateType xmlns=""http://schemas.datacontract.org/2004/07/"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><InternalProperty>1</InternalProperty><PrivateProperty>2</PrivateProperty></DataContractSerializerTests.PrivateType>");
+        var deserializedValue = DataContractSerializerHelper.SerializeAndDeserialize<PrivateType>(value, @"<DataContractSerializerTests.PrivateType xmlns=""http://schemas.datacontract.org/2004/07/"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><InternalProperty>1</InternalProperty><PrivateProperty>2</PrivateProperty></DataContractSerializerTests.PrivateType>");
         Assert.StrictEqual(deserializedValue.GetInternalPropertyValue(), value.GetInternalPropertyValue());
         Assert.StrictEqual(deserializedValue.GetPrivatePropertyValue(), value.GetPrivatePropertyValue());
     }
@@ -1346,8 +1350,8 @@ public static partial class DataContractSerializerTests
         var obj = new MyOtherType() { Str = "Hello" };
         Func<DataContractSerializer> serializerFactory = () => new DataContractSerializer(typeof(MyOtherType), "ChangedRoot", "http://changedNamespace");
         string baselineXml = @"<ChangedRoot xmlns=""http://changedNamespace"" xmlns:a=""http://schemas.datacontract.org/2004/07/SerializationTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><a:Str>Hello</a:Str></ChangedRoot>";
-        var result = SerializeAndDeserialize(obj, baselineXml, serializerFactory: serializerFactory);
-        Assert.StrictEqual(result.Str, "Hello");
+        var result = DataContractSerializerHelper.SerializeAndDeserialize(obj, baselineXml, serializerFactory: serializerFactory);
+        Assert.Equal("Hello", result.Str);
     }
 
     [Fact]
@@ -1358,8 +1362,8 @@ public static partial class DataContractSerializerTests
         var obj = new MyOtherType() { Str = "Hello" };
         Func<DataContractSerializer> serializerFactory = () => new DataContractSerializer(typeof(MyOtherType), xmlDictionary.Add("ChangedRoot"), xmlDictionary.Add("http://changedNamespace"));
         string baselineXml = @"<ChangedRoot xmlns=""http://changedNamespace"" xmlns:a=""http://schemas.datacontract.org/2004/07/SerializationTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><a:Str>Hello</a:Str></ChangedRoot>";
-        var result = SerializeAndDeserialize(obj, baselineXml, serializerFactory: serializerFactory);
-        Assert.StrictEqual(result.Str, "Hello");
+        var result = DataContractSerializerHelper.SerializeAndDeserialize(obj, baselineXml, serializerFactory: serializerFactory);
+        Assert.Equal("Hello", result.Str);
     }
 
     [Fact]
@@ -1367,22 +1371,22 @@ public static partial class DataContractSerializerTests
     {
         //Constructor# 5
         var value = new KnownTypesThroughConstructor() { EnumValue = MyEnum.One, SimpleTypeValue = new SimpleKnownTypeValue() { StrProperty = "PropertyValue" } };
-        var actual = SerializeAndDeserialize<KnownTypesThroughConstructor>(value,
+        var actual = DataContractSerializerHelper.SerializeAndDeserialize<KnownTypesThroughConstructor>(value,
             @"<KnownTypesThroughConstructor xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><EnumValue i:type=""MyEnum"">One</EnumValue><SimpleTypeValue i:type=""SimpleKnownTypeValue""><StrProperty>PropertyValue</StrProperty></SimpleTypeValue></KnownTypesThroughConstructor>",
             null, () => { return new DataContractSerializer(typeof(KnownTypesThroughConstructor), new Type[] { typeof(MyEnum), typeof(SimpleKnownTypeValue) }); });
 
         Assert.StrictEqual((MyEnum)value.EnumValue, (MyEnum)actual.EnumValue);
         Assert.True(actual.SimpleTypeValue is SimpleKnownTypeValue);
-        Assert.StrictEqual(((SimpleKnownTypeValue)actual.SimpleTypeValue).StrProperty, "PropertyValue");
+        Assert.Equal("PropertyValue", ((SimpleKnownTypeValue)actual.SimpleTypeValue).StrProperty);
     }
 
     [Fact]
     public static void DCS_DuplicatedKnownTypesWithAdapterThroughConstructor()
     {
-        //Constructor# 5  
+        //Constructor# 5
         DateTimeOffset dto = new DateTimeOffset(new DateTime(2015, 11, 11), new TimeSpan(0, 0, 0));
         var value = new KnownTypesThroughConstructor() { EnumValue = dto, SimpleTypeValue = dto };
-        var actual = SerializeAndDeserialize<KnownTypesThroughConstructor>(value, 
+        var actual = DataContractSerializerHelper.SerializeAndDeserialize<KnownTypesThroughConstructor>(value,
             @"<KnownTypesThroughConstructor xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><EnumValue i:type=""a:DateTimeOffset"" xmlns:a=""http://schemas.datacontract.org/2004/07/System""><a:DateTime>2015-11-11T00:00:00Z</a:DateTime><a:OffsetMinutes>0</a:OffsetMinutes></EnumValue><SimpleTypeValue i:type=""a:DateTimeOffset"" xmlns:a=""http://schemas.datacontract.org/2004/07/System""><a:DateTime>2015-11-11T00:00:00Z</a:DateTime><a:OffsetMinutes>0</a:OffsetMinutes></SimpleTypeValue></KnownTypesThroughConstructor>",
             null, () => { return new DataContractSerializer(typeof(KnownTypesThroughConstructor), new Type[] { typeof(DateTimeOffset), typeof(DateTimeOffset) }); });
 
@@ -1396,13 +1400,13 @@ public static partial class DataContractSerializerTests
     {
         //Constructor# 2.1
         var value = new KnownTypesThroughConstructor() { EnumValue = MyEnum.One, SimpleTypeValue = new SimpleKnownTypeValue() { StrProperty = "PropertyValue" } };
-        var actual = SerializeAndDeserialize<KnownTypesThroughConstructor>(value,
+        var actual = DataContractSerializerHelper.SerializeAndDeserialize<KnownTypesThroughConstructor>(value,
             @"<KnownTypesThroughConstructor xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><EnumValue i:type=""MyEnum"">One</EnumValue><SimpleTypeValue i:type=""SimpleKnownTypeValue""><StrProperty>PropertyValue</StrProperty></SimpleTypeValue></KnownTypesThroughConstructor>",
             new DataContractSerializerSettings() { KnownTypes = new Type[] { typeof(MyEnum), typeof(SimpleKnownTypeValue) } });
 
         Assert.StrictEqual((MyEnum)value.EnumValue, (MyEnum)actual.EnumValue);
         Assert.True(actual.SimpleTypeValue is SimpleKnownTypeValue);
-        Assert.StrictEqual(((SimpleKnownTypeValue)actual.SimpleTypeValue).StrProperty, "PropertyValue");
+        Assert.Equal("PropertyValue", ((SimpleKnownTypeValue)actual.SimpleTypeValue).StrProperty);
     }
 
     [Fact]
@@ -1410,13 +1414,13 @@ public static partial class DataContractSerializerTests
     {
         //Constructor# 6
         var value = new KnownTypesThroughConstructor() { EnumValue = MyEnum.One, SimpleTypeValue = new SimpleKnownTypeValue() { StrProperty = "PropertyValue" } };
-        var actual = SerializeAndDeserialize<KnownTypesThroughConstructor>(value,
+        var actual = DataContractSerializerHelper.SerializeAndDeserialize<KnownTypesThroughConstructor>(value,
             @"<ChangedRoot xmlns=""http://changedNamespace"" xmlns:a=""http://schemas.datacontract.org/2004/07/SerializationTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><a:EnumValue i:type=""a:MyEnum"">One</a:EnumValue><a:SimpleTypeValue i:type=""a:SimpleKnownTypeValue""><a:StrProperty>PropertyValue</a:StrProperty></a:SimpleTypeValue></ChangedRoot>",
             null, () => { return new DataContractSerializer(typeof(KnownTypesThroughConstructor), "ChangedRoot", "http://changedNamespace", new Type[] { typeof(MyEnum), typeof(SimpleKnownTypeValue) }); });
 
         Assert.StrictEqual((MyEnum)value.EnumValue, (MyEnum)actual.EnumValue);
         Assert.True(actual.SimpleTypeValue is SimpleKnownTypeValue);
-        Assert.StrictEqual(((SimpleKnownTypeValue)actual.SimpleTypeValue).StrProperty, "PropertyValue");
+        Assert.Equal("PropertyValue", ((SimpleKnownTypeValue)actual.SimpleTypeValue).StrProperty);
     }
 
     [Fact]
@@ -1425,72 +1429,72 @@ public static partial class DataContractSerializerTests
         //Constructor# 7
         var xmlDictionary = new XmlDictionary();
         var value = new KnownTypesThroughConstructor() { EnumValue = MyEnum.One, SimpleTypeValue = new SimpleKnownTypeValue() { StrProperty = "PropertyValue" } };
-        var actual = SerializeAndDeserialize<KnownTypesThroughConstructor>(value,
+        var actual = DataContractSerializerHelper.SerializeAndDeserialize<KnownTypesThroughConstructor>(value,
             @"<ChangedRoot xmlns=""http://changedNamespace"" xmlns:a=""http://schemas.datacontract.org/2004/07/SerializationTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><a:EnumValue i:type=""a:MyEnum"">One</a:EnumValue><a:SimpleTypeValue i:type=""a:SimpleKnownTypeValue""><a:StrProperty>PropertyValue</a:StrProperty></a:SimpleTypeValue></ChangedRoot>",
             null, () => { return new DataContractSerializer(typeof(KnownTypesThroughConstructor), xmlDictionary.Add("ChangedRoot"), xmlDictionary.Add("http://changedNamespace"), new Type[] { typeof(MyEnum), typeof(SimpleKnownTypeValue) }); });
 
         Assert.StrictEqual((MyEnum)value.EnumValue, (MyEnum)actual.EnumValue);
         Assert.True(actual.SimpleTypeValue is SimpleKnownTypeValue);
-        Assert.StrictEqual(((SimpleKnownTypeValue)actual.SimpleTypeValue).StrProperty, "PropertyValue");
+        Assert.Equal("PropertyValue", ((SimpleKnownTypeValue)actual.SimpleTypeValue).StrProperty);
     }
 
     [Fact]
     public static void DCS_ExceptionObject()
     {
         var value = new Exception("Test Exception");
-        var actual = SerializeAndDeserialize<Exception>(value, @"<Exception xmlns=""http://schemas.datacontract.org/2004/07/System"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance"" xmlns:x=""http://www.w3.org/2001/XMLSchema""><ClassName i:type=""x:string"" xmlns="""">System.Exception</ClassName><Message i:type=""x:string"" xmlns="""">Test Exception</Message><Data i:nil=""true"" xmlns=""""/><InnerException i:nil=""true"" xmlns=""""/><HelpURL i:nil=""true"" xmlns=""""/><StackTraceString i:nil=""true"" xmlns=""""/><RemoteStackTraceString i:nil=""true"" xmlns=""""/><RemoteStackIndex i:type=""x:int"" xmlns="""">0</RemoteStackIndex><ExceptionMethod i:nil=""true"" xmlns=""""/><HResult i:type=""x:int"" xmlns="""">-2146233088</HResult><Source i:nil=""true"" xmlns=""""/><WatsonBuckets i:nil=""true"" xmlns=""""/></Exception>");
+        var actual = DataContractSerializerHelper.SerializeAndDeserialize<Exception>(value, @"<Exception xmlns=""http://schemas.datacontract.org/2004/07/System"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance"" xmlns:x=""http://www.w3.org/2001/XMLSchema""><ClassName i:type=""x:string"" xmlns="""">System.Exception</ClassName><Message i:type=""x:string"" xmlns="""">Test Exception</Message><Data i:nil=""true"" xmlns=""""/><InnerException i:nil=""true"" xmlns=""""/><HelpURL i:nil=""true"" xmlns=""""/><StackTraceString i:nil=""true"" xmlns=""""/><RemoteStackTraceString i:nil=""true"" xmlns=""""/><RemoteStackIndex i:type=""x:int"" xmlns="""">0</RemoteStackIndex><ExceptionMethod i:nil=""true"" xmlns=""""/><HResult i:type=""x:int"" xmlns="""">-2146233088</HResult><Source i:nil=""true"" xmlns=""""/><WatsonBuckets i:nil=""true"" xmlns=""""/></Exception>");
 
-        Assert.StrictEqual(value.Message, actual.Message);
-        Assert.StrictEqual(value.Source, actual.Source);
-        Assert.StrictEqual(value.StackTrace, actual.StackTrace);
+        Assert.Equal(value.Message, actual.Message);
+        Assert.Equal(value.Source, actual.Source);
+        Assert.Equal(value.StackTrace, actual.StackTrace);
         Assert.StrictEqual(value.HResult, actual.HResult);
-        Assert.StrictEqual(value.HelpLink, actual.HelpLink);
+        Assert.Equal(value.HelpLink, actual.HelpLink);
     }
 
     [Fact]
     public static void DCS_MyArgumentExceptionObject()
     {
         var value = new MyArgumentException("Test Exception", "paramName");
-        var actual = SerializeAndDeserialize<MyArgumentException>(value, @"<MyArgumentException xmlns=""http://schemas.datacontract.org/2004/07/"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance"" xmlns:x=""http://www.w3.org/2001/XMLSchema""><ClassName i:type=""x:string"" xmlns="""">MyArgumentException</ClassName><Message i:type=""x:string"" xmlns="""">Test Exception</Message><Data i:nil=""true"" xmlns=""""/><InnerException i:nil=""true"" xmlns=""""/><HelpURL i:nil=""true"" xmlns=""""/><StackTraceString i:nil=""true"" xmlns=""""/><RemoteStackTraceString i:nil=""true"" xmlns=""""/><RemoteStackIndex i:type=""x:int"" xmlns="""">0</RemoteStackIndex><ExceptionMethod i:nil=""true"" xmlns=""""/><HResult i:type=""x:int"" xmlns="""">-2146233088</HResult><Source i:nil=""true"" xmlns=""""/><WatsonBuckets i:nil=""true"" xmlns=""""/><ParamName i:type=""x:string"" xmlns="""">paramName</ParamName></MyArgumentException>");
+        var actual = DataContractSerializerHelper.SerializeAndDeserialize<MyArgumentException>(value, @"<MyArgumentException xmlns=""http://schemas.datacontract.org/2004/07/"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance"" xmlns:x=""http://www.w3.org/2001/XMLSchema""><ClassName i:type=""x:string"" xmlns="""">MyArgumentException</ClassName><Message i:type=""x:string"" xmlns="""">Test Exception</Message><Data i:nil=""true"" xmlns=""""/><InnerException i:nil=""true"" xmlns=""""/><HelpURL i:nil=""true"" xmlns=""""/><StackTraceString i:nil=""true"" xmlns=""""/><RemoteStackTraceString i:nil=""true"" xmlns=""""/><RemoteStackIndex i:type=""x:int"" xmlns="""">0</RemoteStackIndex><ExceptionMethod i:nil=""true"" xmlns=""""/><HResult i:type=""x:int"" xmlns="""">-2146233088</HResult><Source i:nil=""true"" xmlns=""""/><WatsonBuckets i:nil=""true"" xmlns=""""/><ParamName i:type=""x:string"" xmlns="""">paramName</ParamName></MyArgumentException>");
 
-        Assert.StrictEqual(value.Message, actual.Message);
-        Assert.StrictEqual(value.ParamName, actual.ParamName);
-        Assert.StrictEqual(value.Source, actual.Source);
-        Assert.StrictEqual(value.StackTrace, actual.StackTrace);
+        Assert.Equal(value.Message, actual.Message);
+        Assert.Equal(value.ParamName, actual.ParamName);
+        Assert.Equal(value.Source, actual.Source);
+        Assert.Equal(value.StackTrace, actual.StackTrace);
         Assert.StrictEqual(value.HResult, actual.HResult);
-        Assert.StrictEqual(value.HelpLink, actual.HelpLink);
+        Assert.Equal(value.HelpLink, actual.HelpLink);
     }
 
     [Fact]
     public static void DCS_ExceptionMessageWithSpecialChars()
     {
         var value = new Exception("Test Exception<>&'\"");
-        var actual = SerializeAndDeserialize<Exception>(value, @"<Exception xmlns=""http://schemas.datacontract.org/2004/07/System"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance"" xmlns:x=""http://www.w3.org/2001/XMLSchema""><ClassName i:type=""x:string"" xmlns="""">System.Exception</ClassName><Message i:type=""x:string"" xmlns="""">Test Exception&lt;&gt;&amp;'""</Message><Data i:nil=""true"" xmlns=""""/><InnerException i:nil=""true"" xmlns=""""/><HelpURL i:nil=""true"" xmlns=""""/><StackTraceString i:nil=""true"" xmlns=""""/><RemoteStackTraceString i:nil=""true"" xmlns=""""/><RemoteStackIndex i:type=""x:int"" xmlns="""">0</RemoteStackIndex><ExceptionMethod i:nil=""true"" xmlns=""""/><HResult i:type=""x:int"" xmlns="""">-2146233088</HResult><Source i:nil=""true"" xmlns=""""/><WatsonBuckets i:nil=""true"" xmlns=""""/></Exception>");
+        var actual = DataContractSerializerHelper.SerializeAndDeserialize<Exception>(value, @"<Exception xmlns=""http://schemas.datacontract.org/2004/07/System"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance"" xmlns:x=""http://www.w3.org/2001/XMLSchema""><ClassName i:type=""x:string"" xmlns="""">System.Exception</ClassName><Message i:type=""x:string"" xmlns="""">Test Exception&lt;&gt;&amp;'""</Message><Data i:nil=""true"" xmlns=""""/><InnerException i:nil=""true"" xmlns=""""/><HelpURL i:nil=""true"" xmlns=""""/><StackTraceString i:nil=""true"" xmlns=""""/><RemoteStackTraceString i:nil=""true"" xmlns=""""/><RemoteStackIndex i:type=""x:int"" xmlns="""">0</RemoteStackIndex><ExceptionMethod i:nil=""true"" xmlns=""""/><HResult i:type=""x:int"" xmlns="""">-2146233088</HResult><Source i:nil=""true"" xmlns=""""/><WatsonBuckets i:nil=""true"" xmlns=""""/></Exception>");
 
-        Assert.StrictEqual(value.Message, actual.Message);
-        Assert.StrictEqual(value.Source, actual.Source);
-        Assert.StrictEqual(value.StackTrace, actual.StackTrace);
+        Assert.Equal(value.Message, actual.Message);
+        Assert.Equal(value.Source, actual.Source);
+        Assert.Equal(value.StackTrace, actual.StackTrace);
         Assert.StrictEqual(value.HResult, actual.HResult);
-        Assert.StrictEqual(value.HelpLink, actual.HelpLink);
+        Assert.Equal(value.HelpLink, actual.HelpLink);
     }
 
     [Fact]
     public static void DCS_InnerExceptionMessageWithSpecialChars()
     {
         var value = new Exception("", new Exception("Test Exception<>&'\""));
-        var actual = SerializeAndDeserialize<Exception>(value, @"<Exception xmlns=""http://schemas.datacontract.org/2004/07/System"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance"" xmlns:x=""http://www.w3.org/2001/XMLSchema""><ClassName i:type=""x:string"" xmlns="""">System.Exception</ClassName><Message i:type=""x:string"" xmlns=""""/><Data i:nil=""true"" xmlns=""""/><InnerException i:type=""a:Exception"" xmlns="""" xmlns:a=""http://schemas.datacontract.org/2004/07/System""><ClassName i:type=""x:string"">System.Exception</ClassName><Message i:type=""x:string"">Test Exception&lt;&gt;&amp;'""</Message><Data i:nil=""true""/><InnerException i:nil=""true""/><HelpURL i:nil=""true""/><StackTraceString i:nil=""true""/><RemoteStackTraceString i:nil=""true""/><RemoteStackIndex i:type=""x:int"">0</RemoteStackIndex><ExceptionMethod i:nil=""true""/><HResult i:type=""x:int"">-2146233088</HResult><Source i:nil=""true""/><WatsonBuckets i:nil=""true""/></InnerException><HelpURL i:nil=""true"" xmlns=""""/><StackTraceString i:nil=""true"" xmlns=""""/><RemoteStackTraceString i:nil=""true"" xmlns=""""/><RemoteStackIndex i:type=""x:int"" xmlns="""">0</RemoteStackIndex><ExceptionMethod i:nil=""true"" xmlns=""""/><HResult i:type=""x:int"" xmlns="""">-2146233088</HResult><Source i:nil=""true"" xmlns=""""/><WatsonBuckets i:nil=""true"" xmlns=""""/></Exception>");
+        var actual = DataContractSerializerHelper.SerializeAndDeserialize<Exception>(value, @"<Exception xmlns=""http://schemas.datacontract.org/2004/07/System"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance"" xmlns:x=""http://www.w3.org/2001/XMLSchema""><ClassName i:type=""x:string"" xmlns="""">System.Exception</ClassName><Message i:type=""x:string"" xmlns=""""/><Data i:nil=""true"" xmlns=""""/><InnerException i:type=""a:Exception"" xmlns="""" xmlns:a=""http://schemas.datacontract.org/2004/07/System""><ClassName i:type=""x:string"">System.Exception</ClassName><Message i:type=""x:string"">Test Exception&lt;&gt;&amp;'""</Message><Data i:nil=""true""/><InnerException i:nil=""true""/><HelpURL i:nil=""true""/><StackTraceString i:nil=""true""/><RemoteStackTraceString i:nil=""true""/><RemoteStackIndex i:type=""x:int"">0</RemoteStackIndex><ExceptionMethod i:nil=""true""/><HResult i:type=""x:int"">-2146233088</HResult><Source i:nil=""true""/><WatsonBuckets i:nil=""true""/></InnerException><HelpURL i:nil=""true"" xmlns=""""/><StackTraceString i:nil=""true"" xmlns=""""/><RemoteStackTraceString i:nil=""true"" xmlns=""""/><RemoteStackIndex i:type=""x:int"" xmlns="""">0</RemoteStackIndex><ExceptionMethod i:nil=""true"" xmlns=""""/><HResult i:type=""x:int"" xmlns="""">-2146233088</HResult><Source i:nil=""true"" xmlns=""""/><WatsonBuckets i:nil=""true"" xmlns=""""/></Exception>");
 
-        Assert.StrictEqual(value.Message, actual.Message);
-        Assert.StrictEqual(value.Source, actual.Source);
-        Assert.StrictEqual(value.StackTrace, actual.StackTrace);
+        Assert.Equal(value.Message, actual.Message);
+        Assert.Equal(value.Source, actual.Source);
+        Assert.Equal(value.StackTrace, actual.StackTrace);
         Assert.StrictEqual(value.HResult, actual.HResult);
-        Assert.StrictEqual(value.HelpLink, actual.HelpLink);
+        Assert.Equal(value.HelpLink, actual.HelpLink);
 
-        Assert.StrictEqual(value.InnerException.Message, actual.InnerException.Message);
-        Assert.StrictEqual(value.InnerException.Source, actual.InnerException.Source);
-        Assert.StrictEqual(value.InnerException.StackTrace, actual.InnerException.StackTrace);
+        Assert.Equal(value.InnerException.Message, actual.InnerException.Message);
+        Assert.Equal(value.InnerException.Source, actual.InnerException.Source);
+        Assert.Equal(value.InnerException.StackTrace, actual.InnerException.StackTrace);
         Assert.StrictEqual(value.InnerException.HResult, actual.InnerException.HResult);
-        Assert.StrictEqual(value.InnerException.HelpLink, actual.InnerException.HelpLink);
+        Assert.Equal(value.InnerException.HelpLink, actual.InnerException.HelpLink);
     }
 
     [Fact]
@@ -1498,7 +1502,7 @@ public static partial class DataContractSerializerTests
     {
         var value = new TypeWithUriTypeProperty() { ConfigUri = new Uri("http://www.bing.com") };
 
-        var actual = SerializeAndDeserialize(value, @"<TypeWithUriTypeProperty xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><ConfigUri>http://www.bing.com/</ConfigUri></TypeWithUriTypeProperty>");
+        var actual = DataContractSerializerHelper.SerializeAndDeserialize(value, @"<TypeWithUriTypeProperty xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><ConfigUri>http://www.bing.com/</ConfigUri></TypeWithUriTypeProperty>");
 
         Assert.StrictEqual(value.ConfigUri, actual.ConfigUri);
     }
@@ -1507,7 +1511,7 @@ public static partial class DataContractSerializerTests
     public static void DCS_TypeWithDatetimeOffsetTypeProperty()
     {
         var value = new TypeWithDateTimeOffsetTypeProperty() { ModifiedTime = new DateTimeOffset(new DateTime(2013, 1, 2, 3, 4, 5, 6, DateTimeKind.Utc)) };
-        var actual = SerializeAndDeserialize(value, @"<TypeWithDateTimeOffsetTypeProperty xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><ModifiedTime xmlns:a=""http://schemas.datacontract.org/2004/07/System""><a:DateTime>2013-01-02T03:04:05.006Z</a:DateTime><a:OffsetMinutes>0</a:OffsetMinutes></ModifiedTime></TypeWithDateTimeOffsetTypeProperty>");
+        var actual = DataContractSerializerHelper.SerializeAndDeserialize(value, @"<TypeWithDateTimeOffsetTypeProperty xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><ModifiedTime xmlns:a=""http://schemas.datacontract.org/2004/07/System""><a:DateTime>2013-01-02T03:04:05.006Z</a:DateTime><a:OffsetMinutes>0</a:OffsetMinutes></ModifiedTime></TypeWithDateTimeOffsetTypeProperty>");
         Assert.StrictEqual(value.ModifiedTime, actual.ModifiedTime);
 
         // Assume that UTC offset doesn't change more often than once in the day 2013-01-02
@@ -1515,11 +1519,11 @@ public static partial class DataContractSerializerTests
         var offsetMinutes = (int)TimeZoneInfo.Local.GetUtcOffset(new DateTime(2013, 1, 2)).TotalMinutes;
         // Adding offsetMinutes to ModifiedTime property so the DateTime component in serialized strings are time-zone independent
         value = new TypeWithDateTimeOffsetTypeProperty() { ModifiedTime = new DateTimeOffset(new DateTime(2013, 1, 2, 3, 4, 5, 6).AddMinutes(offsetMinutes)) };
-        actual = SerializeAndDeserialize(value, string.Format(@"<TypeWithDateTimeOffsetTypeProperty xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><ModifiedTime xmlns:a=""http://schemas.datacontract.org/2004/07/System""><a:DateTime>2013-01-02T03:04:05.006Z</a:DateTime><a:OffsetMinutes>{0}</a:OffsetMinutes></ModifiedTime></TypeWithDateTimeOffsetTypeProperty>", offsetMinutes));
+        actual = DataContractSerializerHelper.SerializeAndDeserialize(value, string.Format(@"<TypeWithDateTimeOffsetTypeProperty xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><ModifiedTime xmlns:a=""http://schemas.datacontract.org/2004/07/System""><a:DateTime>2013-01-02T03:04:05.006Z</a:DateTime><a:OffsetMinutes>{0}</a:OffsetMinutes></ModifiedTime></TypeWithDateTimeOffsetTypeProperty>", offsetMinutes));
         Assert.StrictEqual(value.ModifiedTime, actual.ModifiedTime);
 
         value = new TypeWithDateTimeOffsetTypeProperty() { ModifiedTime = new DateTimeOffset(new DateTime(2013, 1, 2, 3, 4, 5, 6, DateTimeKind.Local).AddMinutes(offsetMinutes)) };
-        actual = SerializeAndDeserialize(value, string.Format(@"<TypeWithDateTimeOffsetTypeProperty xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><ModifiedTime xmlns:a=""http://schemas.datacontract.org/2004/07/System""><a:DateTime>2013-01-02T03:04:05.006Z</a:DateTime><a:OffsetMinutes>{0}</a:OffsetMinutes></ModifiedTime></TypeWithDateTimeOffsetTypeProperty>", offsetMinutes));
+        actual = DataContractSerializerHelper.SerializeAndDeserialize(value, string.Format(@"<TypeWithDateTimeOffsetTypeProperty xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><ModifiedTime xmlns:a=""http://schemas.datacontract.org/2004/07/System""><a:DateTime>2013-01-02T03:04:05.006Z</a:DateTime><a:OffsetMinutes>{0}</a:OffsetMinutes></ModifiedTime></TypeWithDateTimeOffsetTypeProperty>", offsetMinutes));
         Assert.StrictEqual(value.ModifiedTime, actual.ModifiedTime);
     }
 
@@ -1539,56 +1543,56 @@ public static partial class DataContractSerializerTests
     private static void DCS_Tuple1()
     {
         Tuple<int> value = new Tuple<int>(1);
-        var deserializedValue = SerializeAndDeserialize<Tuple<int>>(value, @"<TupleOfint xmlns=""http://schemas.datacontract.org/2004/07/System"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><m_Item1>1</m_Item1></TupleOfint>");
+        var deserializedValue = DataContractSerializerHelper.SerializeAndDeserialize<Tuple<int>>(value, @"<TupleOfint xmlns=""http://schemas.datacontract.org/2004/07/System"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><m_Item1>1</m_Item1></TupleOfint>");
         Assert.StrictEqual<Tuple<int>>(value, deserializedValue);
     }
 
     private static void DCS_Tuple2()
     {
         Tuple<int, int> value = new Tuple<int, int>(1, 2);
-        var deserializedValue = SerializeAndDeserialize<Tuple<int, int>>(value, @"<TupleOfintint xmlns=""http://schemas.datacontract.org/2004/07/System"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><m_Item1>1</m_Item1><m_Item2>2</m_Item2></TupleOfintint>");
+        var deserializedValue = DataContractSerializerHelper.SerializeAndDeserialize<Tuple<int, int>>(value, @"<TupleOfintint xmlns=""http://schemas.datacontract.org/2004/07/System"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><m_Item1>1</m_Item1><m_Item2>2</m_Item2></TupleOfintint>");
         Assert.StrictEqual<Tuple<int, int>>(value, deserializedValue);
     }
 
     private static void DCS_Tuple3()
     {
         Tuple<int, int, int> value = new Tuple<int, int, int>(1, 2, 3);
-        var deserializedValue = SerializeAndDeserialize<Tuple<int, int, int>>(value, @"<TupleOfintintint xmlns=""http://schemas.datacontract.org/2004/07/System"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><m_Item1>1</m_Item1><m_Item2>2</m_Item2><m_Item3>3</m_Item3></TupleOfintintint>");
+        var deserializedValue = DataContractSerializerHelper.SerializeAndDeserialize<Tuple<int, int, int>>(value, @"<TupleOfintintint xmlns=""http://schemas.datacontract.org/2004/07/System"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><m_Item1>1</m_Item1><m_Item2>2</m_Item2><m_Item3>3</m_Item3></TupleOfintintint>");
         Assert.StrictEqual<Tuple<int, int, int>>(value, deserializedValue);
     }
 
     private static void DCS_Tuple4()
     {
         Tuple<int, int, int, int> value = new Tuple<int, int, int, int>(1, 2, 3, 4);
-        var deserializedValue = SerializeAndDeserialize<Tuple<int, int, int, int>>(value, @"<TupleOfintintintint xmlns=""http://schemas.datacontract.org/2004/07/System"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><m_Item1>1</m_Item1><m_Item2>2</m_Item2><m_Item3>3</m_Item3><m_Item4>4</m_Item4></TupleOfintintintint>");
+        var deserializedValue = DataContractSerializerHelper.SerializeAndDeserialize<Tuple<int, int, int, int>>(value, @"<TupleOfintintintint xmlns=""http://schemas.datacontract.org/2004/07/System"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><m_Item1>1</m_Item1><m_Item2>2</m_Item2><m_Item3>3</m_Item3><m_Item4>4</m_Item4></TupleOfintintintint>");
         Assert.StrictEqual<Tuple<int, int, int, int>>(value, deserializedValue);
     }
 
     private static void DCS_Tuple5()
     {
         Tuple<int, int, int, int, int> value = new Tuple<int, int, int, int, int>(1, 2, 3, 4, 5);
-        var deserializedValue = SerializeAndDeserialize<Tuple<int, int, int, int, int>>(value, @"<TupleOfintintintintint xmlns=""http://schemas.datacontract.org/2004/07/System"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><m_Item1>1</m_Item1><m_Item2>2</m_Item2><m_Item3>3</m_Item3><m_Item4>4</m_Item4><m_Item5>5</m_Item5></TupleOfintintintintint>");
+        var deserializedValue = DataContractSerializerHelper.SerializeAndDeserialize<Tuple<int, int, int, int, int>>(value, @"<TupleOfintintintintint xmlns=""http://schemas.datacontract.org/2004/07/System"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><m_Item1>1</m_Item1><m_Item2>2</m_Item2><m_Item3>3</m_Item3><m_Item4>4</m_Item4><m_Item5>5</m_Item5></TupleOfintintintintint>");
         Assert.StrictEqual<Tuple<int, int, int, int, int>>(value, deserializedValue);
     }
 
     private static void DCS_Tuple6()
     {
         Tuple<int, int, int, int, int, int> value = new Tuple<int, int, int, int, int, int>(1, 2, 3, 4, 5, 6);
-        var deserializedValue = SerializeAndDeserialize<Tuple<int, int, int, int, int, int>>(value, @"<TupleOfintintintintintint xmlns=""http://schemas.datacontract.org/2004/07/System"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><m_Item1>1</m_Item1><m_Item2>2</m_Item2><m_Item3>3</m_Item3><m_Item4>4</m_Item4><m_Item5>5</m_Item5><m_Item6>6</m_Item6></TupleOfintintintintintint>");
+        var deserializedValue = DataContractSerializerHelper.SerializeAndDeserialize<Tuple<int, int, int, int, int, int>>(value, @"<TupleOfintintintintintint xmlns=""http://schemas.datacontract.org/2004/07/System"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><m_Item1>1</m_Item1><m_Item2>2</m_Item2><m_Item3>3</m_Item3><m_Item4>4</m_Item4><m_Item5>5</m_Item5><m_Item6>6</m_Item6></TupleOfintintintintintint>");
         Assert.StrictEqual<Tuple<int, int, int, int, int, int>>(value, deserializedValue);
     }
 
     private static void DCS_Tuple7()
     {
         Tuple<int, int, int, int, int, int, int> value = new Tuple<int, int, int, int, int, int, int>(1, 2, 3, 4, 5, 6, 7);
-        var deserializedValue = SerializeAndDeserialize<Tuple<int, int, int, int, int, int, int>>(value, @"<TupleOfintintintintintintint xmlns=""http://schemas.datacontract.org/2004/07/System"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><m_Item1>1</m_Item1><m_Item2>2</m_Item2><m_Item3>3</m_Item3><m_Item4>4</m_Item4><m_Item5>5</m_Item5><m_Item6>6</m_Item6><m_Item7>7</m_Item7></TupleOfintintintintintintint>");
+        var deserializedValue = DataContractSerializerHelper.SerializeAndDeserialize<Tuple<int, int, int, int, int, int, int>>(value, @"<TupleOfintintintintintintint xmlns=""http://schemas.datacontract.org/2004/07/System"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><m_Item1>1</m_Item1><m_Item2>2</m_Item2><m_Item3>3</m_Item3><m_Item4>4</m_Item4><m_Item5>5</m_Item5><m_Item6>6</m_Item6><m_Item7>7</m_Item7></TupleOfintintintintintintint>");
         Assert.StrictEqual<Tuple<int, int, int, int, int, int, int>>(value, deserializedValue);
     }
 
     private static void DCS_Tuple8()
     {
         Tuple<int, int, int, int, int, int, int, Tuple<int>> value = new Tuple<int, int, int, int, int, int, int, Tuple<int>>(1, 2, 3, 4, 5, 6, 7, new Tuple<int>(8));
-        var deserializedValue = SerializeAndDeserialize<Tuple<int, int, int, int, int, int, int, Tuple<int>>>(value, @"<TupleOfintintintintintintintTupleOfintcd6ORBnm xmlns=""http://schemas.datacontract.org/2004/07/System"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><m_Item1>1</m_Item1><m_Item2>2</m_Item2><m_Item3>3</m_Item3><m_Item4>4</m_Item4><m_Item5>5</m_Item5><m_Item6>6</m_Item6><m_Item7>7</m_Item7><m_Rest><m_Item1>8</m_Item1></m_Rest></TupleOfintintintintintintintTupleOfintcd6ORBnm>");
+        var deserializedValue = DataContractSerializerHelper.SerializeAndDeserialize<Tuple<int, int, int, int, int, int, int, Tuple<int>>>(value, @"<TupleOfintintintintintintintTupleOfintcd6ORBnm xmlns=""http://schemas.datacontract.org/2004/07/System"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><m_Item1>1</m_Item1><m_Item2>2</m_Item2><m_Item3>3</m_Item3><m_Item4>4</m_Item4><m_Item5>5</m_Item5><m_Item6>6</m_Item6><m_Item7>7</m_Item7><m_Rest><m_Item1>8</m_Item1></m_Rest></TupleOfintintintintintintintTupleOfintcd6ORBnm>");
         Assert.StrictEqual<Tuple<int, int, int, int, int, int, int, Tuple<int>>>(value, deserializedValue);
     }
 
@@ -1598,7 +1602,7 @@ public static partial class DataContractSerializerTests
         Queue<int> value = new Queue<int>();
         value.Enqueue(1);
         object syncRoot = ((ICollection)value).SyncRoot;
-        var deserializedValue = SerializeAndDeserialize<Queue<int>>(value, @"<QueueOfint xmlns=""http://schemas.datacontract.org/2004/07/System.Collections.Generic"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><_array xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""><a:int>1</a:int><a:int>0</a:int><a:int>0</a:int><a:int>0</a:int></_array><_head>0</_head><_size>1</_size><_tail>1</_tail><_version>2</_version></QueueOfint>");
+        var deserializedValue = DataContractSerializerHelper.SerializeAndDeserialize<Queue<int>>(value, @"<QueueOfint xmlns=""http://schemas.datacontract.org/2004/07/System.Collections.Generic"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><_array xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""><a:int>1</a:int><a:int>0</a:int><a:int>0</a:int><a:int>0</a:int></_array><_head>0</_head><_size>1</_size><_tail>1</_tail><_version>2</_version></QueueOfint>");
         var a1 = value.ToArray();
         var a2 = deserializedValue.ToArray();
         Assert.StrictEqual(a1.Length, a2.Length);
@@ -1612,7 +1616,7 @@ public static partial class DataContractSerializerTests
         value.Push(123);
         value.Push(456);
         object syncRoot = ((ICollection)value).SyncRoot;
-        var deserializedValue = SerializeAndDeserialize<Stack<int>>(value, @"<StackOfint xmlns=""http://schemas.datacontract.org/2004/07/System.Collections.Generic"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><_array xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""><a:int>123</a:int><a:int>456</a:int><a:int>0</a:int><a:int>0</a:int></_array><_size>2</_size><_version>2</_version></StackOfint>");
+        var deserializedValue = DataContractSerializerHelper.SerializeAndDeserialize<Stack<int>>(value, @"<StackOfint xmlns=""http://schemas.datacontract.org/2004/07/System.Collections.Generic"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><_array xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""><a:int>123</a:int><a:int>456</a:int><a:int>0</a:int><a:int>0</a:int></_array><_size>2</_size><_version>2</_version></StackOfint>");
         var a1 = value.ToArray();
         var a2 = deserializedValue.ToArray();
         Assert.StrictEqual(a1.Length, a2.Length);
@@ -1627,7 +1631,7 @@ public static partial class DataContractSerializerTests
         value.Enqueue(123);
         value.Enqueue("Foo");
         object syncRoot = ((ICollection)value).SyncRoot;
-        var deserializedValue = SerializeAndDeserialize<Queue>(value, @"<Queue xmlns=""http://schemas.datacontract.org/2004/07/System.Collections"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><_array xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""><a:anyType i:type=""b:int"" xmlns:b=""http://www.w3.org/2001/XMLSchema"">123</a:anyType><a:anyType i:type=""b:string"" xmlns:b=""http://www.w3.org/2001/XMLSchema"">Foo</a:anyType><a:anyType i:nil=""true""/><a:anyType i:nil=""true""/><a:anyType i:nil=""true""/><a:anyType i:nil=""true""/><a:anyType i:nil=""true""/><a:anyType i:nil=""true""/><a:anyType i:nil=""true""/><a:anyType i:nil=""true""/><a:anyType i:nil=""true""/><a:anyType i:nil=""true""/><a:anyType i:nil=""true""/><a:anyType i:nil=""true""/><a:anyType i:nil=""true""/><a:anyType i:nil=""true""/><a:anyType i:nil=""true""/><a:anyType i:nil=""true""/><a:anyType i:nil=""true""/><a:anyType i:nil=""true""/><a:anyType i:nil=""true""/><a:anyType i:nil=""true""/><a:anyType i:nil=""true""/><a:anyType i:nil=""true""/><a:anyType i:nil=""true""/><a:anyType i:nil=""true""/><a:anyType i:nil=""true""/><a:anyType i:nil=""true""/><a:anyType i:nil=""true""/><a:anyType i:nil=""true""/><a:anyType i:nil=""true""/><a:anyType i:nil=""true""/></_array><_growFactor>200</_growFactor><_head>0</_head><_size>2</_size><_tail>2</_tail><_version>2</_version></Queue>");
+        var deserializedValue = DataContractSerializerHelper.SerializeAndDeserialize<Queue>(value, @"<Queue xmlns=""http://schemas.datacontract.org/2004/07/System.Collections"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><_array xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""><a:anyType i:type=""b:int"" xmlns:b=""http://www.w3.org/2001/XMLSchema"">123</a:anyType><a:anyType i:type=""b:string"" xmlns:b=""http://www.w3.org/2001/XMLSchema"">Foo</a:anyType><a:anyType i:nil=""true""/><a:anyType i:nil=""true""/><a:anyType i:nil=""true""/><a:anyType i:nil=""true""/><a:anyType i:nil=""true""/><a:anyType i:nil=""true""/><a:anyType i:nil=""true""/><a:anyType i:nil=""true""/><a:anyType i:nil=""true""/><a:anyType i:nil=""true""/><a:anyType i:nil=""true""/><a:anyType i:nil=""true""/><a:anyType i:nil=""true""/><a:anyType i:nil=""true""/><a:anyType i:nil=""true""/><a:anyType i:nil=""true""/><a:anyType i:nil=""true""/><a:anyType i:nil=""true""/><a:anyType i:nil=""true""/><a:anyType i:nil=""true""/><a:anyType i:nil=""true""/><a:anyType i:nil=""true""/><a:anyType i:nil=""true""/><a:anyType i:nil=""true""/><a:anyType i:nil=""true""/><a:anyType i:nil=""true""/><a:anyType i:nil=""true""/><a:anyType i:nil=""true""/><a:anyType i:nil=""true""/><a:anyType i:nil=""true""/></_array><_growFactor>200</_growFactor><_head>0</_head><_size>2</_size><_tail>2</_tail><_version>2</_version></Queue>");
         var a1 = value.ToArray();
         var a2 = deserializedValue.ToArray();
         Assert.StrictEqual(a1.Length, a2.Length);
@@ -1641,7 +1645,7 @@ public static partial class DataContractSerializerTests
         value.Push(123);
         value.Push("Foo");
         object syncRoot = ((ICollection)value).SyncRoot;
-        var deserializedValue = SerializeAndDeserialize<Stack>(value, @"<Stack xmlns=""http://schemas.datacontract.org/2004/07/System.Collections"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><_array xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""><a:anyType i:type=""b:int"" xmlns:b=""http://www.w3.org/2001/XMLSchema"">123</a:anyType><a:anyType i:type=""b:string"" xmlns:b=""http://www.w3.org/2001/XMLSchema"">Foo</a:anyType><a:anyType i:nil=""true""/><a:anyType i:nil=""true""/><a:anyType i:nil=""true""/><a:anyType i:nil=""true""/><a:anyType i:nil=""true""/><a:anyType i:nil=""true""/><a:anyType i:nil=""true""/><a:anyType i:nil=""true""/></_array><_size>2</_size><_version>2</_version></Stack>");
+        var deserializedValue = DataContractSerializerHelper.SerializeAndDeserialize<Stack>(value, @"<Stack xmlns=""http://schemas.datacontract.org/2004/07/System.Collections"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><_array xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""><a:anyType i:type=""b:int"" xmlns:b=""http://www.w3.org/2001/XMLSchema"">123</a:anyType><a:anyType i:type=""b:string"" xmlns:b=""http://www.w3.org/2001/XMLSchema"">Foo</a:anyType><a:anyType i:nil=""true""/><a:anyType i:nil=""true""/><a:anyType i:nil=""true""/><a:anyType i:nil=""true""/><a:anyType i:nil=""true""/><a:anyType i:nil=""true""/><a:anyType i:nil=""true""/><a:anyType i:nil=""true""/></_array><_size>2</_size><_version>2</_version></Stack>");
         var a1 = value.ToArray();
         var a2 = deserializedValue.ToArray();
         Assert.StrictEqual(a1.Length, a2.Length);
@@ -1655,7 +1659,7 @@ public static partial class DataContractSerializerTests
         var value = new SortedList();
         value.Add(456, "Foo");
         value.Add(123, "Bar");
-        var deserializedValue = SerializeAndDeserialize<SortedList>(value, @"<ArrayOfKeyValueOfanyTypeanyType xmlns=""http://schemas.microsoft.com/2003/10/Serialization/Arrays"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><KeyValueOfanyTypeanyType><Key i:type=""a:int"" xmlns:a=""http://www.w3.org/2001/XMLSchema"">123</Key><Value i:type=""a:string"" xmlns:a=""http://www.w3.org/2001/XMLSchema"">Bar</Value></KeyValueOfanyTypeanyType><KeyValueOfanyTypeanyType><Key i:type=""a:int"" xmlns:a=""http://www.w3.org/2001/XMLSchema"">456</Key><Value i:type=""a:string"" xmlns:a=""http://www.w3.org/2001/XMLSchema"">Foo</Value></KeyValueOfanyTypeanyType></ArrayOfKeyValueOfanyTypeanyType>");
+        var deserializedValue = DataContractSerializerHelper.SerializeAndDeserialize<SortedList>(value, @"<ArrayOfKeyValueOfanyTypeanyType xmlns=""http://schemas.microsoft.com/2003/10/Serialization/Arrays"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><KeyValueOfanyTypeanyType><Key i:type=""a:int"" xmlns:a=""http://www.w3.org/2001/XMLSchema"">123</Key><Value i:type=""a:string"" xmlns:a=""http://www.w3.org/2001/XMLSchema"">Bar</Value></KeyValueOfanyTypeanyType><KeyValueOfanyTypeanyType><Key i:type=""a:int"" xmlns:a=""http://www.w3.org/2001/XMLSchema"">456</Key><Value i:type=""a:string"" xmlns:a=""http://www.w3.org/2001/XMLSchema"">Foo</Value></KeyValueOfanyTypeanyType></ArrayOfKeyValueOfanyTypeanyType>");
         Assert.StrictEqual(value.Count, deserializedValue.Count);
         Assert.StrictEqual(value[0], deserializedValue[0]);
         Assert.StrictEqual(value[1], deserializedValue[1]);
@@ -1665,7 +1669,7 @@ public static partial class DataContractSerializerTests
     public static void DCS_SystemVersion()
     {
         Version value = new Version(1, 2, 3, 4);
-        var deserializedValue = SerializeAndDeserialize<Version>(value,
+        var deserializedValue = DataContractSerializerHelper.SerializeAndDeserialize<Version>(value,
             @"<Version xmlns=""http://schemas.datacontract.org/2004/07/System"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><_Build>3</_Build><_Major>1</_Major><_Minor>2</_Minor><_Revision>4</_Revision></Version>");
         Assert.StrictEqual(value.Major, deserializedValue.Major);
         Assert.StrictEqual(value.Minor, deserializedValue.Minor);
@@ -1677,7 +1681,7 @@ public static partial class DataContractSerializerTests
     public static void DCS_TypeWithCommonTypeProperties()
     {
         TypeWithCommonTypeProperties value = new TypeWithCommonTypeProperties { Ts = new TimeSpan(1, 1, 1), Id = new Guid("ad948f1e-9ba9-44c8-8e2e-b6ba969ec987") };
-        var deserializedValue = SerializeAndDeserialize<TypeWithCommonTypeProperties>(value, @"<TypeWithCommonTypeProperties xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><Id>ad948f1e-9ba9-44c8-8e2e-b6ba969ec987</Id><Ts>PT1H1M1S</Ts></TypeWithCommonTypeProperties>");
+        var deserializedValue = DataContractSerializerHelper.SerializeAndDeserialize<TypeWithCommonTypeProperties>(value, @"<TypeWithCommonTypeProperties xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><Id>ad948f1e-9ba9-44c8-8e2e-b6ba969ec987</Id><Ts>PT1H1M1S</Ts></TypeWithCommonTypeProperties>");
         Assert.StrictEqual<TypeWithCommonTypeProperties>(value, deserializedValue);
     }
 
@@ -1685,9 +1689,9 @@ public static partial class DataContractSerializerTests
     public static void DCS_TypeWithTypeProperty()
     {
         TypeWithTypeProperty value = new TypeWithTypeProperty { Id = 123, Name = "Jon Doe" };
-        var deserializedValue = SerializeAndDeserialize<TypeWithTypeProperty>(value, @"<TypeWithTypeProperty xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><Id>123</Id><Name>Jon Doe</Name><Type i:nil=""true"" xmlns:a=""http://schemas.datacontract.org/2004/07/System""/></TypeWithTypeProperty>");
+        var deserializedValue = DataContractSerializerHelper.SerializeAndDeserialize<TypeWithTypeProperty>(value, @"<TypeWithTypeProperty xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><Id>123</Id><Name>Jon Doe</Name><Type i:nil=""true"" xmlns:a=""http://schemas.datacontract.org/2004/07/System""/></TypeWithTypeProperty>");
         Assert.StrictEqual(value.Id, deserializedValue.Id);
-        Assert.StrictEqual(value.Name, deserializedValue.Name);
+        Assert.Equal(value.Name, deserializedValue.Name);
         Assert.StrictEqual(value.Type, deserializedValue.Type);
     }
 
@@ -1697,13 +1701,13 @@ public static partial class DataContractSerializerTests
         TypeWithExplicitIEnumerableImplementation value = new TypeWithExplicitIEnumerableImplementation { };
         value.Add("Foo");
         value.Add("Bar");
-        var deserializedValue = SerializeAndDeserialize<TypeWithExplicitIEnumerableImplementation>(value, @"<ArrayOfanyType xmlns=""http://schemas.microsoft.com/2003/10/Serialization/Arrays"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><anyType i:type=""a:string"" xmlns:a=""http://www.w3.org/2001/XMLSchema"">Foo</anyType><anyType i:type=""a:string"" xmlns:a=""http://www.w3.org/2001/XMLSchema"">Bar</anyType></ArrayOfanyType>");
+        var deserializedValue = DataContractSerializerHelper.SerializeAndDeserialize<TypeWithExplicitIEnumerableImplementation>(value, @"<ArrayOfanyType xmlns=""http://schemas.microsoft.com/2003/10/Serialization/Arrays"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><anyType i:type=""a:string"" xmlns:a=""http://www.w3.org/2001/XMLSchema"">Foo</anyType><anyType i:type=""a:string"" xmlns:a=""http://www.w3.org/2001/XMLSchema"">Bar</anyType></ArrayOfanyType>");
         Assert.StrictEqual(2, deserializedValue.Count);
         IEnumerator enumerator = ((IEnumerable)deserializedValue).GetEnumerator();
         enumerator.MoveNext();
-        Assert.StrictEqual("Foo", (string)enumerator.Current);
+        Assert.Equal("Foo", (string)enumerator.Current);
         enumerator.MoveNext();
-        Assert.StrictEqual("Bar", (string)enumerator.Current);
+        Assert.Equal("Bar", (string)enumerator.Current);
     }
 
     [Fact]
@@ -1712,12 +1716,12 @@ public static partial class DataContractSerializerTests
         TypeWithGenericDictionaryAsKnownType value = new TypeWithGenericDictionaryAsKnownType { };
         value.Foo.Add(10, new Level() { Name = "Foo", LevelNo = 1 });
         value.Foo.Add(20, new Level() { Name = "Bar", LevelNo = 2 });
-        var deserializedValue = SerializeAndDeserialize<TypeWithGenericDictionaryAsKnownType>(value, @"<TypeWithGenericDictionaryAsKnownType xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><Foo xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""><a:KeyValueOfintLevelQk4Xq8_SP><a:Key>10</a:Key><a:Value><LevelNo>1</LevelNo><Name>Foo</Name></a:Value></a:KeyValueOfintLevelQk4Xq8_SP><a:KeyValueOfintLevelQk4Xq8_SP><a:Key>20</a:Key><a:Value><LevelNo>2</LevelNo><Name>Bar</Name></a:Value></a:KeyValueOfintLevelQk4Xq8_SP></Foo></TypeWithGenericDictionaryAsKnownType>");
+        var deserializedValue = DataContractSerializerHelper.SerializeAndDeserialize<TypeWithGenericDictionaryAsKnownType>(value, @"<TypeWithGenericDictionaryAsKnownType xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><Foo xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""><a:KeyValueOfintLevelQk4Xq8_SP><a:Key>10</a:Key><a:Value><LevelNo>1</LevelNo><Name>Foo</Name></a:Value></a:KeyValueOfintLevelQk4Xq8_SP><a:KeyValueOfintLevelQk4Xq8_SP><a:Key>20</a:Key><a:Value><LevelNo>2</LevelNo><Name>Bar</Name></a:Value></a:KeyValueOfintLevelQk4Xq8_SP></Foo></TypeWithGenericDictionaryAsKnownType>");
 
         Assert.StrictEqual(2, deserializedValue.Foo.Count);
-        Assert.StrictEqual("Foo", deserializedValue.Foo[10].Name);
+        Assert.Equal("Foo", deserializedValue.Foo[10].Name);
         Assert.StrictEqual(1, deserializedValue.Foo[10].LevelNo);
-        Assert.StrictEqual("Bar", deserializedValue.Foo[20].Name);
+        Assert.Equal("Bar", deserializedValue.Foo[20].Name);
         Assert.StrictEqual(2, deserializedValue.Foo[20].LevelNo);
     }
 
@@ -1726,10 +1730,10 @@ public static partial class DataContractSerializerTests
     {
         TypeWithKnownTypeAttributeAndInterfaceMember value = new TypeWithKnownTypeAttributeAndInterfaceMember();
         value.HeadLine = new NewsArticle() { Title = "Foo News" };
-        var deserializedValue = SerializeAndDeserialize<TypeWithKnownTypeAttributeAndInterfaceMember>(value, @"<TypeWithKnownTypeAttributeAndInterfaceMember xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><HeadLine i:type=""NewsArticle""><Category>News</Category><Title>Foo News</Title></HeadLine></TypeWithKnownTypeAttributeAndInterfaceMember>");
+        var deserializedValue = DataContractSerializerHelper.SerializeAndDeserialize<TypeWithKnownTypeAttributeAndInterfaceMember>(value, @"<TypeWithKnownTypeAttributeAndInterfaceMember xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><HeadLine i:type=""NewsArticle""><Category>News</Category><Title>Foo News</Title></HeadLine></TypeWithKnownTypeAttributeAndInterfaceMember>");
 
-        Assert.StrictEqual("News", deserializedValue.HeadLine.Category);
-        Assert.StrictEqual("Foo News", deserializedValue.HeadLine.Title);
+        Assert.Equal("News", deserializedValue.HeadLine.Category);
+        Assert.Equal("Foo News", deserializedValue.HeadLine.Title);
     }
 
     [Fact]
@@ -1737,11 +1741,11 @@ public static partial class DataContractSerializerTests
     {
         TypeWithKnownTypeAttributeAndListOfInterfaceMember value = new TypeWithKnownTypeAttributeAndListOfInterfaceMember();
         value.Articles = new List<IArticle>() { new SummaryArticle() { Title = "Bar Summary" } };
-        var deserializedValue = SerializeAndDeserialize<TypeWithKnownTypeAttributeAndListOfInterfaceMember>(value, @"<TypeWithKnownTypeAttributeAndListOfInterfaceMember xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><Articles xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""><a:anyType i:type=""SummaryArticle""><Category>Summary</Category><Title>Bar Summary</Title></a:anyType></Articles></TypeWithKnownTypeAttributeAndListOfInterfaceMember>");
+        var deserializedValue = DataContractSerializerHelper.SerializeAndDeserialize<TypeWithKnownTypeAttributeAndListOfInterfaceMember>(value, @"<TypeWithKnownTypeAttributeAndListOfInterfaceMember xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><Articles xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""><a:anyType i:type=""SummaryArticle""><Category>Summary</Category><Title>Bar Summary</Title></a:anyType></Articles></TypeWithKnownTypeAttributeAndListOfInterfaceMember>");
 
         Assert.StrictEqual(1, deserializedValue.Articles.Count);
-        Assert.StrictEqual("Summary", deserializedValue.Articles[0].Category);
-        Assert.StrictEqual("Bar Summary", deserializedValue.Articles[0].Title);
+        Assert.Equal("Summary", deserializedValue.Articles[0].Category);
+        Assert.Equal("Bar Summary", deserializedValue.Articles[0].Title);
     }
 
     /*
@@ -1759,7 +1763,7 @@ public static partial class DataContractSerializerTests
         dcs.WriteObject(ms, list);
         ms.Seek(0L, SeekOrigin.Begin);
         List<Invalid_Class_No_Parameterless_Ctor> list2 = (List<Invalid_Class_No_Parameterless_Ctor>)dcs.ReadObject(ms);
-        Assert.True(list2.Count == 0, String.Format("Unexpected length {0}", list.Count));
+        Assert.True(list2.Count == 0, string.Format("Unexpected length {0}", list.Count));
     }
 
     [Fact]
@@ -1787,34 +1791,34 @@ public static partial class DataContractSerializerTests
     public static void DCS_DerivedTypeWithBaseTypeWithDataMember()
     {
         DerivedTypeWithDataMemberInBaseType value = new DerivedTypeWithDataMemberInBaseType() { EmbeddedDataMember = new TypeAsEmbeddedDataMember { Name = "Foo" } };
-        var deserializedValue = SerializeAndDeserialize<DerivedTypeWithDataMemberInBaseType>(value, @"<DerivedTypeWithDataMemberInBaseType xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><EmbeddedDataMember><Name>Foo</Name></EmbeddedDataMember></DerivedTypeWithDataMemberInBaseType>");
+        var deserializedValue = DataContractSerializerHelper.SerializeAndDeserialize<DerivedTypeWithDataMemberInBaseType>(value, @"<DerivedTypeWithDataMemberInBaseType xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><EmbeddedDataMember><Name>Foo</Name></EmbeddedDataMember></DerivedTypeWithDataMemberInBaseType>");
 
-        Assert.StrictEqual("Foo", deserializedValue.EmbeddedDataMember.Name);
+        Assert.Equal("Foo", deserializedValue.EmbeddedDataMember.Name);
     }
 
     [Fact]
     public static void DCS_PocoDerivedTypeWithBaseTypeWithDataMember()
     {
         PocoDerivedTypeWithDataMemberInBaseType value = new PocoDerivedTypeWithDataMemberInBaseType() { EmbeddedDataMember = new PocoTypeAsEmbeddedDataMember { Name = "Foo" } };
-        var deserializedValue = SerializeAndDeserialize<PocoDerivedTypeWithDataMemberInBaseType>(value, @"<PocoDerivedTypeWithDataMemberInBaseType xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><EmbeddedDataMember><Name>Foo</Name></EmbeddedDataMember></PocoDerivedTypeWithDataMemberInBaseType>");
+        var deserializedValue = DataContractSerializerHelper.SerializeAndDeserialize<PocoDerivedTypeWithDataMemberInBaseType>(value, @"<PocoDerivedTypeWithDataMemberInBaseType xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><EmbeddedDataMember><Name>Foo</Name></EmbeddedDataMember></PocoDerivedTypeWithDataMemberInBaseType>");
 
-        Assert.StrictEqual("Foo", deserializedValue.EmbeddedDataMember.Name);
+        Assert.Equal("Foo", deserializedValue.EmbeddedDataMember.Name);
     }
 
     [Fact]
     public static void DCS_ClassImplementingIXmlSerialiable()
     {
         ClassImplementingIXmlSerialiable value = new ClassImplementingIXmlSerialiable() { StringValue = "Foo" };
-        var deserializedValue = SerializeAndDeserialize<ClassImplementingIXmlSerialiable>(value, @"<ClassImplementingIXmlSerialiable StringValue=""Foo"" BoolValue=""True"" xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes""/>");
-        Assert.StrictEqual(value.StringValue, deserializedValue.StringValue);
+        var deserializedValue = DataContractSerializerHelper.SerializeAndDeserialize<ClassImplementingIXmlSerialiable>(value, @"<ClassImplementingIXmlSerialiable StringValue=""Foo"" BoolValue=""True"" xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes""/>");
+        Assert.Equal(value.StringValue, deserializedValue.StringValue);
     }
 
     [Fact]
     public static void DCS_TypeWithNestedGenericClassImplementingIXmlSerialiable()
     {
         TypeWithNestedGenericClassImplementingIXmlSerialiable.NestedGenericClassImplementingIXmlSerialiable<bool> value = new TypeWithNestedGenericClassImplementingIXmlSerialiable.NestedGenericClassImplementingIXmlSerialiable<bool>() { StringValue = "Foo" };
-        var deserializedValue = SerializeAndDeserialize<TypeWithNestedGenericClassImplementingIXmlSerialiable.NestedGenericClassImplementingIXmlSerialiable<bool>>(value, @"<TypeWithNestedGenericClassImplementingIXmlSerialiable.NestedGenericClassImplementingIXmlSerialiableOfbooleanRvdAXEcW StringValue=""Foo"" xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes""/>");
-        Assert.StrictEqual(value.StringValue, deserializedValue.StringValue);
+        var deserializedValue = DataContractSerializerHelper.SerializeAndDeserialize<TypeWithNestedGenericClassImplementingIXmlSerialiable.NestedGenericClassImplementingIXmlSerialiable<bool>>(value, @"<TypeWithNestedGenericClassImplementingIXmlSerialiable.NestedGenericClassImplementingIXmlSerialiableOfbooleanRvdAXEcW StringValue=""Foo"" xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes""/>");
+        Assert.Equal(value.StringValue, deserializedValue.StringValue);
     }
 
     [Fact]
@@ -1825,7 +1829,7 @@ public static partial class DataContractSerializerTests
             data1 = 123,
             data2 = 4.56
         };
-        var deserializedValue = SerializeAndDeserialize<GenericTypeWithNestedGenerics<int>.InnerGeneric<double>>(value, @"<GenericTypeWithNestedGenerics.InnerGenericOfintdouble2LMUf4bh xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><data1>123</data1><data2>4.56</data2></GenericTypeWithNestedGenerics.InnerGenericOfintdouble2LMUf4bh>");
+        var deserializedValue = DataContractSerializerHelper.SerializeAndDeserialize<GenericTypeWithNestedGenerics<int>.InnerGeneric<double>>(value, @"<GenericTypeWithNestedGenerics.InnerGenericOfintdouble2LMUf4bh xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><data1>123</data1><data2>4.56</data2></GenericTypeWithNestedGenerics.InnerGenericOfintdouble2LMUf4bh>");
         Assert.StrictEqual(value.data1, deserializedValue.data1);
         Assert.StrictEqual(value.data2, deserializedValue.data2);
     }
@@ -1834,7 +1838,7 @@ public static partial class DataContractSerializerTests
     public static void DCS_DuplicatedKeyDateTimeOffset()
     {
         DateTimeOffset value = new DateTimeOffset(new DateTime(2013, 1, 2, 3, 4, 5, 6, DateTimeKind.Utc).AddMinutes(7));
-        var deserializedValue = SerializeAndDeserialize<DateTimeOffset>(value, @"<DateTimeOffset xmlns=""http://schemas.datacontract.org/2004/07/System"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><DateTime>2013-01-02T03:11:05.006Z</DateTime><OffsetMinutes>0</OffsetMinutes></DateTimeOffset>");
+        var deserializedValue = DataContractSerializerHelper.SerializeAndDeserialize<DateTimeOffset>(value, @"<DateTimeOffset xmlns=""http://schemas.datacontract.org/2004/07/System"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><DateTime>2013-01-02T03:11:05.006Z</DateTime><OffsetMinutes>0</OffsetMinutes></DateTimeOffset>");
 
         DataContractJsonSerializer dcjs = new DataContractJsonSerializer(typeof(DateTimeOffset));
         MemoryStream stream = new MemoryStream();
@@ -1846,7 +1850,7 @@ public static partial class DataContractSerializerTests
     {
         XmlQualifiedName qname = new XmlQualifiedName("abc", "def");
         TypeWithXmlQualifiedName value = new TypeWithXmlQualifiedName() { Value = qname };
-        TypeWithXmlQualifiedName deserialized = SerializeAndDeserialize<TypeWithXmlQualifiedName>(value, @"<TypeWithXmlQualifiedName xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><q:Value xmlns:q=""http://schemas.datacontract.org/2004/07/SerializationTypes"" xmlns:a=""def"">a:abc</q:Value></TypeWithXmlQualifiedName>");
+        TypeWithXmlQualifiedName deserialized = DataContractSerializerHelper.SerializeAndDeserialize<TypeWithXmlQualifiedName>(value, @"<TypeWithXmlQualifiedName xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><q:Value xmlns:q=""http://schemas.datacontract.org/2004/07/SerializationTypes"" xmlns:a=""def"">a:abc</q:Value></TypeWithXmlQualifiedName>");
         Assert.StrictEqual(value.Value, deserialized.Value);
     }
 
@@ -1862,8 +1866,8 @@ public static partial class DataContractSerializerTests
         ms.Seek(0, SeekOrigin.Begin);
 
         TypeWithPropertyWithoutDefaultCtor deserializedValue = (TypeWithPropertyWithoutDefaultCtor)dcs.ReadObject(ms);
-        Assert.StrictEqual("Foo", deserializedValue.Name);
-        Assert.StrictEqual(null, deserializedValue.MemberWithInvalidDataContract);
+        Assert.Equal("Foo", deserializedValue.Name);
+        Assert.Null(deserializedValue.MemberWithInvalidDataContract);
     }
 
     [Fact]
@@ -1871,10 +1875,10 @@ public static partial class DataContractSerializerTests
     {
         List<string> list = new List<string>() { "Foo", "Bar" };
         ReadOnlyCollection<string> value = new ReadOnlyCollection<string>(list);
-        var deserializedValue = SerializeAndDeserialize<ReadOnlyCollection<string>>(value, @"<ReadOnlyCollectionOfstring xmlns=""http://schemas.datacontract.org/2004/07/System.Collections.ObjectModel"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><list xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""><a:string>Foo</a:string><a:string>Bar</a:string></list></ReadOnlyCollectionOfstring>");
+        var deserializedValue = DataContractSerializerHelper.SerializeAndDeserialize<ReadOnlyCollection<string>>(value, @"<ReadOnlyCollectionOfstring xmlns=""http://schemas.datacontract.org/2004/07/System.Collections.ObjectModel"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><list xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""><a:string>Foo</a:string><a:string>Bar</a:string></list></ReadOnlyCollectionOfstring>");
         Assert.StrictEqual(value.Count, deserializedValue.Count);
-        Assert.StrictEqual(value[0], deserializedValue[0]);
-        Assert.StrictEqual(value[1], deserializedValue[1]);
+        Assert.Equal(value[0], deserializedValue[0]);
+        Assert.Equal(value[1], deserializedValue[1]);
     }
 
     [Fact]
@@ -1884,7 +1888,7 @@ public static partial class DataContractSerializerTests
         dict["Foo"] = 1;
         dict["Bar"] = 2;
         ReadOnlyDictionary<string, int> value = new ReadOnlyDictionary<string, int>(dict);
-        var deserializedValue = SerializeAndDeserialize(value, @"<ReadOnlyDictionaryOfstringint xmlns=""http://schemas.datacontract.org/2004/07/System.Collections.ObjectModel"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><m_dictionary xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""><a:KeyValueOfstringint><a:Key>Foo</a:Key><a:Value>1</a:Value></a:KeyValueOfstringint><a:KeyValueOfstringint><a:Key>Bar</a:Key><a:Value>2</a:Value></a:KeyValueOfstringint></m_dictionary></ReadOnlyDictionaryOfstringint>");
+        var deserializedValue = DataContractSerializerHelper.SerializeAndDeserialize(value, @"<ReadOnlyDictionaryOfstringint xmlns=""http://schemas.datacontract.org/2004/07/System.Collections.ObjectModel"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><m_dictionary xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""><a:KeyValueOfstringint><a:Key>Foo</a:Key><a:Value>1</a:Value></a:KeyValueOfstringint><a:KeyValueOfstringint><a:Key>Bar</a:Key><a:Value>2</a:Value></a:KeyValueOfstringint></m_dictionary></ReadOnlyDictionaryOfstringint>");
 
         Assert.StrictEqual(value.Count, deserializedValue.Count);
         Assert.StrictEqual(value["Foo"], deserializedValue["Foo"]);
@@ -1895,9 +1899,9 @@ public static partial class DataContractSerializerTests
     public static void DCS_KeyValuePair()
     {
         var value = new KeyValuePair<string, object>("FooKey", "FooValue");
-        var deserializedValue = SerializeAndDeserialize<KeyValuePair<string, object>>(value, @"<KeyValuePairOfstringanyType xmlns=""http://schemas.datacontract.org/2004/07/System.Collections.Generic"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><key>FooKey</key><value i:type=""a:string"" xmlns:a=""http://www.w3.org/2001/XMLSchema"">FooValue</value></KeyValuePairOfstringanyType>");
+        var deserializedValue = DataContractSerializerHelper.SerializeAndDeserialize<KeyValuePair<string, object>>(value, @"<KeyValuePairOfstringanyType xmlns=""http://schemas.datacontract.org/2004/07/System.Collections.Generic"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><key>FooKey</key><value i:type=""a:string"" xmlns:a=""http://www.w3.org/2001/XMLSchema"">FooValue</value></KeyValuePairOfstringanyType>");
 
-        Assert.StrictEqual(value.Key, deserializedValue.Key);
+        Assert.Equal(value.Key, deserializedValue.Key);
         Assert.StrictEqual(value.Value, deserializedValue.Value);
     }
 
@@ -1907,7 +1911,7 @@ public static partial class DataContractSerializerTests
         var value = new ConcurrentDictionary<string, int>();
         value["one"] = 1;
         value["two"] = 2;
-        var deserializedValue = SerializeAndDeserialize<ConcurrentDictionary<string, int>>(value, @"<ArrayOfKeyValueOfstringint xmlns=""http://schemas.microsoft.com/2003/10/Serialization/Arrays"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><KeyValueOfstringint><Key>one</Key><Value>1</Value></KeyValueOfstringint><KeyValueOfstringint><Key>two</Key><Value>2</Value></KeyValueOfstringint></ArrayOfKeyValueOfstringint>", null, null, true);
+        var deserializedValue = DataContractSerializerHelper.SerializeAndDeserialize<ConcurrentDictionary<string, int>>(value, @"<ArrayOfKeyValueOfstringint xmlns=""http://schemas.microsoft.com/2003/10/Serialization/Arrays"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><KeyValueOfstringint><Key>one</Key><Value>1</Value></KeyValueOfstringint><KeyValueOfstringint><Key>two</Key><Value>2</Value></KeyValueOfstringint></ArrayOfKeyValueOfstringint>", null, null, true);
 
         Assert.NotNull(deserializedValue);
         Assert.True(deserializedValue.Count == 2);
@@ -1919,40 +1923,40 @@ public static partial class DataContractSerializerTests
     public static void DCS_DataContractWithDotInName()
     {
         DataContractWithDotInName value = new DataContractWithDotInName() { Name = "Foo" };
-        var deserializedValue = SerializeAndDeserialize<DataContractWithDotInName>(value, @"<DCWith.InName xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><Name>Foo</Name></DCWith.InName>");
+        var deserializedValue = DataContractSerializerHelper.SerializeAndDeserialize<DataContractWithDotInName>(value, @"<DCWith.InName xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><Name>Foo</Name></DCWith.InName>");
 
         Assert.NotNull(deserializedValue);
-        Assert.StrictEqual(value.Name, deserializedValue.Name);
+        Assert.Equal(value.Name, deserializedValue.Name);
     }
 
     [Fact]
     public static void DCS_DataContractWithMinusSignInName()
     {
         DataContractWithMinusSignInName value = new DataContractWithMinusSignInName() { Name = "Foo" };
-        var deserializedValue = SerializeAndDeserialize<DataContractWithMinusSignInName>(value, @"<DCWith-InName xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><Name>Foo</Name></DCWith-InName>");
+        var deserializedValue = DataContractSerializerHelper.SerializeAndDeserialize<DataContractWithMinusSignInName>(value, @"<DCWith-InName xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><Name>Foo</Name></DCWith-InName>");
 
         Assert.NotNull(deserializedValue);
-        Assert.StrictEqual(value.Name, deserializedValue.Name);
+        Assert.Equal(value.Name, deserializedValue.Name);
     }
 
     [Fact]
     public static void DCS_DataContractWithOperatorsInName()
     {
         DataContractWithOperatorsInName value = new DataContractWithOperatorsInName() { Name = "Foo" };
-        var deserializedValue = SerializeAndDeserialize<DataContractWithOperatorsInName>(value, @"<DCWith_x007B__x007D__x005B__x005D__x0028__x0029_._x002C__x003A__x003B__x002B_-_x002A__x002F__x0025__x0026__x007C__x005E__x0021__x007E__x003D__x003C__x003E__x003F__x002B__x002B_--_x0026__x0026__x007C__x007C__x003C__x003C__x003E__x003E__x003D__x003D__x0021__x003D__x003C__x003D__x003E__x003D__x002B__x003D_-_x003D__x002A__x003D__x002F__x003D__x0025__x003D__x0026__x003D__x007C__x003D__x005E__x003D__x003C__x003C__x003D__x003E__x003E__x003D_-_x003E_InName xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><Name>Foo</Name></DCWith_x007B__x007D__x005B__x005D__x0028__x0029_._x002C__x003A__x003B__x002B_-_x002A__x002F__x0025__x0026__x007C__x005E__x0021__x007E__x003D__x003C__x003E__x003F__x002B__x002B_--_x0026__x0026__x007C__x007C__x003C__x003C__x003E__x003E__x003D__x003D__x0021__x003D__x003C__x003D__x003E__x003D__x002B__x003D_-_x003D__x002A__x003D__x002F__x003D__x0025__x003D__x0026__x003D__x007C__x003D__x005E__x003D__x003C__x003C__x003D__x003E__x003E__x003D_-_x003E_InName>");
+        var deserializedValue = DataContractSerializerHelper.SerializeAndDeserialize<DataContractWithOperatorsInName>(value, @"<DCWith_x007B__x007D__x005B__x005D__x0028__x0029_._x002C__x003A__x003B__x002B_-_x002A__x002F__x0025__x0026__x007C__x005E__x0021__x007E__x003D__x003C__x003E__x003F__x002B__x002B_--_x0026__x0026__x007C__x007C__x003C__x003C__x003E__x003E__x003D__x003D__x0021__x003D__x003C__x003D__x003E__x003D__x002B__x003D_-_x003D__x002A__x003D__x002F__x003D__x0025__x003D__x0026__x003D__x007C__x003D__x005E__x003D__x003C__x003C__x003D__x003E__x003E__x003D_-_x003E_InName xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><Name>Foo</Name></DCWith_x007B__x007D__x005B__x005D__x0028__x0029_._x002C__x003A__x003B__x002B_-_x002A__x002F__x0025__x0026__x007C__x005E__x0021__x007E__x003D__x003C__x003E__x003F__x002B__x002B_--_x0026__x0026__x007C__x007C__x003C__x003C__x003E__x003E__x003D__x003D__x0021__x003D__x003C__x003D__x003E__x003D__x002B__x003D_-_x003D__x002A__x003D__x002F__x003D__x0025__x003D__x0026__x003D__x007C__x003D__x005E__x003D__x003C__x003C__x003D__x003E__x003E__x003D_-_x003E_InName>");
 
         Assert.NotNull(deserializedValue);
-        Assert.StrictEqual(value.Name, deserializedValue.Name);
+        Assert.Equal(value.Name, deserializedValue.Name);
     }
 
     [Fact]
     public static void DCS_DataContractWithOtherSymbolsInName()
     {
         DataContractWithOtherSymbolsInName value = new DataContractWithOtherSymbolsInName() { Name = "Foo" };
-        var deserializedValue = SerializeAndDeserialize<DataContractWithOtherSymbolsInName>(value, @"<DCWith_x0060__x0040__x0023__x0024__x0027__x0022__x0020__x0009_InName xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><Name>Foo</Name></DCWith_x0060__x0040__x0023__x0024__x0027__x0022__x0020__x0009_InName>");
+        var deserializedValue = DataContractSerializerHelper.SerializeAndDeserialize<DataContractWithOtherSymbolsInName>(value, @"<DCWith_x0060__x0040__x0023__x0024__x0027__x0022__x0020__x0009_InName xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><Name>Foo</Name></DCWith_x0060__x0040__x0023__x0024__x0027__x0022__x0020__x0009_InName>");
 
         Assert.NotNull(deserializedValue);
-        Assert.StrictEqual(value.Name, deserializedValue.Name);
+        Assert.Equal(value.Name, deserializedValue.Name);
     }
 
     [Fact]
@@ -1961,7 +1965,7 @@ public static partial class DataContractSerializerTests
         CollectionDataContractWithCustomKeyName value = new CollectionDataContractWithCustomKeyName();
         value.Add(100, 123);
         value.Add(200, 456);
-        var deserializedValue = SerializeAndDeserialize<CollectionDataContractWithCustomKeyName>(value, @"<MyHeaders xmlns=""http://schemas.microsoft.com/netservices/2010/10/servicebus/connect"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><MyHeader><MyKey>100</MyKey><MyValue>123</MyValue></MyHeader><MyHeader><MyKey>200</MyKey><MyValue>456</MyValue></MyHeader></MyHeaders>");
+        var deserializedValue = DataContractSerializerHelper.SerializeAndDeserialize<CollectionDataContractWithCustomKeyName>(value, @"<MyHeaders xmlns=""http://schemas.microsoft.com/netservices/2010/10/servicebus/connect"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><MyHeader><MyKey>100</MyKey><MyValue>123</MyValue></MyHeader><MyHeader><MyKey>200</MyKey><MyValue>456</MyValue></MyHeader></MyHeaders>");
 
         Assert.NotNull(deserializedValue);
         Assert.StrictEqual(value[100], deserializedValue[100]);
@@ -1974,7 +1978,7 @@ public static partial class DataContractSerializerTests
         CollectionDataContractWithCustomKeyNameDuplicate value = new CollectionDataContractWithCustomKeyNameDuplicate();
         value.Add(100, 123);
         value.Add(200, 456);
-        var deserializedValue = SerializeAndDeserialize<CollectionDataContractWithCustomKeyNameDuplicate>(value, @"<MyHeaders2 xmlns=""http://schemas.microsoft.com/netservices/2010/10/servicebus/connect"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><MyHeader2><MyKey2>100</MyKey2><MyValue2>123</MyValue2></MyHeader2><MyHeader2><MyKey2>200</MyKey2><MyValue2>456</MyValue2></MyHeader2></MyHeaders2>");
+        var deserializedValue = DataContractSerializerHelper.SerializeAndDeserialize<CollectionDataContractWithCustomKeyNameDuplicate>(value, @"<MyHeaders2 xmlns=""http://schemas.microsoft.com/netservices/2010/10/servicebus/connect"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><MyHeader2><MyKey2>100</MyKey2><MyValue2>123</MyValue2></MyHeader2><MyHeader2><MyKey2>200</MyKey2><MyValue2>456</MyValue2></MyHeader2></MyHeaders2>");
 
         Assert.NotNull(deserializedValue);
         Assert.StrictEqual(value[100], deserializedValue[100]);
@@ -1987,12 +1991,12 @@ public static partial class DataContractSerializerTests
         TypeWithCollectionWithoutDefaultConstructor value = new TypeWithCollectionWithoutDefaultConstructor();
         value.CollectionProperty.Add("Foo");
         value.CollectionProperty.Add("Bar");
-        var deserializedValue = SerializeAndDeserialize<TypeWithCollectionWithoutDefaultConstructor>(value, @"<TypeWithCollectionWithoutDefaultConstructor xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><CollectionProperty xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""><a:string>Foo</a:string><a:string>Bar</a:string></CollectionProperty></TypeWithCollectionWithoutDefaultConstructor>");
+        var deserializedValue = DataContractSerializerHelper.SerializeAndDeserialize<TypeWithCollectionWithoutDefaultConstructor>(value, @"<TypeWithCollectionWithoutDefaultConstructor xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><CollectionProperty xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""><a:string>Foo</a:string><a:string>Bar</a:string></CollectionProperty></TypeWithCollectionWithoutDefaultConstructor>");
 
         Assert.NotNull(deserializedValue);
         Assert.NotNull(deserializedValue.CollectionProperty);
         Assert.StrictEqual(value.CollectionProperty.Count, deserializedValue.CollectionProperty.Count);
-        Assert.StrictEqual(true, Enumerable.SequenceEqual(value.CollectionProperty, deserializedValue.CollectionProperty));
+        Assert.True(Enumerable.SequenceEqual(value.CollectionProperty, deserializedValue.CollectionProperty));
     }
 
     [Fact]
@@ -2038,7 +2042,7 @@ public static partial class DataContractSerializerTests
             {
                 var deserializedObject = (TypeWithTypeWithIntAndStringPropertyProperty)serializer.ReadObject(reader);
                 Assert.StrictEqual(10, deserializedObject.ObjectProperty.SampleInt);
-                Assert.StrictEqual("Sample string", deserializedObject.ObjectProperty.SampleString);
+                Assert.Equal("Sample string", deserializedObject.ObjectProperty.SampleString);
             }
             else
             {
@@ -2064,7 +2068,7 @@ public static partial class DataContractSerializerTests
     public static void DCS_CollectionInterfaceGetOnlyCollection()
     {
         var obj = new TypeWithCollectionInterfaceGetOnlyCollection(new List<string>() { "item1", "item2", "item3" });
-        var deserializedObj = SerializeAndDeserialize(obj, @"<TypeWithCollectionInterfaceGetOnlyCollection xmlns=""http://schemas.datacontract.org/2004/07/"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><Items xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""><a:string>item1</a:string><a:string>item2</a:string><a:string>item3</a:string></Items></TypeWithCollectionInterfaceGetOnlyCollection>");
+        var deserializedObj = DataContractSerializerHelper.SerializeAndDeserialize(obj, @"<TypeWithCollectionInterfaceGetOnlyCollection xmlns=""http://schemas.datacontract.org/2004/07/"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><Items xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""><a:string>item1</a:string><a:string>item2</a:string><a:string>item3</a:string></Items></TypeWithCollectionInterfaceGetOnlyCollection>");
         Assert.Equal(obj.Items, deserializedObj.Items);
     }
 
@@ -2074,7 +2078,7 @@ public static partial class DataContractSerializerTests
         // Expect exception in deserialization process
         Assert.Throws<InvalidDataContractException>(() => {
             var obj = new TypeWithEnumerableInterfaceGetOnlyCollection(new List<string>() { "item1", "item2", "item3" });
-            SerializeAndDeserialize(obj, @"<TypeWithEnumerableInterfaceGetOnlyCollection xmlns=""http://schemas.datacontract.org/2004/07/"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><Items xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""><a:string>item1</a:string><a:string>item2</a:string><a:string>item3</a:string></Items></TypeWithEnumerableInterfaceGetOnlyCollection>");
+            DataContractSerializerHelper.SerializeAndDeserialize(obj, @"<TypeWithEnumerableInterfaceGetOnlyCollection xmlns=""http://schemas.datacontract.org/2004/07/"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><Items xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""><a:string>item1</a:string><a:string>item2</a:string><a:string>item3</a:string></Items></TypeWithEnumerableInterfaceGetOnlyCollection>");
         });
     }
 
@@ -2094,10 +2098,10 @@ public static partial class DataContractSerializerTests
         xDoc.LoadXml(@"<html></html>");
         XmlElement expected = xDoc.CreateElement("Element");
         expected.InnerText = "Element innertext";
-        var actual = SerializeAndDeserialize(expected,
+        var actual = DataContractSerializerHelper.SerializeAndDeserialize(expected,
 @"<Element>Element innertext</Element>");
         Assert.NotNull(actual);
-        Assert.StrictEqual(expected.InnerText, actual.InnerText);
+        Assert.Equal(expected.InnerText, actual.InnerText);
     }
 
     [Fact]
@@ -2110,12 +2114,12 @@ public static partial class DataContractSerializerTests
         XmlElement categoryElement = xDoc.CreateElement("Category");
         categoryElement.InnerText = "Category innertext";
         var expected = new TypeWithXmlElementProperty() { Elements = new[] { productElement, categoryElement } };
-        var actual = SerializeAndDeserialize(expected,
+        var actual = DataContractSerializerHelper.SerializeAndDeserialize(expected,
 @"<TypeWithXmlElementProperty xmlns=""http://schemas.datacontract.org/2004/07/"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><Elements xmlns:a=""http://schemas.datacontract.org/2004/07/System.Xml""><a:XmlElement><Product xmlns="""">Product innertext</Product></a:XmlElement><a:XmlElement><Category xmlns="""">Category innertext</Category></a:XmlElement></Elements></TypeWithXmlElementProperty>");
         Assert.StrictEqual(expected.Elements.Length, actual.Elements.Length);
         for (int i = 0; i < expected.Elements.Length; ++i)
         {
-            Assert.StrictEqual(expected.Elements[i].InnerText, actual.Elements[i].InnerText);
+            Assert.Equal(expected.Elements[i].InnerText, actual.Elements[i].InnerText);
         }
     }
 
@@ -2134,7 +2138,7 @@ public static partial class DataContractSerializerTests
             PreserveObjectReferences = true,
         };
 
-        var y = SerializeAndDeserialize(x,
+        var y = DataContractSerializerHelper.SerializeAndDeserialize(x,
             baseline: "<ArrayOfSimpleType z:Id=\"1\" z:Size=\"3\" xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"><SimpleType z:Id=\"2\"><P1 z:Id=\"3\">simpleObject1</P1><P2>1</P2></SimpleType><SimpleType z:Ref=\"2\" i:nil=\"true\"/><SimpleType z:Id=\"4\"><P1 z:Id=\"5\">simpleObject2</P1><P2>2</P2></SimpleType></ArrayOfSimpleType>",
             settings: settings);
 
@@ -2162,7 +2166,7 @@ public static partial class DataContractSerializerTests
             PreserveObjectReferences = false,
         };
 
-        var y = SerializeAndDeserialize(x,
+        var y = DataContractSerializerHelper.SerializeAndDeserialize(x,
             baseline: "<ArrayOfSimpleType xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><SimpleType><P1>simpleObject1</P1><P2>1</P2></SimpleType><SimpleType><P1>simpleObject1</P1><P2>1</P2></SimpleType><SimpleType><P1>simpleObject2</P1><P2>2</P2></SimpleType></ArrayOfSimpleType>",
             settings: settings);
 
@@ -2194,7 +2198,7 @@ public static partial class DataContractSerializerTests
             PreserveObjectReferences = true,
         };
 
-        var root2 = SerializeAndDeserialize(root,
+        var root2 = DataContractSerializerHelper.SerializeAndDeserialize(root,
             baseline: "<TypeWithListOfReferenceChildren z:Id=\"1\" xmlns=\"http://schemas.datacontract.org/2004/07/\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"><Children z:Id=\"2\" z:Size=\"3\"><TypeOfReferenceChild z:Id=\"3\"><Name z:Id=\"4\">A</Name><Root z:Ref=\"1\" i:nil=\"true\"/></TypeOfReferenceChild><TypeOfReferenceChild z:Id=\"5\"><Name z:Id=\"6\">B</Name><Root z:Ref=\"1\" i:nil=\"true\"/></TypeOfReferenceChild><TypeOfReferenceChild z:Ref=\"3\" i:nil=\"true\"/></Children></TypeWithListOfReferenceChildren>",
             settings: settings);
 
@@ -2224,7 +2228,7 @@ public static partial class DataContractSerializerTests
             PreserveObjectReferences = false,
         };
 
-        var root2 = SerializeAndDeserialize(root,
+        var root2 = DataContractSerializerHelper.SerializeAndDeserialize(root,
             baseline: "<TypeWithListOfReferenceChildren xmlns=\"http://schemas.datacontract.org/2004/07/\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><Children><TypeOfReferenceChild z:Id=\"i1\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"><Name>A</Name><Root><Children><TypeOfReferenceChild z:Ref=\"i1\"/><TypeOfReferenceChild z:Id=\"i2\"><Name>B</Name><Root><Children><TypeOfReferenceChild z:Ref=\"i1\"/><TypeOfReferenceChild z:Ref=\"i2\"/><TypeOfReferenceChild z:Ref=\"i1\"/></Children></Root></TypeOfReferenceChild><TypeOfReferenceChild z:Ref=\"i1\"/></Children></Root></TypeOfReferenceChild><TypeOfReferenceChild z:Ref=\"i2\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"/><TypeOfReferenceChild z:Ref=\"i1\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"/></Children></TypeWithListOfReferenceChildren>",
             settings: settings);
 
@@ -2241,8 +2245,8 @@ public static partial class DataContractSerializerTests
     public static void DCS_TypeWithPrimitiveProperties()
     {
         TypeWithPrimitiveProperties x = new TypeWithPrimitiveProperties { P1 = "abc", P2 = 11 };
-        TypeWithPrimitiveProperties y = SerializeAndDeserialize<TypeWithPrimitiveProperties>(x, @"<TypeWithPrimitiveProperties xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><P1>abc</P1><P2>11</P2></TypeWithPrimitiveProperties>");
-        Assert.StrictEqual(x.P1, y.P1);
+        TypeWithPrimitiveProperties y = DataContractSerializerHelper.SerializeAndDeserialize<TypeWithPrimitiveProperties>(x, @"<TypeWithPrimitiveProperties xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><P1>abc</P1><P2>11</P2></TypeWithPrimitiveProperties>");
+        Assert.Equal(x.P1, y.P1);
         Assert.StrictEqual(x.P2, y.P2);
     }
 
@@ -2250,8 +2254,8 @@ public static partial class DataContractSerializerTests
     public static void DCS_TypeWithPrimitiveFields()
     {
         TypeWithPrimitiveFields x = new TypeWithPrimitiveFields { P1 = "abc", P2 = 11 };
-        TypeWithPrimitiveFields y = SerializeAndDeserialize<TypeWithPrimitiveFields>(x, @"<TypeWithPrimitiveFields xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><P1>abc</P1><P2>11</P2></TypeWithPrimitiveFields>");
-        Assert.StrictEqual(x.P1, y.P1);
+        TypeWithPrimitiveFields y = DataContractSerializerHelper.SerializeAndDeserialize<TypeWithPrimitiveFields>(x, @"<TypeWithPrimitiveFields xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><P1>abc</P1><P2>11</P2></TypeWithPrimitiveFields>");
+        Assert.Equal(x.P1, y.P1);
         Assert.StrictEqual(x.P2, y.P2);
     }
 
@@ -2268,11 +2272,11 @@ public static partial class DataContractSerializerTests
             DoubleMember = 123.456,
             FloatMember = 456.789f,
             GuidMember = Guid.Parse("2054fd3e-e118-476a-9962-1a882be51860"),
-            //public byte[] HexBinaryMember 
+            //public byte[] HexBinaryMember
             StringMember = "abc",
             IntMember = 123
         };
-        TypeWithAllPrimitiveProperties y = SerializeAndDeserialize<TypeWithAllPrimitiveProperties>(x, @"<TypeWithAllPrimitiveProperties xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><BooleanMember>true</BooleanMember><CharMember>67</CharMember><DateTimeMember>2016-07-08T09:10:11</DateTimeMember><DecimalMember>-14554481076115341312123</DecimalMember><DoubleMember>123.456</DoubleMember><FloatMember>456.789</FloatMember><GuidMember>2054fd3e-e118-476a-9962-1a882be51860</GuidMember><IntMember>123</IntMember><StringMember>abc</StringMember></TypeWithAllPrimitiveProperties>");
+        TypeWithAllPrimitiveProperties y = DataContractSerializerHelper.SerializeAndDeserialize<TypeWithAllPrimitiveProperties>(x, @"<TypeWithAllPrimitiveProperties xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><BooleanMember>true</BooleanMember><CharMember>67</CharMember><DateTimeMember>2016-07-08T09:10:11</DateTimeMember><DecimalMember>-14554481076115341312123</DecimalMember><DoubleMember>123.456</DoubleMember><FloatMember>456.789</FloatMember><GuidMember>2054fd3e-e118-476a-9962-1a882be51860</GuidMember><IntMember>123</IntMember><StringMember>abc</StringMember></TypeWithAllPrimitiveProperties>");
         Assert.StrictEqual(x.BooleanMember, y.BooleanMember);
         //Assert.StrictEqual(x.ByteArrayMember, y.ByteArrayMember);
         Assert.StrictEqual(x.CharMember, y.CharMember);
@@ -2281,7 +2285,7 @@ public static partial class DataContractSerializerTests
         Assert.StrictEqual(x.DoubleMember, y.DoubleMember);
         Assert.StrictEqual(x.FloatMember, y.FloatMember);
         Assert.StrictEqual(x.GuidMember, y.GuidMember);
-        Assert.StrictEqual(x.StringMember, y.StringMember);
+        Assert.Equal(x.StringMember, y.StringMember);
         Assert.StrictEqual(x.IntMember, y.IntMember);
     }
 
@@ -2291,72 +2295,72 @@ public static partial class DataContractSerializerTests
     public static void DCS_ArrayOfBoolean()
     {
         var value = new bool[] { true, false, true };
-        var deserialized = SerializeAndDeserialize(value, @"<ArrayOfboolean xmlns=""http://schemas.microsoft.com/2003/10/Serialization/Arrays"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><boolean>true</boolean><boolean>false</boolean><boolean>true</boolean></ArrayOfboolean>");
+        var deserialized = DataContractSerializerHelper.SerializeAndDeserialize(value, @"<ArrayOfboolean xmlns=""http://schemas.microsoft.com/2003/10/Serialization/Arrays"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><boolean>true</boolean><boolean>false</boolean><boolean>true</boolean></ArrayOfboolean>");
         Assert.StrictEqual(value.Length, deserialized.Length);
-        Assert.StrictEqual(true, Enumerable.SequenceEqual(value, deserialized));
+        Assert.True(Enumerable.SequenceEqual(value, deserialized));
     }
 
     [Fact]
     public static void DCS_ArrayOfDateTime()
     {
         var value = new DateTime[] { new DateTime(2000, 1, 2, 3, 4, 5, DateTimeKind.Utc), new DateTime(2011, 2, 3, 4, 5, 6, DateTimeKind.Utc) };
-        var deserialized = SerializeAndDeserialize(value, @"<ArrayOfdateTime xmlns=""http://schemas.microsoft.com/2003/10/Serialization/Arrays"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><dateTime>2000-01-02T03:04:05Z</dateTime><dateTime>2011-02-03T04:05:06Z</dateTime></ArrayOfdateTime>");
+        var deserialized = DataContractSerializerHelper.SerializeAndDeserialize(value, @"<ArrayOfdateTime xmlns=""http://schemas.microsoft.com/2003/10/Serialization/Arrays"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><dateTime>2000-01-02T03:04:05Z</dateTime><dateTime>2011-02-03T04:05:06Z</dateTime></ArrayOfdateTime>");
         Assert.StrictEqual(value.Length, deserialized.Length);
-        Assert.StrictEqual(true, Enumerable.SequenceEqual(value, deserialized));
+        Assert.True(Enumerable.SequenceEqual(value, deserialized));
     }
 
     [Fact]
     public static void DCS_ArrayOfDecimal()
     {
         var value = new decimal[] { new decimal(1, 2, 3, false, 1), new decimal(4, 5, 6, true, 2) };
-        var deserialized = SerializeAndDeserialize(value, @"<ArrayOfdecimal xmlns=""http://schemas.microsoft.com/2003/10/Serialization/Arrays"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><decimal>5534023222971858944.1</decimal><decimal>-1106804644637321461.80</decimal></ArrayOfdecimal>");
+        var deserialized = DataContractSerializerHelper.SerializeAndDeserialize(value, @"<ArrayOfdecimal xmlns=""http://schemas.microsoft.com/2003/10/Serialization/Arrays"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><decimal>5534023222971858944.1</decimal><decimal>-1106804644637321461.80</decimal></ArrayOfdecimal>");
         Assert.StrictEqual(value.Length, deserialized.Length);
-        Assert.StrictEqual(true, Enumerable.SequenceEqual(value, deserialized));
+        Assert.True(Enumerable.SequenceEqual(value, deserialized));
     }
 
     [Fact]
     public static void DCS_ArrayOfInt32()
     {
         var value = new int[] { 123, int.MaxValue, int.MinValue };
-        var deserialized = SerializeAndDeserialize(value, @"<ArrayOfint xmlns=""http://schemas.microsoft.com/2003/10/Serialization/Arrays"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><int>123</int><int>2147483647</int><int>-2147483648</int></ArrayOfint>");
+        var deserialized = DataContractSerializerHelper.SerializeAndDeserialize(value, @"<ArrayOfint xmlns=""http://schemas.microsoft.com/2003/10/Serialization/Arrays"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><int>123</int><int>2147483647</int><int>-2147483648</int></ArrayOfint>");
         Assert.StrictEqual(value.Length, deserialized.Length);
-        Assert.StrictEqual(true, Enumerable.SequenceEqual(value, deserialized));
+        Assert.True(Enumerable.SequenceEqual(value, deserialized));
     }
 
     [Fact]
     public static void DCS_ArrayOfInt64()
     {
         var value = new long[] { 123, long.MaxValue, long.MinValue };
-        var deserialized = SerializeAndDeserialize(value, @"<ArrayOflong xmlns=""http://schemas.microsoft.com/2003/10/Serialization/Arrays"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><long>123</long><long>9223372036854775807</long><long>-9223372036854775808</long></ArrayOflong>");
+        var deserialized = DataContractSerializerHelper.SerializeAndDeserialize(value, @"<ArrayOflong xmlns=""http://schemas.microsoft.com/2003/10/Serialization/Arrays"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><long>123</long><long>9223372036854775807</long><long>-9223372036854775808</long></ArrayOflong>");
         Assert.StrictEqual(value.Length, deserialized.Length);
-        Assert.StrictEqual(true, Enumerable.SequenceEqual(value, deserialized));
+        Assert.True(Enumerable.SequenceEqual(value, deserialized));
     }
 
     [Fact]
     public static void DCS_ArrayOfSingle()
     {
         var value = new float[] { 1.23f, 4.56f, 7.89f };
-        var deserialized = SerializeAndDeserialize(value, @"<ArrayOffloat xmlns=""http://schemas.microsoft.com/2003/10/Serialization/Arrays"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><float>1.23</float><float>4.56</float><float>7.89</float></ArrayOffloat>");
+        var deserialized = DataContractSerializerHelper.SerializeAndDeserialize(value, @"<ArrayOffloat xmlns=""http://schemas.microsoft.com/2003/10/Serialization/Arrays"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><float>1.23</float><float>4.56</float><float>7.89</float></ArrayOffloat>");
         Assert.StrictEqual(value.Length, deserialized.Length);
-        Assert.StrictEqual(true, Enumerable.SequenceEqual(value, deserialized));
+        Assert.True(Enumerable.SequenceEqual(value, deserialized));
     }
 
     [Fact]
     public static void DCS_ArrayOfDouble()
     {
         var value = new double[] { 1.23, 4.56, 7.89 };
-        var deserialized = SerializeAndDeserialize(value, @"<ArrayOfdouble xmlns=""http://schemas.microsoft.com/2003/10/Serialization/Arrays"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><double>1.23</double><double>4.56</double><double>7.89</double></ArrayOfdouble>");
+        var deserialized = DataContractSerializerHelper.SerializeAndDeserialize(value, @"<ArrayOfdouble xmlns=""http://schemas.microsoft.com/2003/10/Serialization/Arrays"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><double>1.23</double><double>4.56</double><double>7.89</double></ArrayOfdouble>");
         Assert.StrictEqual(value.Length, deserialized.Length);
-        Assert.StrictEqual(true, Enumerable.SequenceEqual(value, deserialized));
+        Assert.True(Enumerable.SequenceEqual(value, deserialized));
     }
 
     [Fact]
     public static void DCS_ArrayOfString()
     {
         var value = new string[] { "abc", "def", "xyz" };
-        var deserialized = SerializeAndDeserialize(value, @"<ArrayOfstring xmlns=""http://schemas.microsoft.com/2003/10/Serialization/Arrays"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><string>abc</string><string>def</string><string>xyz</string></ArrayOfstring>");
+        var deserialized = DataContractSerializerHelper.SerializeAndDeserialize(value, @"<ArrayOfstring xmlns=""http://schemas.microsoft.com/2003/10/Serialization/Arrays"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><string>abc</string><string>def</string><string>xyz</string></ArrayOfstring>");
         Assert.StrictEqual(value.Length, deserialized.Length);
-        Assert.StrictEqual(true, Enumerable.SequenceEqual(value, deserialized));
+        Assert.True(Enumerable.SequenceEqual(value, deserialized));
     }
 
     [Fact]
@@ -2367,9 +2371,9 @@ public static partial class DataContractSerializerTests
             new TypeWithPrimitiveProperties() { P1 = "abc" , P2 = 123 },
             new TypeWithPrimitiveProperties() { P1 = "def" , P2 = 456 },
         };
-        var deserialized = SerializeAndDeserialize(value, @"<ArrayOfTypeWithPrimitiveProperties xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><TypeWithPrimitiveProperties><P1>abc</P1><P2>123</P2></TypeWithPrimitiveProperties><TypeWithPrimitiveProperties><P1>def</P1><P2>456</P2></TypeWithPrimitiveProperties></ArrayOfTypeWithPrimitiveProperties>");
+        var deserialized = DataContractSerializerHelper.SerializeAndDeserialize(value, @"<ArrayOfTypeWithPrimitiveProperties xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><TypeWithPrimitiveProperties><P1>abc</P1><P2>123</P2></TypeWithPrimitiveProperties><TypeWithPrimitiveProperties><P1>def</P1><P2>456</P2></TypeWithPrimitiveProperties></ArrayOfTypeWithPrimitiveProperties>");
         Assert.StrictEqual(value.Length, deserialized.Length);
-        Assert.StrictEqual(true, Enumerable.SequenceEqual(value, deserialized));
+        Assert.True(Enumerable.SequenceEqual(value, deserialized));
     }
 
     [Fact]
@@ -2383,7 +2387,7 @@ public static partial class DataContractSerializerTests
             value[i] = new SimpleType() { P1 = i.ToString(), P2 = i };
         }
 
-        var deserialized = SerializeAndDeserialize(value, baseline: null, skipStringCompare: true);
+        var deserialized = DataContractSerializerHelper.SerializeAndDeserialize(value, baseline: null, skipStringCompare: true);
         Assert.StrictEqual(value.Length, deserialized.Length);
         Assert.StrictEqual(0, deserialized[0].P2);
         Assert.StrictEqual(1, deserialized[1].P2);
@@ -2395,7 +2399,7 @@ public static partial class DataContractSerializerTests
     {
         var value = new TypeWithEmitDefaultValueFalse();
 
-        var actual = SerializeAndDeserialize(value, "<TypeWithEmitDefaultValueFalse xmlns=\"http://schemas.datacontract.org/2004/07/\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"/>");
+        var actual = DataContractSerializerHelper.SerializeAndDeserialize(value, "<TypeWithEmitDefaultValueFalse xmlns=\"http://schemas.datacontract.org/2004/07/\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"/>");
 
         Assert.NotNull(actual);
         Assert.Equal(value.Name, actual.Name);
@@ -2410,35 +2414,25 @@ public static partial class DataContractSerializerTests
     public static void DCS_GenericICollectionOfBoolean()
     {
         var value = new TypeImplementsGenericICollection<bool>() { true, false, true };
-        var deserialized = SerializeAndDeserialize(value, @"<ArrayOfboolean xmlns=""http://schemas.microsoft.com/2003/10/Serialization/Arrays"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><boolean>true</boolean><boolean>false</boolean><boolean>true</boolean></ArrayOfboolean>");
+        var deserialized = DataContractSerializerHelper.SerializeAndDeserialize(value, @"<ArrayOfboolean xmlns=""http://schemas.microsoft.com/2003/10/Serialization/Arrays"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><boolean>true</boolean><boolean>false</boolean><boolean>true</boolean></ArrayOfboolean>");
         Assert.StrictEqual(value.Count, deserialized.Count);
-        Assert.StrictEqual(true, Enumerable.SequenceEqual(value, deserialized));
-    }
-
-    //[Fact]
-    // This also fails without using reflection based fallback
-    public static void DCS_GenericICollectionOfDateTime()
-    {
-        var value = new TypeImplementsGenericICollection<DateTime>() { new DateTime(2000, 1, 2, 3, 4, 5), new DateTime(2011, 2, 3, 4, 5, 6) };
-        var deserialized = SerializeAndDeserialize(value, @"<ArrayOfdateTime xmlns=""http://schemas.microsoft.com/2003/10/Serialization/Arrays"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><dateTime>2000-01-02T03:04:05-08:00</dateTime><dateTime>2011-02-03T04:05:06-08:00</dateTime></ArrayOfdateTime>");
-        Assert.StrictEqual(value.Count, deserialized.Count);
-        Assert.StrictEqual(true, Enumerable.SequenceEqual(value, deserialized));
+        Assert.True(Enumerable.SequenceEqual(value, deserialized));
     }
 
     [Fact]
     public static void DCS_GenericICollectionOfDecimal()
     {
         var value = new TypeImplementsGenericICollection<decimal>() { new decimal(1, 2, 3, false, 1), new decimal(4, 5, 6, true, 2) };
-        var deserialized = SerializeAndDeserialize(value, @"<ArrayOfdecimal xmlns=""http://schemas.microsoft.com/2003/10/Serialization/Arrays"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><decimal>5534023222971858944.1</decimal><decimal>-1106804644637321461.80</decimal></ArrayOfdecimal>");
+        var deserialized = DataContractSerializerHelper.SerializeAndDeserialize(value, @"<ArrayOfdecimal xmlns=""http://schemas.microsoft.com/2003/10/Serialization/Arrays"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><decimal>5534023222971858944.1</decimal><decimal>-1106804644637321461.80</decimal></ArrayOfdecimal>");
         Assert.StrictEqual(value.Count, deserialized.Count);
-        Assert.StrictEqual(true, Enumerable.SequenceEqual(value, deserialized));
+        Assert.True(Enumerable.SequenceEqual(value, deserialized));
     }
 
     [Fact]
     public static void DCS_GenericICollectionOfInt32()
     {
         TypeImplementsGenericICollection<int> x = new TypeImplementsGenericICollection<int>(123, int.MaxValue, int.MinValue);
-        TypeImplementsGenericICollection<int> y = SerializeAndDeserialize(x, @"<ArrayOfint xmlns=""http://schemas.microsoft.com/2003/10/Serialization/Arrays"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><int>123</int><int>2147483647</int><int>-2147483648</int></ArrayOfint>");
+        TypeImplementsGenericICollection<int> y = DataContractSerializerHelper.SerializeAndDeserialize(x, @"<ArrayOfint xmlns=""http://schemas.microsoft.com/2003/10/Serialization/Arrays"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><int>123</int><int>2147483647</int><int>-2147483648</int></ArrayOfint>");
 
         Assert.NotNull(y);
         Assert.StrictEqual(x.Count, y.Count);
@@ -2449,34 +2443,34 @@ public static partial class DataContractSerializerTests
     public static void DCS_GenericICollectionOfInt64()
     {
         var value = new TypeImplementsGenericICollection<long>() { 123, long.MaxValue, long.MinValue };
-        var deserialized = SerializeAndDeserialize(value, @"<ArrayOflong xmlns=""http://schemas.microsoft.com/2003/10/Serialization/Arrays"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><long>123</long><long>9223372036854775807</long><long>-9223372036854775808</long></ArrayOflong>");
+        var deserialized = DataContractSerializerHelper.SerializeAndDeserialize(value, @"<ArrayOflong xmlns=""http://schemas.microsoft.com/2003/10/Serialization/Arrays"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><long>123</long><long>9223372036854775807</long><long>-9223372036854775808</long></ArrayOflong>");
         Assert.StrictEqual(value.Count, deserialized.Count);
-        Assert.StrictEqual(true, Enumerable.SequenceEqual(value, deserialized));
+        Assert.True(Enumerable.SequenceEqual(value, deserialized));
     }
 
     [Fact]
     public static void DCS_GenericICollectionOfSingle()
     {
         var value = new TypeImplementsGenericICollection<float>() { 1.23f, 4.56f, 7.89f };
-        var deserialized = SerializeAndDeserialize(value, @"<ArrayOffloat xmlns=""http://schemas.microsoft.com/2003/10/Serialization/Arrays"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><float>1.23</float><float>4.56</float><float>7.89</float></ArrayOffloat>");
+        var deserialized = DataContractSerializerHelper.SerializeAndDeserialize(value, @"<ArrayOffloat xmlns=""http://schemas.microsoft.com/2003/10/Serialization/Arrays"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><float>1.23</float><float>4.56</float><float>7.89</float></ArrayOffloat>");
         Assert.StrictEqual(value.Count, deserialized.Count);
-        Assert.StrictEqual(true, Enumerable.SequenceEqual(value, deserialized));
+        Assert.True(Enumerable.SequenceEqual(value, deserialized));
     }
 
     [Fact]
     public static void DCS_GenericICollectionOfDouble()
     {
         var value = new TypeImplementsGenericICollection<double>() { 1.23, 4.56, 7.89 };
-        var deserialized = SerializeAndDeserialize(value, @"<ArrayOfdouble xmlns=""http://schemas.microsoft.com/2003/10/Serialization/Arrays"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><double>1.23</double><double>4.56</double><double>7.89</double></ArrayOfdouble>");
+        var deserialized = DataContractSerializerHelper.SerializeAndDeserialize(value, @"<ArrayOfdouble xmlns=""http://schemas.microsoft.com/2003/10/Serialization/Arrays"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><double>1.23</double><double>4.56</double><double>7.89</double></ArrayOfdouble>");
         Assert.StrictEqual(value.Count, deserialized.Count);
-        Assert.StrictEqual(true, Enumerable.SequenceEqual(value, deserialized));
+        Assert.True(Enumerable.SequenceEqual(value, deserialized));
     }
 
     [Fact]
     public static void DCS_GenericICollectionOfString()
     {
         TypeImplementsGenericICollection<string> value = new TypeImplementsGenericICollection<string>("a1", "a2");
-        TypeImplementsGenericICollection<string> deserialized = SerializeAndDeserialize(value, @"<ArrayOfstring xmlns=""http://schemas.microsoft.com/2003/10/Serialization/Arrays"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><string>a1</string><string>a2</string></ArrayOfstring>");
+        TypeImplementsGenericICollection<string> deserialized = DataContractSerializerHelper.SerializeAndDeserialize(value, @"<ArrayOfstring xmlns=""http://schemas.microsoft.com/2003/10/Serialization/Arrays"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><string>a1</string><string>a2</string></ArrayOfstring>");
 
         Assert.NotNull(deserialized);
         Assert.StrictEqual(value.Count, deserialized.Count);
@@ -2491,9 +2485,9 @@ public static partial class DataContractSerializerTests
             new TypeWithPrimitiveProperties() { P1 = "abc" , P2 = 123 },
             new TypeWithPrimitiveProperties() { P1 = "def" , P2 = 456 },
         };
-        var deserialized = SerializeAndDeserialize(value, @"<ArrayOfTypeWithPrimitiveProperties xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><TypeWithPrimitiveProperties><P1>abc</P1><P2>123</P2></TypeWithPrimitiveProperties><TypeWithPrimitiveProperties><P1>def</P1><P2>456</P2></TypeWithPrimitiveProperties></ArrayOfTypeWithPrimitiveProperties>");
+        var deserialized = DataContractSerializerHelper.SerializeAndDeserialize(value, @"<ArrayOfTypeWithPrimitiveProperties xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><TypeWithPrimitiveProperties><P1>abc</P1><P2>123</P2></TypeWithPrimitiveProperties><TypeWithPrimitiveProperties><P1>def</P1><P2>456</P2></TypeWithPrimitiveProperties></ArrayOfTypeWithPrimitiveProperties>");
         Assert.StrictEqual(value.Count, deserialized.Count);
-        Assert.StrictEqual(true, Enumerable.SequenceEqual(value, deserialized));
+        Assert.True(Enumerable.SequenceEqual(value, deserialized));
     }
 
     [Fact]
@@ -2502,7 +2496,7 @@ public static partial class DataContractSerializerTests
         var value = new CollectionOfTypeWithNonDefaultNamcespace();
         value.Add(new TypeWithNonDefaultNamcespace() { Name = "foo" });
 
-        var actual = SerializeAndDeserialize(value, "<CollectionOfTypeWithNonDefaultNamcespace xmlns=\"CollectionNamespace\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\" xmlns:a=\"ItemTypeNamespace\"><TypeWithNonDefaultNamcespace><a:Name>foo</a:Name></TypeWithNonDefaultNamcespace></CollectionOfTypeWithNonDefaultNamcespace>");
+        var actual = DataContractSerializerHelper.SerializeAndDeserialize(value, "<CollectionOfTypeWithNonDefaultNamcespace xmlns=\"CollectionNamespace\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\" xmlns:a=\"ItemTypeNamespace\"><TypeWithNonDefaultNamcespace><a:Name>foo</a:Name></TypeWithNonDefaultNamcespace></CollectionOfTypeWithNonDefaultNamcespace>");
         Assert.NotNull(actual);
         Assert.NotNull(actual[0]);
         Assert.Equal(value[0].Name, actual[0].Name);
@@ -2518,9 +2512,9 @@ public static partial class DataContractSerializerTests
         var value = new Dictionary<int, bool>();
         value.Add(123, true);
         value.Add(456, false);
-        var deserialized = SerializeAndDeserialize(value, @"<ArrayOfKeyValueOfintboolean xmlns=""http://schemas.microsoft.com/2003/10/Serialization/Arrays"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><KeyValueOfintboolean><Key>123</Key><Value>true</Value></KeyValueOfintboolean><KeyValueOfintboolean><Key>456</Key><Value>false</Value></KeyValueOfintboolean></ArrayOfKeyValueOfintboolean>");
+        var deserialized = DataContractSerializerHelper.SerializeAndDeserialize(value, @"<ArrayOfKeyValueOfintboolean xmlns=""http://schemas.microsoft.com/2003/10/Serialization/Arrays"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><KeyValueOfintboolean><Key>123</Key><Value>true</Value></KeyValueOfintboolean><KeyValueOfintboolean><Key>456</Key><Value>false</Value></KeyValueOfintboolean></ArrayOfKeyValueOfintboolean>");
         Assert.StrictEqual(value.Count, deserialized.Count);
-        Assert.StrictEqual(true, Enumerable.SequenceEqual(value.ToArray(), deserialized.ToArray()));
+        Assert.True(Enumerable.SequenceEqual(value.ToArray(), deserialized.ToArray()));
     }
 
     [Fact]
@@ -2529,9 +2523,9 @@ public static partial class DataContractSerializerTests
         var value = new Dictionary<int, string>();
         value.Add(123, "abc");
         value.Add(456, "def");
-        var deserialized = SerializeAndDeserialize(value, @"<ArrayOfKeyValueOfintstring xmlns=""http://schemas.microsoft.com/2003/10/Serialization/Arrays"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><KeyValueOfintstring><Key>123</Key><Value>abc</Value></KeyValueOfintstring><KeyValueOfintstring><Key>456</Key><Value>def</Value></KeyValueOfintstring></ArrayOfKeyValueOfintstring>");
+        var deserialized = DataContractSerializerHelper.SerializeAndDeserialize(value, @"<ArrayOfKeyValueOfintstring xmlns=""http://schemas.microsoft.com/2003/10/Serialization/Arrays"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><KeyValueOfintstring><Key>123</Key><Value>abc</Value></KeyValueOfintstring><KeyValueOfintstring><Key>456</Key><Value>def</Value></KeyValueOfintstring></ArrayOfKeyValueOfintstring>");
         Assert.StrictEqual(value.Count, deserialized.Count);
-        Assert.StrictEqual(true, Enumerable.SequenceEqual(value.ToArray(), deserialized.ToArray()));
+        Assert.True(Enumerable.SequenceEqual(value.ToArray(), deserialized.ToArray()));
     }
 
     [Fact]
@@ -2540,9 +2534,9 @@ public static partial class DataContractSerializerTests
         var value = new Dictionary<string, int>();
         value.Add("abc", 123);
         value.Add("def", 456);
-        var deserialized = SerializeAndDeserialize(value, @"<ArrayOfKeyValueOfstringint xmlns=""http://schemas.microsoft.com/2003/10/Serialization/Arrays"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><KeyValueOfstringint><Key>abc</Key><Value>123</Value></KeyValueOfstringint><KeyValueOfstringint><Key>def</Key><Value>456</Value></KeyValueOfstringint></ArrayOfKeyValueOfstringint>");
+        var deserialized = DataContractSerializerHelper.SerializeAndDeserialize(value, @"<ArrayOfKeyValueOfstringint xmlns=""http://schemas.microsoft.com/2003/10/Serialization/Arrays"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><KeyValueOfstringint><Key>abc</Key><Value>123</Value></KeyValueOfstringint><KeyValueOfstringint><Key>def</Key><Value>456</Value></KeyValueOfstringint></ArrayOfKeyValueOfstringint>");
         Assert.StrictEqual(value.Count, deserialized.Count);
-        Assert.StrictEqual(true, Enumerable.SequenceEqual(value.ToArray(), deserialized.ToArray()));
+        Assert.True(Enumerable.SequenceEqual(value.ToArray(), deserialized.ToArray()));
     }
 
 #endregion
@@ -2555,10 +2549,10 @@ public static partial class DataContractSerializerTests
         var value = new MyNonGenericDictionary();
         value.Add(123, true);
         value.Add(456, false);
-        var deserialized = SerializeAndDeserialize(value, @"<ArrayOfKeyValueOfanyTypeanyType xmlns=""http://schemas.microsoft.com/2003/10/Serialization/Arrays"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><KeyValueOfanyTypeanyType><Key i:type=""a:int"" xmlns:a=""http://www.w3.org/2001/XMLSchema"">123</Key><Value i:type=""a:boolean"" xmlns:a=""http://www.w3.org/2001/XMLSchema"">true</Value></KeyValueOfanyTypeanyType><KeyValueOfanyTypeanyType><Key i:type=""a:int"" xmlns:a=""http://www.w3.org/2001/XMLSchema"">456</Key><Value i:type=""a:boolean"" xmlns:a=""http://www.w3.org/2001/XMLSchema"">false</Value></KeyValueOfanyTypeanyType></ArrayOfKeyValueOfanyTypeanyType>");
+        var deserialized = DataContractSerializerHelper.SerializeAndDeserialize(value, @"<ArrayOfKeyValueOfanyTypeanyType xmlns=""http://schemas.microsoft.com/2003/10/Serialization/Arrays"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><KeyValueOfanyTypeanyType><Key i:type=""a:int"" xmlns:a=""http://www.w3.org/2001/XMLSchema"">123</Key><Value i:type=""a:boolean"" xmlns:a=""http://www.w3.org/2001/XMLSchema"">true</Value></KeyValueOfanyTypeanyType><KeyValueOfanyTypeanyType><Key i:type=""a:int"" xmlns:a=""http://www.w3.org/2001/XMLSchema"">456</Key><Value i:type=""a:boolean"" xmlns:a=""http://www.w3.org/2001/XMLSchema"">false</Value></KeyValueOfanyTypeanyType></ArrayOfKeyValueOfanyTypeanyType>");
         Assert.StrictEqual(value.Count, deserialized.Count);
-        Assert.StrictEqual(true, Enumerable.SequenceEqual(value.Keys.Cast<int>().ToArray(), deserialized.Keys.Cast<int>().ToArray()));
-        Assert.StrictEqual(true, Enumerable.SequenceEqual(value.Values.Cast<bool>().ToArray(), deserialized.Values.Cast<bool>().ToArray()));
+        Assert.True(Enumerable.SequenceEqual(value.Keys.Cast<int>().ToArray(), deserialized.Keys.Cast<int>().ToArray()));
+        Assert.True(Enumerable.SequenceEqual(value.Values.Cast<bool>().ToArray(), deserialized.Values.Cast<bool>().ToArray()));
     }
 
     [Fact]
@@ -2567,10 +2561,10 @@ public static partial class DataContractSerializerTests
         var value = new MyNonGenericDictionary();
         value.Add(123, "abc");
         value.Add(456, "def");
-        var deserialized = SerializeAndDeserialize(value, @"<ArrayOfKeyValueOfanyTypeanyType xmlns=""http://schemas.microsoft.com/2003/10/Serialization/Arrays"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><KeyValueOfanyTypeanyType><Key i:type=""a:int"" xmlns:a=""http://www.w3.org/2001/XMLSchema"">123</Key><Value i:type=""a:string"" xmlns:a=""http://www.w3.org/2001/XMLSchema"">abc</Value></KeyValueOfanyTypeanyType><KeyValueOfanyTypeanyType><Key i:type=""a:int"" xmlns:a=""http://www.w3.org/2001/XMLSchema"">456</Key><Value i:type=""a:string"" xmlns:a=""http://www.w3.org/2001/XMLSchema"">def</Value></KeyValueOfanyTypeanyType></ArrayOfKeyValueOfanyTypeanyType>");
+        var deserialized = DataContractSerializerHelper.SerializeAndDeserialize(value, @"<ArrayOfKeyValueOfanyTypeanyType xmlns=""http://schemas.microsoft.com/2003/10/Serialization/Arrays"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><KeyValueOfanyTypeanyType><Key i:type=""a:int"" xmlns:a=""http://www.w3.org/2001/XMLSchema"">123</Key><Value i:type=""a:string"" xmlns:a=""http://www.w3.org/2001/XMLSchema"">abc</Value></KeyValueOfanyTypeanyType><KeyValueOfanyTypeanyType><Key i:type=""a:int"" xmlns:a=""http://www.w3.org/2001/XMLSchema"">456</Key><Value i:type=""a:string"" xmlns:a=""http://www.w3.org/2001/XMLSchema"">def</Value></KeyValueOfanyTypeanyType></ArrayOfKeyValueOfanyTypeanyType>");
         Assert.StrictEqual(value.Count, deserialized.Count);
-        Assert.StrictEqual(true, Enumerable.SequenceEqual(value.Keys.Cast<int>().ToArray(), deserialized.Keys.Cast<int>().ToArray()));
-        Assert.StrictEqual(true, Enumerable.SequenceEqual(value.Values.Cast<string>().ToArray(), deserialized.Values.Cast<string>().ToArray()));
+        Assert.True(Enumerable.SequenceEqual(value.Keys.Cast<int>().ToArray(), deserialized.Keys.Cast<int>().ToArray()));
+        Assert.True(Enumerable.SequenceEqual(value.Values.Cast<string>().ToArray(), deserialized.Values.Cast<string>().ToArray()));
     }
 
     [Fact]
@@ -2579,10 +2573,10 @@ public static partial class DataContractSerializerTests
         var value = new MyNonGenericDictionary();
         value.Add("abc", 123);
         value.Add("def", 456);
-        var deserialized = SerializeAndDeserialize(value, @"<ArrayOfKeyValueOfanyTypeanyType xmlns=""http://schemas.microsoft.com/2003/10/Serialization/Arrays"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><KeyValueOfanyTypeanyType><Key i:type=""a:string"" xmlns:a=""http://www.w3.org/2001/XMLSchema"">abc</Key><Value i:type=""a:int"" xmlns:a=""http://www.w3.org/2001/XMLSchema"">123</Value></KeyValueOfanyTypeanyType><KeyValueOfanyTypeanyType><Key i:type=""a:string"" xmlns:a=""http://www.w3.org/2001/XMLSchema"">def</Key><Value i:type=""a:int"" xmlns:a=""http://www.w3.org/2001/XMLSchema"">456</Value></KeyValueOfanyTypeanyType></ArrayOfKeyValueOfanyTypeanyType>");
+        var deserialized = DataContractSerializerHelper.SerializeAndDeserialize(value, @"<ArrayOfKeyValueOfanyTypeanyType xmlns=""http://schemas.microsoft.com/2003/10/Serialization/Arrays"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><KeyValueOfanyTypeanyType><Key i:type=""a:string"" xmlns:a=""http://www.w3.org/2001/XMLSchema"">abc</Key><Value i:type=""a:int"" xmlns:a=""http://www.w3.org/2001/XMLSchema"">123</Value></KeyValueOfanyTypeanyType><KeyValueOfanyTypeanyType><Key i:type=""a:string"" xmlns:a=""http://www.w3.org/2001/XMLSchema"">def</Key><Value i:type=""a:int"" xmlns:a=""http://www.w3.org/2001/XMLSchema"">456</Value></KeyValueOfanyTypeanyType></ArrayOfKeyValueOfanyTypeanyType>");
         Assert.StrictEqual(value.Count, deserialized.Count);
-        Assert.StrictEqual(true, Enumerable.SequenceEqual(value.Keys.Cast<string>().ToArray(), deserialized.Keys.Cast<string>().ToArray()));
-        Assert.StrictEqual(true, Enumerable.SequenceEqual(value.Values.Cast<int>().ToArray(), deserialized.Values.Cast<int>().ToArray()));
+        Assert.True(Enumerable.SequenceEqual(value.Keys.Cast<string>().ToArray(), deserialized.Keys.Cast<string>().ToArray()));
+        Assert.True(Enumerable.SequenceEqual(value.Values.Cast<int>().ToArray(), deserialized.Values.Cast<int>().ToArray()));
     }
 
 #endregion
@@ -2603,7 +2597,7 @@ public static partial class DataContractSerializerTests
         };
 
         string expectedxmlstring = "<ObjectContainer xmlns =\"http://schemas.datacontract.org/2004/07/\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data i:type=\"a:DTOContainer\" xmlns:a=\"http://www.default.com\"><nDTO i:type=\"a:DTO\"><DateTime xmlns=\"http://schemas.datacontract.org/2004/07/System\">9999-12-31T23:59:59.9999999Z</DateTime><OffsetMinutes xmlns=\"http://schemas.datacontract.org/2004/07/System\">0</OffsetMinutes></nDTO></_data></ObjectContainer>";
-        ObjectContainer deserialized = SerializeAndDeserialize(instance, expectedxmlstring, null, serializerfunc, false);
+        ObjectContainer deserialized = DataContractSerializerHelper.SerializeAndDeserialize(instance, expectedxmlstring, null, serializerfunc, false);
         Assert.Equal(DateTimeOffset.MaxValue, ((DTOContainer)deserialized.Data).nDTO);
     }
 
@@ -2675,7 +2669,6 @@ public static partial class DataContractSerializerTests
     }
 
     [Fact]
-    [SkipOnTargetFramework(TargetFrameworkMonikers.NetFramework, "Full framework has an implementation and does not throw InvalidOperationException")]
     public static void XsdDataContractExporterTest()
     {
         XsdDataContractExporter exporter = new XsdDataContractExporter();
@@ -2689,7 +2682,7 @@ public static partial class DataContractSerializerTests
         var value = new MyISerializableType();
         value.StringValue = "test string";
 
-        var actual = SerializeAndDeserialize(value, "<MyISerializableType xmlns=\"http://schemas.datacontract.org/2004/07/\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\" xmlns:x=\"http://www.w3.org/2001/XMLSchema\"><_stringValue i:type=\"x:string\" xmlns=\"\">test string</_stringValue></MyISerializableType>");
+        var actual = DataContractSerializerHelper.SerializeAndDeserialize(value, "<MyISerializableType xmlns=\"http://schemas.datacontract.org/2004/07/\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\" xmlns:x=\"http://www.w3.org/2001/XMLSchema\"><_stringValue i:type=\"x:string\" xmlns=\"\">test string</_stringValue></MyISerializableType>");
 
         Assert.NotNull(actual);
         Assert.Equal(value.StringValue, actual.StringValue);
@@ -2704,7 +2697,7 @@ public static partial class DataContractSerializerTests
         value.SetMember3(33);
         value.Member4 = "44";
 
-        var actual = SerializeAndDeserialize(
+        var actual = DataContractSerializerHelper.SerializeAndDeserialize(
             value,
             "<TypeWithSerializableAttributeAndNonSerializedField xmlns=\"http://schemas.datacontract.org/2004/07/\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><Member1>11</Member1><_member2>22</_member2><_member3>33</_member3></TypeWithSerializableAttributeAndNonSerializedField>",
             skipStringCompare: false);
@@ -2722,7 +2715,7 @@ public static partial class DataContractSerializerTests
         value.Member1 = 11;
         value.Member2 = 22;
 
-        var actual = SerializeAndDeserialize(value, "<TypeWithOptionalField xmlns=\"http://schemas.datacontract.org/2004/07/\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><Member1>11</Member1><Member2>22</Member2></TypeWithOptionalField>");
+        var actual = DataContractSerializerHelper.SerializeAndDeserialize(value, "<TypeWithOptionalField xmlns=\"http://schemas.datacontract.org/2004/07/\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><Member1>11</Member1><Member2>22</Member2></TypeWithOptionalField>");
         Assert.NotNull(actual);
         Assert.Equal(value.Member1, actual.Member1);
         Assert.Equal(value.Member2, actual.Member2);
@@ -2739,20 +2732,20 @@ public static partial class DataContractSerializerTests
     {
         var value1 = new TypeWithSerializableEnum();
         value1.EnumField = SerializableEnumWithNonSerializedValue.One;
-        var actual1 = SerializeAndDeserialize(value1, "<TypeWithSerializableEnum xmlns=\"http://schemas.datacontract.org/2004/07/\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><EnumField>One</EnumField></TypeWithSerializableEnum>");
+        var actual1 = DataContractSerializerHelper.SerializeAndDeserialize(value1, "<TypeWithSerializableEnum xmlns=\"http://schemas.datacontract.org/2004/07/\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><EnumField>One</EnumField></TypeWithSerializableEnum>");
         Assert.NotNull(actual1);
         Assert.Equal(value1.EnumField, actual1.EnumField);
 
         var value2 = new TypeWithSerializableEnum();
         value2.EnumField = SerializableEnumWithNonSerializedValue.Two;
-        Assert.Throws<SerializationException>(() => SerializeAndDeserialize(value2, ""));
+        Assert.Throws<SerializationException>(() => DataContractSerializerHelper.SerializeAndDeserialize(value2, ""));
     }
 
     [Fact]
     public static void DCS_SquareWithDeserializationCallback()
     {
         var value = new SquareWithDeserializationCallback(2);
-        var actual = SerializeAndDeserialize(value, "<SquareWithDeserializationCallback xmlns=\"http://schemas.datacontract.org/2004/07/\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><Edge>2</Edge></SquareWithDeserializationCallback>");
+        var actual = DataContractSerializerHelper.SerializeAndDeserialize(value, "<SquareWithDeserializationCallback xmlns=\"http://schemas.datacontract.org/2004/07/\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><Edge>2</Edge></SquareWithDeserializationCallback>");
         Assert.NotNull(actual);
         Assert.Equal(value.Area, actual.Area);
     }
@@ -2762,7 +2755,7 @@ public static partial class DataContractSerializerTests
     {
         var value = new TypeWithDelegate();
         value.IntProperty = 3;
-        var actual = SerializeAndDeserialize(value, "<TypeWithDelegate xmlns=\"http://schemas.datacontract.org/2004/07/\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\" xmlns:x=\"http://www.w3.org/2001/XMLSchema\"><IntValue i:type=\"x:int\" xmlns=\"\">3</IntValue></TypeWithDelegate>");
+        var actual = DataContractSerializerHelper.SerializeAndDeserialize(value, "<TypeWithDelegate xmlns=\"http://schemas.datacontract.org/2004/07/\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\" xmlns:x=\"http://www.w3.org/2001/XMLSchema\"><IntValue i:type=\"x:int\" xmlns=\"\">3</IntValue></TypeWithDelegate>");
         Assert.NotNull(actual);
         Assert.Null(actual.DelegateProperty);
         Assert.Equal(value.IntProperty, actual.IntProperty);
@@ -2776,17 +2769,17 @@ public static partial class DataContractSerializerTests
         SerializationTestTypes.EmptyNsContainer instance = new SerializationTestTypes.EmptyNsContainer(new SerializationTestTypes.EmptyNSAddress());
         var settings = new DataContractSerializerSettings() { MaxItemsInObjectGraph = int.MaxValue, IgnoreExtensionDataObject = false, PreserveObjectReferences = false };
         string baseline1 = @"<EmptyNsContainer xmlns=""http://schemas.datacontract.org/2004/07/SerializationTestTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><Name>P1</Name><address i:type=""EmptyNSAddress"" xmlns=""""><street>downing street</street></address></EmptyNsContainer>";
-        var result = SerializeAndDeserialize(instance, baseline1, settings);
+        var result = DataContractSerializerHelper.SerializeAndDeserialize(instance, baseline1, settings);
         Assert.True(result.address == null, "Address not null");
 
         settings = new DataContractSerializerSettings() { DataContractResolver = new SerializationTestTypes.EmptyNamespaceResolver(), MaxItemsInObjectGraph = int.MaxValue, IgnoreExtensionDataObject = false, PreserveObjectReferences = false };
-        result = SerializeAndDeserialize(instance, baseline1, settings);
+        result = DataContractSerializerHelper.SerializeAndDeserialize(instance, baseline1, settings);
         Assert.True(result.address == null, "Address not null");
 
-        instance = new SerializationTestTypes.EmptyNsContainer(new SerializationTestTypes.UknownEmptyNSAddress());        
+        instance = new SerializationTestTypes.EmptyNsContainer(new SerializationTestTypes.UknownEmptyNSAddress());
         string baseline2 = @"<EmptyNsContainer xmlns=""http://schemas.datacontract.org/2004/07/SerializationTestTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><Name>P1</Name><address i:type=""AddressFoo"" xmlns=""""><street>downing street</street></address></EmptyNsContainer>";
-        result = SerializeAndDeserialize(instance, baseline2, settings);
-        Assert.True(result.address == null, "Address not null");       
+        result = DataContractSerializerHelper.SerializeAndDeserialize(instance, baseline2, settings);
+        Assert.True(result.address == null, "Address not null");
     }
 
     [Fact]
@@ -2796,21 +2789,20 @@ public static partial class DataContractSerializerTests
         Type customerBaseType = customerInstance.GetType().BaseType;
         var settings = new DataContractSerializerSettings() { DataContractResolver = new SerializationTestTypes.ProxyDataContractResolver(), MaxItemsInObjectGraph = int.MaxValue, IgnoreExtensionDataObject = false, PreserveObjectReferences = true };
         string baseline1 = @"<Customer z:Id=""1"" i:type=""PreferredCustomer"" xmlns=""http://schemas.datacontract.org/2004/07/SerializationTestTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance"" xmlns:z=""http://schemas.microsoft.com/2003/10/Serialization/""><Name i:nil=""true""/><VipInfo i:nil=""true""/></Customer>";
-        object result = SerializeAndDeserialize(customerInstance, baseline1, settings);
+        object result = DataContractSerializerHelper.SerializeAndDeserialize(customerInstance, baseline1, settings);
         Assert.Equal(customerBaseType, result.GetType());
 
         settings = new DataContractSerializerSettings() { DataContractResolver = new SerializationTestTypes.ProxyDataContractResolver(), MaxItemsInObjectGraph = int.MaxValue, IgnoreExtensionDataObject = false, PreserveObjectReferences = false };
         string baseline2 = @"<Customer z:Id=""i1"" i:type=""PreferredCustomer"" xmlns=""http://schemas.datacontract.org/2004/07/SerializationTestTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance"" xmlns:z=""http://schemas.microsoft.com/2003/10/Serialization/""><Name i:nil=""true""/><VipInfo i:nil=""true""/></Customer>";
-        result = SerializeAndDeserialize(customerInstance, baseline2, settings);
+        result = DataContractSerializerHelper.SerializeAndDeserialize(customerInstance, baseline2, settings);
         Assert.Equal(customerBaseType, result.GetType());
     }
 
     /// <summary>
-    /// Roundtrips a Datacontract type  which contains Primitive types assigned to member of type object. 
+    /// Roundtrips a Datacontract type  which contains Primitive types assigned to member of type object.
     /// Resolver is plugged in and resolves the primitive types. Verify resolver called during ser and deser
     /// </summary>
-    [Fact]
-    public static void DCS_BasicRoundTripResolvePrimitiveTypes()
+    private static void DCS_BasicRoundTripResolvePrimitiveTypes(string baseline)
     {
         var dataContractSerializerSettings = new DataContractSerializerSettings()
         {
@@ -2821,12 +2813,22 @@ public static partial class DataContractSerializerTests
             PreserveObjectReferences = false
         };
 
-        string baseline = @"<ObjectContainer xmlns=""http://schemas.datacontract.org/2004/07/SerializationTestTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><_data i:type=""a:PrimitiveContainer_foo"" xmlns:a=""http://www.default.com""><a i:type=""a:Boolean_foo"">false</a><array1><anyType xmlns=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""/><anyType xmlns=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""/><anyType xmlns=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""/></array1><b i:type=""a:Byte_foo"">255</b><c i:type=""a:Byte_foo"">0</c><d i:type=""a:Char_foo"">65535</d><e i:type=""a:Decimal_foo"">79228162514264337593543950335</e><f i:type=""a:Decimal_foo"">-1</f><f5 i:type=""a:DateTime_foo"">9999-12-31T23:59:59.9999999</f5><g i:type=""a:Decimal_foo"">-79228162514264337593543950335</g><guidData i:type=""a:Guid_foo"">4bc848b1-a541-40bf-8aa9-dd6ccb6d0e56</guidData><h i:type=""a:Decimal_foo"">1</h><i i:type=""a:Decimal_foo"">0</i><j i:type=""a:Decimal_foo"">0</j><k i:type=""a:Double_foo"">0</k><l i:type=""a:Double_foo"">4.94065645841247E-324</l><lDTO xmlns:b=""http://schemas.datacontract.org/2004/07/System""/><m i:type=""a:Double_foo"">1.7976931348623157E+308</m><n i:type=""a:Double_foo"">-1.7976931348623157E+308</n><nDTO i:type=""a:DateTimeOffset_foo""><DateTime xmlns=""http://schemas.datacontract.org/2004/07/System"">9999-12-31T23:59:59.9999999Z</DateTime><OffsetMinutes xmlns=""http://schemas.datacontract.org/2004/07/System"">0</OffsetMinutes></nDTO><o i:type=""a:Double_foo"">NaN</o><obj/><p i:type=""a:Double_foo"">-INF</p><q i:type=""a:Double_foo"">INF</q><r i:type=""a:Single_foo"">0</r><s i:type=""a:Single_foo"">1.401298E-45</s><strData i:nil=""true""/><t i:type=""a:Single_foo"">-3.40282347E+38</t><timeSpan i:type=""a:TimeSpan_foo"">P10675199DT2H48M5.4775807S</timeSpan><u i:type=""a:Single_foo"">3.40282347E+38</u><uri>http://www.microsoft.com/</uri><v i:type=""a:Single_foo"">NaN</v><w i:type=""a:Single_foo"">-INF</w><x i:type=""a:Single_foo"">INF</x><xmlQualifiedName i:type=""a:XmlQualifiedName_foo"" xmlns:b=""http://www.microsoft.com"">b:WCF</xmlQualifiedName><y i:type=""a:Int32_foo"">0</y><z i:type=""a:Int32_foo"">2147483647</z><z1 i:type=""a:Int32_foo"">-2147483648</z1><z2 i:type=""a:Int64_foo"">0</z2><z3 i:type=""a:Int64_foo"">9223372036854775807</z3><z4 i:type=""a:Int64_foo"">-9223372036854775808</z4><z5/><z6 i:type=""a:SByte_foo"">0</z6><z7 i:type=""a:SByte_foo"">127</z7><z8 i:type=""a:SByte_foo"">-128</z8><z9 i:type=""a:Int16_foo"">0</z9><z91 i:type=""a:Int16_foo"">32767</z91><z92 i:type=""a:Int16_foo"">-32768</z92><z93 i:type=""a:String_foo"">abc</z93><z94 i:type=""a:UInt16_foo"">0</z94><z95 i:type=""a:UInt16_foo"">65535</z95><z96 i:type=""a:UInt16_foo"">0</z96><z97 i:type=""a:UInt32_foo"">0</z97><z98 i:type=""a:UInt32_foo"">4294967295</z98><z99 i:type=""a:UInt32_foo"">0</z99><z990 i:type=""a:UInt64_foo"">0</z990><z991 i:type=""a:UInt64_foo"">18446744073709551615</z991><z992 i:type=""a:UInt64_foo"">0</z992><z993>AQIDBA==</z993></_data><_data2 i:type=""a:PrimitiveContainer_foo"" xmlns:a=""http://www.default.com""><a i:type=""a:Boolean_foo"">false</a><array1><anyType xmlns=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""/><anyType xmlns=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""/><anyType xmlns=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""/></array1><b i:type=""a:Byte_foo"">255</b><c i:type=""a:Byte_foo"">0</c><d i:type=""a:Char_foo"">65535</d><e i:type=""a:Decimal_foo"">79228162514264337593543950335</e><f i:type=""a:Decimal_foo"">-1</f><f5 i:type=""a:DateTime_foo"">9999-12-31T23:59:59.9999999</f5><g i:type=""a:Decimal_foo"">-79228162514264337593543950335</g><guidData i:type=""a:Guid_foo"">4bc848b1-a541-40bf-8aa9-dd6ccb6d0e56</guidData><h i:type=""a:Decimal_foo"">1</h><i i:type=""a:Decimal_foo"">0</i><j i:type=""a:Decimal_foo"">0</j><k i:type=""a:Double_foo"">0</k><l i:type=""a:Double_foo"">4.94065645841247E-324</l><lDTO xmlns:b=""http://schemas.datacontract.org/2004/07/System""/><m i:type=""a:Double_foo"">1.7976931348623157E+308</m><n i:type=""a:Double_foo"">-1.7976931348623157E+308</n><nDTO i:type=""a:DateTimeOffset_foo""><DateTime xmlns=""http://schemas.datacontract.org/2004/07/System"">9999-12-31T23:59:59.9999999Z</DateTime><OffsetMinutes xmlns=""http://schemas.datacontract.org/2004/07/System"">0</OffsetMinutes></nDTO><o i:type=""a:Double_foo"">NaN</o><obj/><p i:type=""a:Double_foo"">-INF</p><q i:type=""a:Double_foo"">INF</q><r i:type=""a:Single_foo"">0</r><s i:type=""a:Single_foo"">1.401298E-45</s><strData i:nil=""true""/><t i:type=""a:Single_foo"">-3.40282347E+38</t><timeSpan i:type=""a:TimeSpan_foo"">P10675199DT2H48M5.4775807S</timeSpan><u i:type=""a:Single_foo"">3.40282347E+38</u><uri>http://www.microsoft.com/</uri><v i:type=""a:Single_foo"">NaN</v><w i:type=""a:Single_foo"">-INF</w><x i:type=""a:Single_foo"">INF</x><xmlQualifiedName i:type=""a:XmlQualifiedName_foo"" xmlns:b=""http://www.microsoft.com"">b:WCF</xmlQualifiedName><y i:type=""a:Int32_foo"">0</y><z i:type=""a:Int32_foo"">2147483647</z><z1 i:type=""a:Int32_foo"">-2147483648</z1><z2 i:type=""a:Int64_foo"">0</z2><z3 i:type=""a:Int64_foo"">9223372036854775807</z3><z4 i:type=""a:Int64_foo"">-9223372036854775808</z4><z5/><z6 i:type=""a:SByte_foo"">0</z6><z7 i:type=""a:SByte_foo"">127</z7><z8 i:type=""a:SByte_foo"">-128</z8><z9 i:type=""a:Int16_foo"">0</z9><z91 i:type=""a:Int16_foo"">32767</z91><z92 i:type=""a:Int16_foo"">-32768</z92><z93 i:type=""a:String_foo"">abc</z93><z94 i:type=""a:UInt16_foo"">0</z94><z95 i:type=""a:UInt16_foo"">65535</z95><z96 i:type=""a:UInt16_foo"">0</z96><z97 i:type=""a:UInt32_foo"">0</z97><z98 i:type=""a:UInt32_foo"">4294967295</z98><z99 i:type=""a:UInt32_foo"">0</z99><z990 i:type=""a:UInt64_foo"">0</z990><z991 i:type=""a:UInt64_foo"">18446744073709551615</z991><z992 i:type=""a:UInt64_foo"">0</z992><z993>AQIDBA==</z993></_data2></ObjectContainer>";
         var value = new SerializationTestTypes.ObjectContainer(new SerializationTestTypes.PrimitiveContainer());
 
-        var actual = SerializeAndDeserialize(value, baseline, dataContractSerializerSettings);
+        var actual = DataContractSerializerHelper.SerializeAndDeserialize(value, baseline, dataContractSerializerSettings);
         // Throw Exception when verification failed
         SerializationTestTypes.ComparisonHelper.CompareRecursively(value, actual);
+    }
+
+    /// <summary>
+    /// Roundtrips a Datacontract type  which contains Primitive types assigned to member of type object.
+    /// Resolver is plugged in and resolves the primitive types. Verify resolver called during ser and deser
+    /// </summary>
+    [Fact]
+    public static void DCS_BasicRoundTripResolvePrimitiveTypes_NotNetFramework()
+    {
+        string baseline = @"<ObjectContainer xmlns=""http://schemas.datacontract.org/2004/07/SerializationTestTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><_data i:type=""a:PrimitiveContainer_foo"" xmlns:a=""http://www.default.com""><a i:type=""a:Boolean_foo"">false</a><array1><anyType xmlns=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""/><anyType xmlns=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""/><anyType xmlns=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""/></array1><b i:type=""a:Byte_foo"">255</b><c i:type=""a:Byte_foo"">0</c><d i:type=""a:Char_foo"">65535</d><e i:type=""a:Decimal_foo"">79228162514264337593543950335</e><f i:type=""a:Decimal_foo"">-1</f><f5 i:type=""a:DateTime_foo"">9999-12-31T23:59:59.9999999</f5><g i:type=""a:Decimal_foo"">-79228162514264337593543950335</g><guidData i:type=""a:Guid_foo"">4bc848b1-a541-40bf-8aa9-dd6ccb6d0e56</guidData><h i:type=""a:Decimal_foo"">1</h><i i:type=""a:Decimal_foo"">0</i><j i:type=""a:Decimal_foo"">0</j><k i:type=""a:Double_foo"">0</k><l i:type=""a:Double_foo"">5E-324</l><lDTO xmlns:b=""http://schemas.datacontract.org/2004/07/System""/><m i:type=""a:Double_foo"">1.7976931348623157E+308</m><n i:type=""a:Double_foo"">-1.7976931348623157E+308</n><nDTO i:type=""a:DateTimeOffset_foo""><DateTime xmlns=""http://schemas.datacontract.org/2004/07/System"">9999-12-31T23:59:59.9999999Z</DateTime><OffsetMinutes xmlns=""http://schemas.datacontract.org/2004/07/System"">0</OffsetMinutes></nDTO><o i:type=""a:Double_foo"">NaN</o><obj/><p i:type=""a:Double_foo"">-INF</p><q i:type=""a:Double_foo"">INF</q><r i:type=""a:Single_foo"">0</r><s i:type=""a:Single_foo"">1E-45</s><strData i:nil=""true""/><t i:type=""a:Single_foo"">-3.4028235E+38</t><timeSpan i:type=""a:TimeSpan_foo"">P10675199DT2H48M5.4775807S</timeSpan><u i:type=""a:Single_foo"">3.4028235E+38</u><uri>http://www.microsoft.com/</uri><v i:type=""a:Single_foo"">NaN</v><w i:type=""a:Single_foo"">-INF</w><x i:type=""a:Single_foo"">INF</x><xmlQualifiedName i:type=""a:XmlQualifiedName_foo"" xmlns:b=""http://www.microsoft.com"">b:WCF</xmlQualifiedName><y i:type=""a:Int32_foo"">0</y><z i:type=""a:Int32_foo"">2147483647</z><z1 i:type=""a:Int32_foo"">-2147483648</z1><z2 i:type=""a:Int64_foo"">0</z2><z3 i:type=""a:Int64_foo"">9223372036854775807</z3><z4 i:type=""a:Int64_foo"">-9223372036854775808</z4><z5/><z6 i:type=""a:SByte_foo"">0</z6><z7 i:type=""a:SByte_foo"">127</z7><z8 i:type=""a:SByte_foo"">-128</z8><z9 i:type=""a:Int16_foo"">0</z9><z91 i:type=""a:Int16_foo"">32767</z91><z92 i:type=""a:Int16_foo"">-32768</z92><z93 i:type=""a:String_foo"">abc</z93><z94 i:type=""a:UInt16_foo"">0</z94><z95 i:type=""a:UInt16_foo"">65535</z95><z96 i:type=""a:UInt16_foo"">0</z96><z97 i:type=""a:UInt32_foo"">0</z97><z98 i:type=""a:UInt32_foo"">4294967295</z98><z99 i:type=""a:UInt32_foo"">0</z99><z990 i:type=""a:UInt64_foo"">0</z990><z991 i:type=""a:UInt64_foo"">18446744073709551615</z991><z992 i:type=""a:UInt64_foo"">0</z992><z993>AQIDBA==</z993></_data><_data2 i:type=""a:PrimitiveContainer_foo"" xmlns:a=""http://www.default.com""><a i:type=""a:Boolean_foo"">false</a><array1><anyType xmlns=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""/><anyType xmlns=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""/><anyType xmlns=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""/></array1><b i:type=""a:Byte_foo"">255</b><c i:type=""a:Byte_foo"">0</c><d i:type=""a:Char_foo"">65535</d><e i:type=""a:Decimal_foo"">79228162514264337593543950335</e><f i:type=""a:Decimal_foo"">-1</f><f5 i:type=""a:DateTime_foo"">9999-12-31T23:59:59.9999999</f5><g i:type=""a:Decimal_foo"">-79228162514264337593543950335</g><guidData i:type=""a:Guid_foo"">4bc848b1-a541-40bf-8aa9-dd6ccb6d0e56</guidData><h i:type=""a:Decimal_foo"">1</h><i i:type=""a:Decimal_foo"">0</i><j i:type=""a:Decimal_foo"">0</j><k i:type=""a:Double_foo"">0</k><l i:type=""a:Double_foo"">5E-324</l><lDTO xmlns:b=""http://schemas.datacontract.org/2004/07/System""/><m i:type=""a:Double_foo"">1.7976931348623157E+308</m><n i:type=""a:Double_foo"">-1.7976931348623157E+308</n><nDTO i:type=""a:DateTimeOffset_foo""><DateTime xmlns=""http://schemas.datacontract.org/2004/07/System"">9999-12-31T23:59:59.9999999Z</DateTime><OffsetMinutes xmlns=""http://schemas.datacontract.org/2004/07/System"">0</OffsetMinutes></nDTO><o i:type=""a:Double_foo"">NaN</o><obj/><p i:type=""a:Double_foo"">-INF</p><q i:type=""a:Double_foo"">INF</q><r i:type=""a:Single_foo"">0</r><s i:type=""a:Single_foo"">1E-45</s><strData i:nil=""true""/><t i:type=""a:Single_foo"">-3.4028235E+38</t><timeSpan i:type=""a:TimeSpan_foo"">P10675199DT2H48M5.4775807S</timeSpan><u i:type=""a:Single_foo"">3.4028235E+38</u><uri>http://www.microsoft.com/</uri><v i:type=""a:Single_foo"">NaN</v><w i:type=""a:Single_foo"">-INF</w><x i:type=""a:Single_foo"">INF</x><xmlQualifiedName i:type=""a:XmlQualifiedName_foo"" xmlns:b=""http://www.microsoft.com"">b:WCF</xmlQualifiedName><y i:type=""a:Int32_foo"">0</y><z i:type=""a:Int32_foo"">2147483647</z><z1 i:type=""a:Int32_foo"">-2147483648</z1><z2 i:type=""a:Int64_foo"">0</z2><z3 i:type=""a:Int64_foo"">9223372036854775807</z3><z4 i:type=""a:Int64_foo"">-9223372036854775808</z4><z5/><z6 i:type=""a:SByte_foo"">0</z6><z7 i:type=""a:SByte_foo"">127</z7><z8 i:type=""a:SByte_foo"">-128</z8><z9 i:type=""a:Int16_foo"">0</z9><z91 i:type=""a:Int16_foo"">32767</z91><z92 i:type=""a:Int16_foo"">-32768</z92><z93 i:type=""a:String_foo"">abc</z93><z94 i:type=""a:UInt16_foo"">0</z94><z95 i:type=""a:UInt16_foo"">65535</z95><z96 i:type=""a:UInt16_foo"">0</z96><z97 i:type=""a:UInt32_foo"">0</z97><z98 i:type=""a:UInt32_foo"">4294967295</z98><z99 i:type=""a:UInt32_foo"">0</z99><z990 i:type=""a:UInt64_foo"">0</z990><z991 i:type=""a:UInt64_foo"">18446744073709551615</z991><z992 i:type=""a:UInt64_foo"">0</z992><z993>AQIDBA==</z993></_data2></ObjectContainer>";
+        DCS_BasicRoundTripResolvePrimitiveTypes(baseline);
     }
 
     /// <summary>
@@ -2849,7 +2851,7 @@ public static partial class DataContractSerializerTests
         string baseline = @"<ObjectContainer xmlns=""http://schemas.datacontract.org/2004/07/SerializationTestTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><_data i:type=""a:EnumStructContainer"" xmlns:a=""http://www.default.com""><enumArrayData xmlns:b=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""><b:anyType i:type=""a:1munemy"">red</b:anyType><b:anyType i:type=""a:1munemy"">black</b:anyType><b:anyType i:type=""a:1munemy"">blue</b:anyType><b:anyType i:type=""a:1"">Autumn</b:anyType><b:anyType i:type=""a:2"">Spring</b:anyType></enumArrayData><p1 i:type=""a:VT_foo""><b>10</b></p1><p2 i:type=""a:NotSer_foo""><a>0</a></p2><p3 i:type=""a:MyStruct_foo""><globName i:nil=""true""/><value>0</value></p3></_data><_data2 i:type=""a:EnumStructContainer"" xmlns:a=""http://www.default.com""><enumArrayData xmlns:b=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""><b:anyType i:type=""a:1munemy"">red</b:anyType><b:anyType i:type=""a:1munemy"">black</b:anyType><b:anyType i:type=""a:1munemy"">blue</b:anyType><b:anyType i:type=""a:1"">Autumn</b:anyType><b:anyType i:type=""a:2"">Spring</b:anyType></enumArrayData><p1 i:type=""a:VT_foo""><b>10</b></p1><p2 i:type=""a:NotSer_foo""><a>0</a></p2><p3 i:type=""a:MyStruct_foo""><globName i:nil=""true""/><value>0</value></p3></_data2></ObjectContainer>";
         var value = new SerializationTestTypes.ObjectContainer(new SerializationTestTypes.EnumStructContainer());
 
-        var actual = SerializeAndDeserialize(value, baseline, dataContractSerializerSettings);
+        var actual = DataContractSerializerHelper.SerializeAndDeserialize(value, baseline, dataContractSerializerSettings);
         SerializationTestTypes.ComparisonHelper.CompareRecursively(value, actual);
     }
 
@@ -2861,12 +2863,12 @@ public static partial class DataContractSerializerTests
         dcrVariationsGoing.unknownType2 = new SerializationTestTypes.SimpleDC();
         var setting1 = new DataContractSerializerSettings()
         {
-            DataContractResolver = new SerializationTestTypes.SimpleResolver_Ser(),            
+            DataContractResolver = new SerializationTestTypes.SimpleResolver_Ser(),
             PreserveObjectReferences = true
         };
         var setting2 = new DataContractSerializerSettings()
         {
-            DataContractResolver = new SerializationTestTypes.SimpleResolver_DeSer(),            
+            DataContractResolver = new SerializationTestTypes.SimpleResolver_DeSer(),
             PreserveObjectReferences = true
         };
         var dcs1 = new DataContractSerializer(typeof(SerializationTestTypes.CustomClass), setting1);
@@ -2888,7 +2890,7 @@ public static partial class DataContractSerializerTests
         dcrVariationsGoing.unknownType1 = new SerializationTestTypes.Person();
         dcrVariationsGoing.unknownType2 = new SerializationTestTypes.SimpleDC();
         var dcr1 = new SerializationTestTypes.SimpleResolver_Ser();
-        var dcr2 = new SerializationTestTypes.SimpleResolver_DeSer();                
+        var dcr2 = new SerializationTestTypes.SimpleResolver_DeSer();
         var setting = new DataContractSerializerSettings()
         {
             PreserveObjectReferences = true
@@ -2900,7 +2902,7 @@ public static partial class DataContractSerializerTests
         var xmlWriter = XmlDictionaryWriter.CreateTextWriter(ms);
         dcs.WriteObject(xmlWriter, dcrVariationsGoing, dcr1);
         xmlWriter.Flush();
-        CompareBaseline(baseline, ms);        
+        CompareBaseline(baseline, ms);
         ms.Position = 0;
         var xmlReader = XmlDictionaryReader.CreateTextReader(ms, XmlDictionaryReaderQuotas.Max);
         var dcrVariationsReturning = dcs.ReadObject(xmlReader, false, dcr2);
@@ -2927,7 +2929,7 @@ public static partial class DataContractSerializerTests
         var xmlWriter = XmlDictionaryWriter.CreateTextWriter(ms);
         dcs.WriteObject(xmlWriter, dcrVariationsGoing, dcr1);
         xmlWriter.Flush();
-        CompareBaseline(baseline, ms);        
+        CompareBaseline(baseline, ms);
         ms.Position = 0;
         var xmlReader = XmlDictionaryReader.CreateTextReader(ms, XmlDictionaryReaderQuotas.Max);
         var dcrVariationsReturning = dcs.ReadObject(xmlReader, false);
@@ -2954,7 +2956,7 @@ public static partial class DataContractSerializerTests
         var xmlWriter = XmlDictionaryWriter.CreateTextWriter(ms);
         dcs.WriteObject(xmlWriter, dcrVariationsGoing);
         xmlWriter.Flush();
-        CompareBaseline(baseline, ms);        
+        CompareBaseline(baseline, ms);
         ms.Position = 0;
         var xmlReader = XmlDictionaryReader.CreateTextReader(ms, XmlDictionaryReaderQuotas.Max);
         var dcrVariationsReturning = dcs.ReadObject(xmlReader, false, dcr2);
@@ -2985,8 +2987,8 @@ public static partial class DataContractSerializerTests
         string baseline = @"<POCOObjectContainer xmlns=""http://schemas.datacontract.org/2004/07/SerializationTestTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><Data i:type=""a:EmptyDCType"" xmlns:a=""http://www.Default.com""/></POCOObjectContainer>";
         var value = new SerializationTestTypes.POCOObjectContainer();
         value.NonSerializedData = new SerializationTestTypes.Person();
-        
-        var actual = SerializeAndDeserialize(value, baseline, dataContractSerializerSettings);
+
+        var actual = DataContractSerializerHelper.SerializeAndDeserialize(value, baseline, dataContractSerializerSettings);
 
         SerializationTestTypes.ComparisonHelper.CompareRecursively(value, actual);
     }
@@ -3007,17 +3009,17 @@ public static partial class DataContractSerializerTests
 
         string baseline1 = $@"<Wireformat1 z:Id=""1"" xmlns=""http://schemas.datacontract.org/2004/07/SerializationTestTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance"" xmlns:z=""http://schemas.microsoft.com/2003/10/Serialization/""><alpha z:Id=""2""><person z:Id=""3""><Age>0</Age><Name i:nil=""true""/></person></alpha><beta z:Id=""4""><unknown1 z:Id=""5"" i:type=""CharClass""><c>0</c><c1>65535</c1><c2>0</c2><c3>99</c3></unknown1></beta><charlie z:Id=""6""><unknown2 z:Id=""7"" i:type=""a:{typeName}***"" xmlns:a=""{typeNamespace}***""><dateHired xmlns=""NonExistNamespace"">0001-01-01T00:00:00</dateHired><individual i:nil=""true"" xmlns=""NonExistNamespace"" xmlns:b=""http://schemas.datacontract.org/2004/07/SerializationTestTypes""/><salary xmlns=""NonExistNamespace"">0</salary></unknown2></charlie></Wireformat1>";
         var value1 = new SerializationTestTypes.Wireformat1();
-        var actual1 = SerializeAndDeserialize(value1, baseline1, dataContractSerializerSettings);
+        var actual1 = DataContractSerializerHelper.SerializeAndDeserialize(value1, baseline1, dataContractSerializerSettings);
         SerializationTestTypes.ComparisonHelper.CompareRecursively(value1, actual1);
 
         string baseline2 = $@"<Wireformat2 z:Id=""1"" xmlns=""http://schemas.datacontract.org/2004/07/SerializationTestTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance"" xmlns:z=""http://schemas.microsoft.com/2003/10/Serialization/""><beta1 z:Id=""2""><unknown1 z:Id=""3"" i:type=""CharClass""><c>0</c><c1>65535</c1><c2>0</c2><c3>99</c3></unknown1></beta1><beta2 z:Id=""4""><unknown1 z:Id=""5"" i:type=""CharClass""><c>0</c><c1>65535</c1><c2>0</c2><c3>99</c3></unknown1></beta2><charlie z:Id=""6""><unknown2 z:Id=""7"" i:type=""a:{typeName}***"" xmlns:a=""{typeNamespace}***""><dateHired xmlns=""NonExistNamespace"">0001-01-01T00:00:00</dateHired><individual i:nil=""true"" xmlns=""NonExistNamespace"" xmlns:b=""http://schemas.datacontract.org/2004/07/SerializationTestTypes""/><salary xmlns=""NonExistNamespace"">0</salary></unknown2></charlie></Wireformat2>";
         var value2 = new SerializationTestTypes.Wireformat2();
-        var actual2 = SerializeAndDeserialize(value2, baseline2, dataContractSerializerSettings);
+        var actual2 = DataContractSerializerHelper.SerializeAndDeserialize(value2, baseline2, dataContractSerializerSettings);
         SerializationTestTypes.ComparisonHelper.CompareRecursively(value2, actual2);
 
         string baseline3 = $@"<Wireformat3 z:Id=""1"" xmlns=""http://schemas.datacontract.org/2004/07/SerializationTestTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance"" xmlns:z=""http://schemas.microsoft.com/2003/10/Serialization/""><beta z:Id=""2""><unknown1 z:Id=""3"" i:type=""CharClass""><c>0</c><c1>65535</c1><c2>0</c2><c3>99</c3></unknown1></beta><charlie1 z:Id=""4""><unknown2 z:Id=""5"" i:type=""a:{typeName}***"" xmlns:a=""{typeNamespace}***""><dateHired xmlns=""NonExistNamespace"">0001-01-01T00:00:00</dateHired><individual i:nil=""true"" xmlns=""NonExistNamespace"" xmlns:b=""http://schemas.datacontract.org/2004/07/SerializationTestTypes""/><salary xmlns=""NonExistNamespace"">0</salary></unknown2></charlie1><charlie2 z:Id=""6""><unknown2 z:Id=""7"" i:type=""a:{typeName}***"" xmlns:a=""{typeNamespace}***""><dateHired xmlns=""NonExistNamespace"">0001-01-01T00:00:00</dateHired><individual i:nil=""true"" xmlns=""NonExistNamespace"" xmlns:b=""http://schemas.datacontract.org/2004/07/SerializationTestTypes""/><salary xmlns=""NonExistNamespace"">0</salary></unknown2></charlie2></Wireformat3>";
         var value3 = new SerializationTestTypes.Wireformat3();
-        var actual3 = SerializeAndDeserialize(value3, baseline3, dataContractSerializerSettings);
+        var actual3 = DataContractSerializerHelper.SerializeAndDeserialize(value3, baseline3, dataContractSerializerSettings);
         SerializationTestTypes.ComparisonHelper.CompareRecursively(value3, actual3);
     }
 
@@ -3027,11 +3029,11 @@ public static partial class DataContractSerializerTests
         SerializationTestTypes.ObjectContainer instance = new SerializationTestTypes.ObjectContainer(new SerializationTestTypes.UserTypeContainer());
         var setting = new DataContractSerializerSettings()
         {
-            DataContractResolver = new SerializationTestTypes.UserTypeToPrimitiveTypeResolver()           
+            DataContractResolver = new SerializationTestTypes.UserTypeToPrimitiveTypeResolver()
         };
         string baseline = @"<ObjectContainer xmlns=""http://schemas.datacontract.org/2004/07/SerializationTestTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><_data i:type=""a:UserType"" xmlns:a=""http://www.default.com""><unknownData i:type=""b:int"" xmlns:b=""http://www.w3.org/2001/XMLSchema""><id>10000</id></unknownData></_data><_data2 i:type=""a:UserType"" xmlns:a=""http://www.default.com""><unknownData i:type=""b:int"" xmlns:b=""http://www.w3.org/2001/XMLSchema""><id>10000</id></unknownData></_data2></ObjectContainer>";
 
-        var result = SerializeAndDeserialize(instance, baseline, setting);
+        var result = DataContractSerializerHelper.SerializeAndDeserialize(instance, baseline, setting);
         SerializationTestTypes.ComparisonHelper.CompareRecursively(instance, result);
     }
 
@@ -3046,7 +3048,7 @@ public static partial class DataContractSerializerTests
         };
         string baseline = @"<DefaultCollections z:Id=""1"" xmlns=""http://schemas.datacontract.org/2004/07/SerializationTestTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance"" xmlns:z=""http://schemas.microsoft.com/2003/10/Serialization/""><_arrayList z:Id=""2"" z:Size=""1"" xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""><a:anyType z:Id=""3"" i:type=""b:SerializationTestTypes.Person"" xmlns:b=""http://www.default.com""><Age>0</Age><Name i:nil=""true""/></a:anyType></_arrayList><_dictionary z:Id=""4"" z:Size=""1"" xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""><a:KeyValueOfintanyType><a:Key>1</a:Key><a:Value z:Id=""5"" i:type=""b:SerializationTestTypes.CharClass"" xmlns:b=""http://www.default.com""><c>0</c><c1>65535</c1><c2>0</c2><c3>99</c3></a:Value></a:KeyValueOfintanyType></_dictionary><_hashtable z:Id=""6"" z:Size=""1"" xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""><a:KeyValueOfanyTypeanyType><a:Key z:Id=""7"" i:type=""b:System.String"" xmlns:b=""http://www.default.com"">one</a:Key><a:Value z:Id=""8"" i:type=""b:SerializationTestTypes.Version1"" xmlns:b=""http://www.default.com""><make z:Id=""9"" i:type=""b:System.String"" xmlns=""TestingVersionTolerance"">Chevrolet</make></a:Value></a:KeyValueOfanyTypeanyType></_hashtable><_singleDimArray z:Id=""10"" z:Size=""1"" xmlns:a=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""><a:anyType z:Id=""11"" i:type=""b:SerializationTestTypes.Employee"" xmlns:b=""http://www.default.com""><dateHired xmlns=""NonExistNamespace"">0001-01-01T00:00:00</dateHired><individual i:nil=""true"" xmlns=""NonExistNamespace"" xmlns:c=""http://schemas.datacontract.org/2004/07/SerializationTestTypes""/><salary xmlns=""NonExistNamespace"">0</salary></a:anyType></_singleDimArray></DefaultCollections>";
 
-        var actual = SerializeAndDeserialize(defaultCollections, baseline, setting);
+        var actual = DataContractSerializerHelper.SerializeAndDeserialize(defaultCollections, baseline, setting);
         SerializationTestTypes.ComparisonHelper.CompareRecursively(defaultCollections, actual);
     }
 
@@ -3071,13 +3073,13 @@ public static partial class DataContractSerializerTests
     public static void DCS_BasicPerSerializerRoundTripAndCompare_SampleTypes()
     {
         string assemblyName = typeof(DataContractSerializerTests).Assembly.FullName;
-        
+
         TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.TypeNotFound(), @"<ObjectContainer xmlns=""http://schemas.datacontract.org/2004/07/SerializationTestTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><_data i:type=""a:SerializationTestTypes.TypeNotFound***"" xmlns:a=""http://schemas.datacontract.org/2004/07/SerializationTestTypes.TypeNotFound***""/><_data2 i:type=""a:SerializationTestTypes.TypeNotFound***"" xmlns:a=""http://schemas.datacontract.org/2004/07/SerializationTestTypes.TypeNotFound***""/></ObjectContainer>");
 
         TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.EmptyDCType(), @"<ObjectContainer xmlns=""http://schemas.datacontract.org/2004/07/SerializationTestTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><_data i:type=""a:SerializationTestTypes.EmptyDCType***"" xmlns:a=""http://schemas.datacontract.org/2004/07/SerializationTestTypes.EmptyDCType***""/><_data2 i:type=""a:SerializationTestTypes.EmptyDCType***"" xmlns:a=""http://schemas.datacontract.org/2004/07/SerializationTestTypes.EmptyDCType***""/></ObjectContainer>");
 
         TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.ObjectContainer(true), @"<ObjectContainer xmlns=""http://schemas.datacontract.org/2004/07/SerializationTestTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><_data i:type=""a:SerializationTestTypes.ObjectContainer***"" xmlns:a=""http://schemas.datacontract.org/2004/07/SerializationTestTypes.ObjectContainer***""><_data i:type=""b:boolean"" xmlns:b=""http://www.w3.org/2001/XMLSchema"">true</_data><_data2 i:type=""b:boolean"" xmlns:b=""http://www.w3.org/2001/XMLSchema"">true</_data2></_data><_data2 i:type=""a:SerializationTestTypes.ObjectContainer***"" xmlns:a=""http://schemas.datacontract.org/2004/07/SerializationTestTypes.ObjectContainer***""><_data i:type=""b:boolean"" xmlns:b=""http://www.w3.org/2001/XMLSchema"">true</_data><_data2 i:type=""b:boolean"" xmlns:b=""http://www.w3.org/2001/XMLSchema"">true</_data2></_data2></ObjectContainer>");
-		
+
         TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.POCOObjectContainer(true), @"<ObjectContainer xmlns=""http://schemas.datacontract.org/2004/07/SerializationTestTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><_data i:type=""a:SerializationTestTypes.POCOObjectContainer***"" xmlns:a=""http://schemas.datacontract.org/2004/07/SerializationTestTypes.POCOObjectContainer***""><Data i:type=""b:boolean"" xmlns:b=""http://www.w3.org/2001/XMLSchema"">true</Data></_data><_data2 i:type=""a:SerializationTestTypes.POCOObjectContainer***"" xmlns:a=""http://schemas.datacontract.org/2004/07/SerializationTestTypes.POCOObjectContainer***""><Data i:type=""b:boolean"" xmlns:b=""http://www.w3.org/2001/XMLSchema"">true</Data></_data2></ObjectContainer>");
 
         TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.CircularLink(true), @"<ObjectContainer xmlns=""http://schemas.datacontract.org/2004/07/SerializationTestTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><_data z:Id=""i1"" i:type=""a:SerializationTestTypes.CircularLink***"" xmlns:z=""http://schemas.microsoft.com/2003/10/Serialization/"" xmlns:a=""http://schemas.datacontract.org/2004/07/SerializationTestTypes.CircularLink***""><Link z:Id=""i2""><Link z:Id=""i3""><Link z:Ref=""i1""/><RandomHangingLink i:nil=""true""/></Link><RandomHangingLink i:nil=""true""/></Link><RandomHangingLink z:Id=""i4""><Link z:Id=""i5""><Link z:Id=""i6"" i:type=""b:SerializationTestTypes.CircularLinkDerived***"" xmlns:b=""http://schemas.datacontract.org/2004/07/SerializationTestTypes.CircularLinkDerived***""><Link z:Ref=""i4""/><RandomHangingLink i:nil=""true""/></Link><RandomHangingLink i:nil=""true""/></Link><RandomHangingLink i:nil=""true""/></RandomHangingLink></_data><_data2 z:Ref=""i1"" xmlns:z=""http://schemas.microsoft.com/2003/10/Serialization/""/></ObjectContainer>");
@@ -3132,7 +3134,7 @@ public static partial class DataContractSerializerTests
 
         TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.DCListMixedTContainer(), @"<ObjectContainer xmlns=""http://schemas.datacontract.org/2004/07/SerializationTestTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><_data z:Id=""i1"" i:type=""a:SerializationTestTypes.DCListMixedTContainer***"" xmlns:z=""http://schemas.microsoft.com/2003/10/Serialization/"" xmlns:a=""http://schemas.datacontract.org/2004/07/SerializationTestTypes.DCListMixedTContainer***""><_listData xmlns:b=""http://schemas.microsoft.com/2003/10/Serialization/Arrays""><b:anyType z:Id=""i2"" i:type=""c:SerializationTestTypes.PublicDC***"" xmlns:c=""http://schemas.datacontract.org/2004/07/SerializationTestTypes.PublicDC***""><Data>55cb1688-dec7-4106-a6d8-7e57590cb20a</Data></b:anyType><b:anyType z:Id=""i3"" i:type=""PrivateDC""><Data>7b4ac88f-972b-43e5-8f6a-5ae64480eaad</Data></b:anyType></_listData></_data><_data2 z:Ref=""i1"" xmlns:z=""http://schemas.microsoft.com/2003/10/Serialization/""/></ObjectContainer>");
 
-        TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.SampleListImplicitWithDC(true), @"<ObjectContainer xmlns=""http://schemas.datacontract.org/2004/07/SerializationTestTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><_data i:type=""a:SerializationTestTypes.SampleListImplicitWithDC***"" xmlns:a=""http://schemas.datacontract.org/2004/07/SerializationTestTypes.SampleListImplicitWithDC***""><anyType i:type=""b:dateTime"" xmlns:b=""http://www.w3.org/2001/XMLSchema"">0001-01-01T00:00:00</anyType><anyType i:type=""b:duration"" xmlns:b=""http://schemas.microsoft.com/2003/10/Serialization/"">P10675199DT2H48M5.4775807S</anyType><anyType i:type=""b:string"" xmlns:b=""http://www.w3.org/2001/XMLSchema""/><anyType i:type=""b:double"" xmlns:b=""http://www.w3.org/2001/XMLSchema"">1.7976931348623157E+308</anyType><anyType i:type=""b:double"" xmlns:b=""http://www.w3.org/2001/XMLSchema"">-INF</anyType><anyType i:type=""b:guid"" xmlns:b=""http://schemas.microsoft.com/2003/10/Serialization/"">0c9e174e-cdd8-4b68-a70d-aaeb26c7deeb</anyType><anyType z:Id=""i1"" i:type=""b:SerializationTestTypes.SimpleDCWithRef***"" xmlns:z=""http://schemas.microsoft.com/2003/10/Serialization/"" xmlns:b=""http://schemas.datacontract.org/2004/07/SerializationTestTypes.SimpleDCWithRef***""><Data z:Id=""i2""><Data>11:59:59 PM</Data></Data><RefData z:Ref=""i2""/></anyType></_data><_data2 i:type=""a:SerializationTestTypes.SampleListImplicitWithDC***"" xmlns:a=""http://schemas.datacontract.org/2004/07/SerializationTestTypes.SampleListImplicitWithDC***""><anyType i:type=""b:dateTime"" xmlns:b=""http://www.w3.org/2001/XMLSchema"">0001-01-01T00:00:00</anyType><anyType i:type=""b:duration"" xmlns:b=""http://schemas.microsoft.com/2003/10/Serialization/"">P10675199DT2H48M5.4775807S</anyType><anyType i:type=""b:string"" xmlns:b=""http://www.w3.org/2001/XMLSchema""/><anyType i:type=""b:double"" xmlns:b=""http://www.w3.org/2001/XMLSchema"">1.7976931348623157E+308</anyType><anyType i:type=""b:double"" xmlns:b=""http://www.w3.org/2001/XMLSchema"">-INF</anyType><anyType i:type=""b:guid"" xmlns:b=""http://schemas.microsoft.com/2003/10/Serialization/"">0c9e174e-cdd8-4b68-a70d-aaeb26c7deeb</anyType><anyType z:Ref=""i1"" xmlns:z=""http://schemas.microsoft.com/2003/10/Serialization/""/></_data2></ObjectContainer>");
+        TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.SampleListImplicitWithDC(true), @"<ObjectContainer xmlns=""http://schemas.datacontract.org/2004/07/SerializationTestTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><_data i:type=""a:SerializationTestTypes.SampleListImplicitWithDC***"" xmlns:a=""http://schemas.datacontract.org/2004/07/SerializationTestTypes.SampleListImplicitWithDC***""><anyType i:type=""b:dateTime"" xmlns:b=""http://www.w3.org/2001/XMLSchema"">0001-01-01T00:00:00</anyType><anyType i:type=""b:duration"" xmlns:b=""http://schemas.microsoft.com/2003/10/Serialization/"">P10675199DT2H48M5.4775807S</anyType><anyType i:type=""b:string"" xmlns:b=""http://www.w3.org/2001/XMLSchema""/><anyType i:type=""b:double"" xmlns:b=""http://www.w3.org/2001/XMLSchema"">1.7976931348623157E+308</anyType><anyType i:type=""b:double"" xmlns:b=""http://www.w3.org/2001/XMLSchema"">-INF</anyType><anyType i:type=""b:guid"" xmlns:b=""http://schemas.microsoft.com/2003/10/Serialization/"">0c9e174e-cdd8-4b68-a70d-aaeb26c7deeb</anyType><anyType z:Id=""i1"" i:type=""b:SerializationTestTypes.SimpleDCWithRef***"" xmlns:z=""http://schemas.microsoft.com/2003/10/Serialization/"" xmlns:b=""http://schemas.datacontract.org/2004/07/SerializationTestTypes.SimpleDCWithRef***""><Data z:Id=""i2""><Data>This is a string</Data></Data><RefData z:Ref=""i2""/></anyType></_data><_data2 i:type=""a:SerializationTestTypes.SampleListImplicitWithDC***"" xmlns:a=""http://schemas.datacontract.org/2004/07/SerializationTestTypes.SampleListImplicitWithDC***""><anyType i:type=""b:dateTime"" xmlns:b=""http://www.w3.org/2001/XMLSchema"">0001-01-01T00:00:00</anyType><anyType i:type=""b:duration"" xmlns:b=""http://schemas.microsoft.com/2003/10/Serialization/"">P10675199DT2H48M5.4775807S</anyType><anyType i:type=""b:string"" xmlns:b=""http://www.w3.org/2001/XMLSchema""/><anyType i:type=""b:double"" xmlns:b=""http://www.w3.org/2001/XMLSchema"">1.7976931348623157E+308</anyType><anyType i:type=""b:double"" xmlns:b=""http://www.w3.org/2001/XMLSchema"">-INF</anyType><anyType i:type=""b:guid"" xmlns:b=""http://schemas.microsoft.com/2003/10/Serialization/"">0c9e174e-cdd8-4b68-a70d-aaeb26c7deeb</anyType><anyType z:Ref=""i1"" xmlns:z=""http://schemas.microsoft.com/2003/10/Serialization/""/></_data2></ObjectContainer>");
 
         TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.SampleListImplicitWithoutDC(true), @"<ObjectContainer xmlns=""http://schemas.datacontract.org/2004/07/SerializationTestTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><_data i:type=""a:SerializationTestTypes.SampleListImplicitWithoutDC***"" xmlns:a=""http://schemas.datacontract.org/2004/07/SerializationTestTypes.SampleListImplicitWithoutDC***""><anyType i:type=""b:dateTime"" xmlns:b=""http://www.w3.org/2001/XMLSchema"">0001-01-01T00:00:00</anyType><anyType i:type=""b:duration"" xmlns:b=""http://schemas.microsoft.com/2003/10/Serialization/"">P10675199DT2H48M5.4775807S</anyType><anyType i:type=""b:string"" xmlns:b=""http://www.w3.org/2001/XMLSchema""/><anyType i:type=""b:double"" xmlns:b=""http://www.w3.org/2001/XMLSchema"">1.7976931348623157E+308</anyType><anyType i:type=""b:double"" xmlns:b=""http://www.w3.org/2001/XMLSchema"">-INF</anyType><anyType i:type=""b:guid"" xmlns:b=""http://schemas.microsoft.com/2003/10/Serialization/"">899288c9-8bee-41c1-a6d4-13c477ec1b29</anyType></_data><_data2 i:type=""a:SerializationTestTypes.SampleListImplicitWithoutDC***"" xmlns:a=""http://schemas.datacontract.org/2004/07/SerializationTestTypes.SampleListImplicitWithoutDC***""><anyType i:type=""b:dateTime"" xmlns:b=""http://www.w3.org/2001/XMLSchema"">0001-01-01T00:00:00</anyType><anyType i:type=""b:duration"" xmlns:b=""http://schemas.microsoft.com/2003/10/Serialization/"">P10675199DT2H48M5.4775807S</anyType><anyType i:type=""b:string"" xmlns:b=""http://www.w3.org/2001/XMLSchema""/><anyType i:type=""b:double"" xmlns:b=""http://www.w3.org/2001/XMLSchema"">1.7976931348623157E+308</anyType><anyType i:type=""b:double"" xmlns:b=""http://www.w3.org/2001/XMLSchema"">-INF</anyType><anyType i:type=""b:guid"" xmlns:b=""http://schemas.microsoft.com/2003/10/Serialization/"">899288c9-8bee-41c1-a6d4-13c477ec1b29</anyType></_data2></ObjectContainer>");
 
@@ -3393,8 +3395,7 @@ public static partial class DataContractSerializerTests
 
 
     [Fact]
-    [ActiveIssue(22776,TargetFrameworkMonikers.UapAot)]
-    public static void DCS_BasicPerSerializerRoundTripAndCompare_SampleTypes_FailedInuapaot_IncludeDataSet()
+    public static void DCS_BasicPerSerializerRoundTripAndCompare_DataSet()
     {
 
         TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.DCPublicDatasetPublic(true), @"<ObjectContainer xmlns=""http://schemas.datacontract.org/2004/07/SerializationTestTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><_data z:Id=""i1"" i:type=""a:SerializationTestTypes.DCPublicDatasetPublic***"" xmlns:z=""http://schemas.microsoft.com/2003/10/Serialization/"" xmlns:a=""http://schemas.datacontract.org/2004/07/SerializationTestTypes.DCPublicDatasetPublic***""><dataSet><xs:schema id=""MyData"" xmlns:xs=""http://www.w3.org/2001/XMLSchema"" xmlns="""" xmlns:msdata=""urn:schemas-microsoft-com:xml-msdata""><xs:element name=""MyData"" msdata:IsDataSet=""true"" msdata:UseCurrentLocale=""true""><xs:complexType><xs:choice minOccurs=""0"" maxOccurs=""unbounded""><xs:element name=""MyTable""><xs:complexType><xs:sequence><xs:element name=""Data"" type=""xs:string"" minOccurs=""0""/></xs:sequence></xs:complexType></xs:element></xs:choice></xs:complexType></xs:element></xs:schema><diffgr:diffgram xmlns:diffgr=""urn:schemas-microsoft-com:xml-diffgram-v1"" xmlns:msdata=""urn:schemas-microsoft-com:xml-msdata""><MyData xmlns=""""><MyTable diffgr:id=""MyTable1"" msdata:rowOrder=""0"" diffgr:hasChanges=""inserted""><Data>10</Data></MyTable></MyData></diffgr:diffgram></dataSet><dataSet2><xs:schema id=""MyData"" xmlns:xs=""http://www.w3.org/2001/XMLSchema"" xmlns="""" xmlns:msdata=""urn:schemas-microsoft-com:xml-msdata""><xs:element name=""MyData"" msdata:IsDataSet=""true"" msdata:UseCurrentLocale=""true""><xs:complexType><xs:choice minOccurs=""0"" maxOccurs=""unbounded""><xs:element name=""MyTable""><xs:complexType><xs:sequence><xs:element name=""Data"" type=""xs:string"" minOccurs=""0""/></xs:sequence></xs:complexType></xs:element></xs:choice></xs:complexType></xs:element></xs:schema><diffgr:diffgram xmlns:diffgr=""urn:schemas-microsoft-com:xml-diffgram-v1"" xmlns:msdata=""urn:schemas-microsoft-com:xml-msdata""><MyData xmlns=""""><MyTable diffgr:id=""MyTable1"" msdata:rowOrder=""0"" diffgr:hasChanges=""inserted""><Data>10</Data></MyTable></MyData></diffgr:diffgram></dataSet2><dataTable><xs:schema id=""MyData"" xmlns:xs=""http://www.w3.org/2001/XMLSchema"" xmlns="""" xmlns:msdata=""urn:schemas-microsoft-com:xml-msdata""><xs:element name=""MyData"" msdata:IsDataSet=""true"" msdata:MainDataTable=""MyTable"" msdata:UseCurrentLocale=""true""><xs:complexType><xs:choice minOccurs=""0"" maxOccurs=""unbounded""><xs:element name=""MyTable""><xs:complexType><xs:sequence><xs:element name=""Data"" type=""xs:string"" minOccurs=""0""/></xs:sequence></xs:complexType></xs:element></xs:choice></xs:complexType></xs:element></xs:schema><diffgr:diffgram xmlns:diffgr=""urn:schemas-microsoft-com:xml-diffgram-v1"" xmlns:msdata=""urn:schemas-microsoft-com:xml-msdata""><MyData xmlns=""""><MyTable diffgr:id=""MyTable1"" msdata:rowOrder=""0"" diffgr:hasChanges=""inserted""><Data>10</Data></MyTable></MyData></diffgr:diffgram></dataTable><dataTable2><xs:schema id=""MyData"" xmlns:xs=""http://www.w3.org/2001/XMLSchema"" xmlns="""" xmlns:msdata=""urn:schemas-microsoft-com:xml-msdata""><xs:element name=""MyData"" msdata:IsDataSet=""true"" msdata:MainDataTable=""MyTable"" msdata:UseCurrentLocale=""true""><xs:complexType><xs:choice minOccurs=""0"" maxOccurs=""unbounded""><xs:element name=""MyTable""><xs:complexType><xs:sequence><xs:element name=""Data"" type=""xs:string"" minOccurs=""0""/></xs:sequence></xs:complexType></xs:element></xs:choice></xs:complexType></xs:element></xs:schema><diffgr:diffgram xmlns:diffgr=""urn:schemas-microsoft-com:xml-diffgram-v1"" xmlns:msdata=""urn:schemas-microsoft-com:xml-msdata""><MyData xmlns=""""><MyTable diffgr:id=""MyTable1"" msdata:rowOrder=""0"" diffgr:hasChanges=""inserted""><Data>10</Data></MyTable></MyData></diffgr:diffgram></dataTable2></_data><_data2 z:Ref=""i1"" xmlns:z=""http://schemas.microsoft.com/2003/10/Serialization/""/></ObjectContainer>");
@@ -3409,7 +3410,7 @@ public static partial class DataContractSerializerTests
         //SerPublicDatasetPublic
         string baselineSerPublicDatasetPublic = @"<ObjectContainer xmlns=""http://schemas.datacontract.org/2004/07/SerializationTestTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><_data i:type=""a:SerializationTestTypes.SerPublicDatasetPublic***"" xmlns:a=""http://schemas.datacontract.org/2004/07/SerializationTestTypes.SerPublicDatasetPublic***""><dataSet><xs:schema id=""MyData"" xmlns:xs=""http://www.w3.org/2001/XMLSchema"" xmlns="""" xmlns:msdata=""urn:schemas-microsoft-com:xml-msdata""><xs:element name=""MyData"" msdata:IsDataSet=""true"" msdata:UseCurrentLocale=""true""><xs:complexType><xs:choice minOccurs=""0"" maxOccurs=""unbounded""><xs:element name=""MyTable""><xs:complexType><xs:sequence><xs:element name=""Data"" type=""xs:string"" minOccurs=""0""/></xs:sequence></xs:complexType></xs:element></xs:choice></xs:complexType></xs:element></xs:schema><diffgr:diffgram xmlns:diffgr=""urn:schemas-microsoft-com:xml-diffgram-v1"" xmlns:msdata=""urn:schemas-microsoft-com:xml-msdata""><MyData xmlns=""""><MyTable diffgr:id=""MyTable1"" msdata:rowOrder=""0"" diffgr:hasChanges=""inserted""><Data>Testing</Data></MyTable></MyData></diffgr:diffgram></dataSet><dataTable><xs:schema id=""NewDataSet"" xmlns:xs=""http://www.w3.org/2001/XMLSchema"" xmlns="""" xmlns:msdata=""urn:schemas-microsoft-com:xml-msdata""><xs:element name=""NewDataSet"" msdata:IsDataSet=""true"" msdata:MainDataTable=""MyTable"" msdata:UseCurrentLocale=""true""><xs:complexType><xs:choice minOccurs=""0"" maxOccurs=""unbounded""><xs:element name=""MyTable""><xs:complexType><xs:sequence><xs:element name=""Data"" type=""xs:string"" minOccurs=""0""/></xs:sequence></xs:complexType></xs:element></xs:choice></xs:complexType></xs:element></xs:schema><diffgr:diffgram xmlns:diffgr=""urn:schemas-microsoft-com:xml-diffgram-v1"" xmlns:msdata=""urn:schemas-microsoft-com:xml-msdata""><DocumentElement xmlns=""""><MyTable diffgr:id=""MyTable1"" msdata:rowOrder=""0"" diffgr:hasChanges=""inserted""><Data>Testing</Data></MyTable></DocumentElement></diffgr:diffgram></dataTable></_data><_data2 i:type=""a:SerializationTestTypes.SerPublicDatasetPublic***"" xmlns:a=""http://schemas.datacontract.org/2004/07/SerializationTestTypes.SerPublicDatasetPublic***""><dataSet><xs:schema id=""MyData"" xmlns:xs=""http://www.w3.org/2001/XMLSchema"" xmlns="""" xmlns:msdata=""urn:schemas-microsoft-com:xml-msdata""><xs:element name=""MyData"" msdata:IsDataSet=""true"" msdata:UseCurrentLocale=""true""><xs:complexType><xs:choice minOccurs=""0"" maxOccurs=""unbounded""><xs:element name=""MyTable""><xs:complexType><xs:sequence><xs:element name=""Data"" type=""xs:string"" minOccurs=""0""/></xs:sequence></xs:complexType></xs:element></xs:choice></xs:complexType></xs:element></xs:schema><diffgr:diffgram xmlns:diffgr=""urn:schemas-microsoft-com:xml-diffgram-v1"" xmlns:msdata=""urn:schemas-microsoft-com:xml-msdata""><MyData xmlns=""""><MyTable diffgr:id=""MyTable1"" msdata:rowOrder=""0"" diffgr:hasChanges=""inserted""><Data>Testing</Data></MyTable></MyData></diffgr:diffgram></dataSet><dataTable><xs:schema id=""NewDataSet"" xmlns:xs=""http://www.w3.org/2001/XMLSchema"" xmlns="""" xmlns:msdata=""urn:schemas-microsoft-com:xml-msdata""><xs:element name=""NewDataSet"" msdata:IsDataSet=""true"" msdata:MainDataTable=""MyTable"" msdata:UseCurrentLocale=""true""><xs:complexType><xs:choice minOccurs=""0"" maxOccurs=""unbounded""><xs:element name=""MyTable""><xs:complexType><xs:sequence><xs:element name=""Data"" type=""xs:string"" minOccurs=""0""/></xs:sequence></xs:complexType></xs:element></xs:choice></xs:complexType></xs:element></xs:schema><diffgr:diffgram xmlns:diffgr=""urn:schemas-microsoft-com:xml-diffgram-v1"" xmlns:msdata=""urn:schemas-microsoft-com:xml-msdata""><DocumentElement xmlns=""""><MyTable diffgr:id=""MyTable1"" msdata:rowOrder=""0"" diffgr:hasChanges=""inserted""><Data>Testing</Data></MyTable></DocumentElement></diffgr:diffgram></dataTable></_data2></ObjectContainer>";
         var valueSerPublicDatasetPublic = new SerializationTestTypes.ObjectContainer(new SerializationTestTypes.SerPublicDatasetPublic(true));
-        var resultSerPublicDatasetPublic = SerializeAndDeserialize(valueSerPublicDatasetPublic, baselineSerPublicDatasetPublic, setting);
+        var resultSerPublicDatasetPublic = DataContractSerializerHelper.SerializeAndDeserialize(valueSerPublicDatasetPublic, baselineSerPublicDatasetPublic, setting);
 
         Assert.True(valueSerPublicDatasetPublic.Data.GetType().Equals(resultSerPublicDatasetPublic.Data.GetType()));
         var valueDataSetPublic = (SerializationTestTypes.SerPublicDatasetPublic)(valueSerPublicDatasetPublic.Data);
@@ -3426,7 +3427,7 @@ public static partial class DataContractSerializerTests
         //SerPublicDatasetPrivate
         string baselineSerPublicDatasetPrivate = @"<ObjectContainer xmlns=""http://schemas.datacontract.org/2004/07/SerializationTestTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><_data i:type=""a:SerializationTestTypes.SerPublicDatasetPrivate***"" xmlns:a=""http://schemas.datacontract.org/2004/07/SerializationTestTypes.SerPublicDatasetPrivate***""><_dataSet><xs:schema id=""MyData"" xmlns:xs=""http://www.w3.org/2001/XMLSchema"" xmlns="""" xmlns:msdata=""urn:schemas-microsoft-com:xml-msdata""><xs:element name=""MyData"" msdata:IsDataSet=""true"" msdata:UseCurrentLocale=""true""><xs:complexType><xs:choice minOccurs=""0"" maxOccurs=""unbounded""><xs:element name=""MyTable""><xs:complexType><xs:sequence><xs:element name=""Data"" type=""xs:string"" minOccurs=""0""/></xs:sequence></xs:complexType></xs:element></xs:choice></xs:complexType></xs:element></xs:schema><diffgr:diffgram xmlns:diffgr=""urn:schemas-microsoft-com:xml-diffgram-v1"" xmlns:msdata=""urn:schemas-microsoft-com:xml-msdata""><MyData xmlns=""""><MyTable diffgr:id=""MyTable1"" msdata:rowOrder=""0"" diffgr:hasChanges=""inserted""><Data>Testing</Data></MyTable></MyData></diffgr:diffgram></_dataSet><dataTable><xs:schema id=""NewDataSet"" xmlns:xs=""http://www.w3.org/2001/XMLSchema"" xmlns="""" xmlns:msdata=""urn:schemas-microsoft-com:xml-msdata""><xs:element name=""NewDataSet"" msdata:IsDataSet=""true"" msdata:MainDataTable=""MyTable"" msdata:UseCurrentLocale=""true""><xs:complexType><xs:choice minOccurs=""0"" maxOccurs=""unbounded""><xs:element name=""MyTable""><xs:complexType><xs:sequence><xs:element name=""Data"" type=""xs:string"" minOccurs=""0""/></xs:sequence></xs:complexType></xs:element></xs:choice></xs:complexType></xs:element></xs:schema><diffgr:diffgram xmlns:diffgr=""urn:schemas-microsoft-com:xml-diffgram-v1"" xmlns:msdata=""urn:schemas-microsoft-com:xml-msdata""><DocumentElement xmlns=""""><MyTable diffgr:id=""MyTable1"" msdata:rowOrder=""0"" diffgr:hasChanges=""inserted""><Data>Testing</Data></MyTable></DocumentElement></diffgr:diffgram></dataTable></_data><_data2 i:type=""a:SerializationTestTypes.SerPublicDatasetPrivate***"" xmlns:a=""http://schemas.datacontract.org/2004/07/SerializationTestTypes.SerPublicDatasetPrivate***""><_dataSet><xs:schema id=""MyData"" xmlns:xs=""http://www.w3.org/2001/XMLSchema"" xmlns="""" xmlns:msdata=""urn:schemas-microsoft-com:xml-msdata""><xs:element name=""MyData"" msdata:IsDataSet=""true"" msdata:UseCurrentLocale=""true""><xs:complexType><xs:choice minOccurs=""0"" maxOccurs=""unbounded""><xs:element name=""MyTable""><xs:complexType><xs:sequence><xs:element name=""Data"" type=""xs:string"" minOccurs=""0""/></xs:sequence></xs:complexType></xs:element></xs:choice></xs:complexType></xs:element></xs:schema><diffgr:diffgram xmlns:diffgr=""urn:schemas-microsoft-com:xml-diffgram-v1"" xmlns:msdata=""urn:schemas-microsoft-com:xml-msdata""><MyData xmlns=""""><MyTable diffgr:id=""MyTable1"" msdata:rowOrder=""0"" diffgr:hasChanges=""inserted""><Data>Testing</Data></MyTable></MyData></diffgr:diffgram></_dataSet><dataTable><xs:schema id=""NewDataSet"" xmlns:xs=""http://www.w3.org/2001/XMLSchema"" xmlns="""" xmlns:msdata=""urn:schemas-microsoft-com:xml-msdata""><xs:element name=""NewDataSet"" msdata:IsDataSet=""true"" msdata:MainDataTable=""MyTable"" msdata:UseCurrentLocale=""true""><xs:complexType><xs:choice minOccurs=""0"" maxOccurs=""unbounded""><xs:element name=""MyTable""><xs:complexType><xs:sequence><xs:element name=""Data"" type=""xs:string"" minOccurs=""0""/></xs:sequence></xs:complexType></xs:element></xs:choice></xs:complexType></xs:element></xs:schema><diffgr:diffgram xmlns:diffgr=""urn:schemas-microsoft-com:xml-diffgram-v1"" xmlns:msdata=""urn:schemas-microsoft-com:xml-msdata""><DocumentElement xmlns=""""><MyTable diffgr:id=""MyTable1"" msdata:rowOrder=""0"" diffgr:hasChanges=""inserted""><Data>Testing</Data></MyTable></DocumentElement></diffgr:diffgram></dataTable></_data2></ObjectContainer>";
         var valueSerPublicDatasetPrivate = new SerializationTestTypes.ObjectContainer(new SerializationTestTypes.SerPublicDatasetPrivate(true));
-        var resultSerPublicDatasetPrivate = SerializeAndDeserialize(valueSerPublicDatasetPrivate, baselineSerPublicDatasetPrivate, setting);
+        var resultSerPublicDatasetPrivate = DataContractSerializerHelper.SerializeAndDeserialize(valueSerPublicDatasetPrivate, baselineSerPublicDatasetPrivate, setting);
 
         Assert.True(valueSerPublicDatasetPrivate.Data.GetType().Equals(resultSerPublicDatasetPrivate.Data.GetType()));
         var valueDataSetPrivate = (SerializationTestTypes.SerPublicDatasetPrivate)(valueSerPublicDatasetPrivate.Data);
@@ -3437,8 +3438,7 @@ public static partial class DataContractSerializerTests
     }
 
     [Fact]
-    [ActiveIssue(22777, TargetFrameworkMonikers.UapAot)]
-    public static void DCS_BasicPerSerializerRoundTripAndCompare_SampleTypes_FailedInuapaot_InheritedFromIList()
+    public static void DCS_BasicPerSerializerRoundTripAndCompare_TypeInheritedFromIListT()
     {
         string assemblyName = typeof(DataContractSerializerTests).Assembly.FullName;
 
@@ -3452,8 +3452,7 @@ public static partial class DataContractSerializerTests
     }
 
     [Fact]
-    [ActiveIssue(22778, TargetFrameworkMonikers.UapAot)]
-    public static void DCS_BasicPerSerializerRoundTripAndCompare_SampleTypes_FailedInuapaot_InheritedFromIList_CanPassInReflectionOnly()
+    public static void DCS_BasicPerSerializerRoundTripAndCompare_InheritedFromIList()
     {
         TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.SampleListExplicitWithoutDC(true), @"<ObjectContainer xmlns=""http://schemas.datacontract.org/2004/07/SerializationTestTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><_data i:type=""a:SerializationTestTypes.SampleListExplicitWithoutDC***"" xmlns:a=""http://schemas.datacontract.org/2004/07/SerializationTestTypes.SampleListExplicitWithoutDC***""><anyType i:type=""b:dateTime"" xmlns:b=""http://www.w3.org/2001/XMLSchema"">0001-01-01T00:00:00</anyType><anyType i:type=""b:duration"" xmlns:b=""http://schemas.microsoft.com/2003/10/Serialization/"">P10675199DT2H48M5.4775807S</anyType><anyType i:type=""b:string"" xmlns:b=""http://www.w3.org/2001/XMLSchema""/><anyType i:type=""b:double"" xmlns:b=""http://www.w3.org/2001/XMLSchema"">1.7976931348623157E+308</anyType><anyType i:type=""b:double"" xmlns:b=""http://www.w3.org/2001/XMLSchema"">-INF</anyType><anyType i:type=""b:guid"" xmlns:b=""http://schemas.microsoft.com/2003/10/Serialization/"">0c9e174e-cdd8-4b68-a70d-aaeb26c7deeb</anyType></_data><_data2 i:type=""a:SerializationTestTypes.SampleListExplicitWithoutDC***"" xmlns:a=""http://schemas.datacontract.org/2004/07/SerializationTestTypes.SampleListExplicitWithoutDC***""><anyType i:type=""b:dateTime"" xmlns:b=""http://www.w3.org/2001/XMLSchema"">0001-01-01T00:00:00</anyType><anyType i:type=""b:duration"" xmlns:b=""http://schemas.microsoft.com/2003/10/Serialization/"">P10675199DT2H48M5.4775807S</anyType><anyType i:type=""b:string"" xmlns:b=""http://www.w3.org/2001/XMLSchema""/><anyType i:type=""b:double"" xmlns:b=""http://www.w3.org/2001/XMLSchema"">1.7976931348623157E+308</anyType><anyType i:type=""b:double"" xmlns:b=""http://www.w3.org/2001/XMLSchema"">-INF</anyType><anyType i:type=""b:guid"" xmlns:b=""http://schemas.microsoft.com/2003/10/Serialization/"">0c9e174e-cdd8-4b68-a70d-aaeb26c7deeb</anyType></_data2></ObjectContainer>");
 
@@ -3479,12 +3478,12 @@ public static partial class DataContractSerializerTests
         string netcorePayloadSampleICollectionTExplicitWithoutDC = @"<ObjectContainer xmlns=""http://schemas.datacontract.org/2004/07/SerializationTestTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><_data i:type=""a:SerializationTestTypes.SampleICollectionTExplicitWithoutDC***"" xmlns:a=""http://schemas.datacontract.org/2004/07/SerializationTestTypes.SampleICollectionTExplicitWithoutDC***""><DC z:Id=""i1"" xmlns:z=""http://schemas.microsoft.com/2003/10/Serialization/""><Data>TestData</Data><Next i:nil=""true""/></DC><DC z:Id=""i2"" xmlns:z=""http://schemas.microsoft.com/2003/10/Serialization/""><Data>TestData</Data><Next i:nil=""true""/></DC><DC z:Ref=""i1"" xmlns:z=""http://schemas.microsoft.com/2003/10/Serialization/""/></_data><_data2 i:type=""a:SerializationTestTypes.SampleICollectionTExplicitWithoutDC***"" xmlns:a=""http://schemas.datacontract.org/2004/07/SerializationTestTypes.SampleICollectionTExplicitWithoutDC***""><DC z:Ref=""i1"" xmlns:z=""http://schemas.microsoft.com/2003/10/Serialization/""/><DC z:Ref=""i2"" xmlns:z=""http://schemas.microsoft.com/2003/10/Serialization/""/><DC z:Ref=""i1"" xmlns:z=""http://schemas.microsoft.com/2003/10/Serialization/""/></_data2></ObjectContainer>";
         string desktopPayloadSampleICollectionTExplicitWithoutDC = @"<ObjectContainer xmlns=""http://schemas.datacontract.org/2004/07/SerializationTestTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><_data i:type=""a:SerializationTestTypes.SampleICollectionTExplicitWithoutDC***"" xmlns:a=""http://schemas.datacontract.org/2004/07/SerializationTestTypes.SampleICollectionTExplicitWithoutDC***""><DC z:Id=""i1"" i:type=""b:SerializationTestTypes.DC***"" xmlns:z=""http://schemas.microsoft.com/2003/10/Serialization/"" xmlns:b=""http://schemas.datacontract.org/2004/07/SerializationTestTypes.DC***""><Data>TestData</Data><Next i:nil=""true""/></DC><DC z:Id=""i2"" i:type=""b:SerializationTestTypes.DC***"" xmlns:z=""http://schemas.microsoft.com/2003/10/Serialization/"" xmlns:b=""http://schemas.datacontract.org/2004/07/SerializationTestTypes.DC***""><Data>TestData</Data><Next i:nil=""true""/></DC><DC z:Ref=""i1"" xmlns:z=""http://schemas.microsoft.com/2003/10/Serialization/""/></_data><_data2 i:type=""a:SerializationTestTypes.SampleICollectionTExplicitWithoutDC***"" xmlns:a=""http://schemas.datacontract.org/2004/07/SerializationTestTypes.SampleICollectionTExplicitWithoutDC***""><DC z:Ref=""i1"" xmlns:z=""http://schemas.microsoft.com/2003/10/Serialization/""/><DC z:Ref=""i2"" xmlns:z=""http://schemas.microsoft.com/2003/10/Serialization/""/><DC z:Ref=""i1"" xmlns:z=""http://schemas.microsoft.com/2003/10/Serialization/""/></_data2></ObjectContainer>";
         TestObjectWithDifferentPayload(valueSampleICollectionTExplicitWithoutDC, netcorePayloadSampleICollectionTExplicitWithoutDC, desktopPayloadSampleICollectionTExplicitWithoutDC, setting);
-        
+
         var valueSampleICollectionTExplicitWithCDC = new SerializationTestTypes.ObjectContainer(new SerializationTestTypes.SampleICollectionTExplicitWithCDC(true));
         string netcorePayloadSampleICollectionTExplicitWithCDC = @"<ObjectContainer xmlns=""http://schemas.datacontract.org/2004/07/SerializationTestTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><_data z:Id=""i1"" i:type=""a:SerializationTestTypes.SampleICollectionTExplicitWithCDC***"" xmlns:z=""http://schemas.microsoft.com/2003/10/Serialization/"" xmlns:a=""http://schemas.datacontract.org/2004/07/SerializationTestTypes.SampleICollectionTExplicitWithCDC***""><Item z:Id=""i2"" xmlns=""Test""><Data xmlns=""http://schemas.datacontract.org/2004/07/SerializationTestTypes"">TestData</Data><Next i:nil=""true"" xmlns=""http://schemas.datacontract.org/2004/07/SerializationTestTypes""/></Item><Item z:Id=""i3"" xmlns=""Test""><Data xmlns=""http://schemas.datacontract.org/2004/07/SerializationTestTypes"">TestData</Data><Next i:nil=""true"" xmlns=""http://schemas.datacontract.org/2004/07/SerializationTestTypes""/></Item><Item z:Ref=""i2"" xmlns=""Test""/></_data><_data2 z:Ref=""i1"" xmlns:z=""http://schemas.microsoft.com/2003/10/Serialization/""/></ObjectContainer>";
         string desktopPayloadSampleICollectionTExplicitWithCDC = @"<ObjectContainer xmlns=""http://schemas.datacontract.org/2004/07/SerializationTestTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><_data z:Id=""i1"" i:type=""a:SerializationTestTypes.SampleICollectionTExplicitWithCDC***"" xmlns:z=""http://schemas.microsoft.com/2003/10/Serialization/"" xmlns:a=""http://schemas.datacontract.org/2004/07/SerializationTestTypes.SampleICollectionTExplicitWithCDC***""><Item z:Id=""i2"" i:type=""b:SerializationTestTypes.DC***"" xmlns=""Test"" xmlns:b=""http://schemas.datacontract.org/2004/07/SerializationTestTypes.DC***""><Data xmlns=""http://schemas.datacontract.org/2004/07/SerializationTestTypes"">TestData</Data><Next i:nil=""true"" xmlns=""http://schemas.datacontract.org/2004/07/SerializationTestTypes""/></Item><Item z:Id=""i3"" i:type=""b:SerializationTestTypes.DC***"" xmlns=""Test"" xmlns:b=""http://schemas.datacontract.org/2004/07/SerializationTestTypes.DC***""><Data xmlns=""http://schemas.datacontract.org/2004/07/SerializationTestTypes"">TestData</Data><Next i:nil=""true"" xmlns=""http://schemas.datacontract.org/2004/07/SerializationTestTypes""/></Item><Item z:Ref=""i2"" xmlns=""Test""/></_data><_data2 z:Ref=""i1"" xmlns:z=""http://schemas.microsoft.com/2003/10/Serialization/""/></ObjectContainer>";
         TestObjectWithDifferentPayload(valueSampleICollectionTExplicitWithCDC, netcorePayloadSampleICollectionTExplicitWithCDC, desktopPayloadSampleICollectionTExplicitWithCDC, setting);
-        
+
         var valueSampleICollectionTExplicitWithCDCContainsPrivateDC = new SerializationTestTypes.ObjectContainer(new SerializationTestTypes.SampleICollectionTExplicitWithCDCContainsPrivateDC(true));
         string netcorePayloadSampleICollectionTExplicitWithCDCContainsPrivateDC = @"<ObjectContainer xmlns=""http://schemas.datacontract.org/2004/07/SerializationTestTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><_data z:Id=""i1"" i:type=""a:SerializationTestTypes.SampleICollectionTExplicitWithCDCContainsPrivateDC***"" xmlns:z=""http://schemas.microsoft.com/2003/10/Serialization/"" xmlns:a=""http://schemas.datacontract.org/2004/07/SerializationTestTypes.SampleICollectionTExplicitWithCDCContainsPrivateDC***""><Item z:Id=""i2"" xmlns=""Test""><Data xmlns=""http://schemas.datacontract.org/2004/07/SerializationTestTypes"">7b4ac88f-972b-43e5-8f6a-5ae64480eaad</Data></Item><Item z:Id=""i3"" xmlns=""Test""><Data xmlns=""http://schemas.datacontract.org/2004/07/SerializationTestTypes"">7b4ac88f-972b-43e5-8f6a-5ae64480eaad</Data></Item><Item z:Ref=""i2"" xmlns=""Test""/></_data><_data2 z:Ref=""i1"" xmlns:z=""http://schemas.microsoft.com/2003/10/Serialization/""/></ObjectContainer>";
         string desktopPayloadSampleICollectionTExplicitWithCDCContainsPrivateDC = $@"<ObjectContainer xmlns=""http://schemas.datacontract.org/2004/07/SerializationTestTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><_data z:Id=""i1"" i:type=""a:SerializationTestTypes.SampleICollectionTExplicitWithCDCContainsPrivateDC***"" xmlns:z=""http://schemas.microsoft.com/2003/10/Serialization/"" xmlns:a=""http://schemas.datacontract.org/2004/07/SerializationTestTypes.SampleICollectionTExplicitWithCDCContainsPrivateDC***""><Item z:Id=""i2"" i:type=""b:SerializationTestTypes.PrivateDC"" xmlns=""Test"" xmlns:b=""{assemblyName}""><Data xmlns=""http://schemas.datacontract.org/2004/07/SerializationTestTypes"">7b4ac88f-972b-43e5-8f6a-5ae64480eaad</Data></Item><Item z:Id=""i3"" i:type=""b:SerializationTestTypes.PrivateDC"" xmlns=""Test"" xmlns:b=""{assemblyName}""><Data xmlns=""http://schemas.datacontract.org/2004/07/SerializationTestTypes"">7b4ac88f-972b-43e5-8f6a-5ae64480eaad</Data></Item><Item z:Ref=""i2"" xmlns=""Test""/></_data><_data2 z:Ref=""i1"" xmlns:z=""http://schemas.microsoft.com/2003/10/Serialization/""/></ObjectContainer>";
@@ -3492,7 +3491,7 @@ public static partial class DataContractSerializerTests
     }
 
     /// <summary>
-    /// This case is a part of DCS_BasicPerSerializerRoundTripAndCompare_SampleTypes, but in thease scenarios it was not support in current version.
+    /// This case is a part of DCS_BasicPerSerializerRoundTripAndCompare_SampleTypes, but in these scenarios it was not support in current version.
     /// </summary>
     [Fact]
     [ActiveIssue("Not support")]
@@ -3522,166 +3521,165 @@ public static partial class DataContractSerializerTests
         string assemblyName = typeof(DataContractSerializerTests).Assembly.FullName;
         string corelibAssemblyName = typeof(String).Assembly.FullName;
 
-        TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.ContainsLinkedList(true), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data i:type=\"a:SerializationTestTypes.ContainsLinkedList***\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.ContainsLinkedList***\"><Data><SimpleDCWithRef z:Id=\"i1\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"><Data z:Id=\"i2\"><Data>11:59:59 PM</Data></Data><RefData z:Ref=\"i2\"/></SimpleDCWithRef><SimpleDCWithRef z:Id=\"i3\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"><Data z:Id=\"i4\"><Data>11:59:59 PM</Data></Data><RefData z:Ref=\"i4\"/></SimpleDCWithRef><SimpleDCWithRef z:Ref=\"i3\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"/><SimpleDCWithRef z:Ref=\"i1\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"/><SimpleDCWithRef z:Id=\"i5\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"><Data z:Id=\"i6\"><Data>11:59:59 PM</Data></Data><RefData z:Id=\"i7\"><Data>11:59:59 PM</Data></RefData></SimpleDCWithRef><SimpleDCWithRef z:Id=\"i8\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"><Data z:Ref=\"i6\"/><RefData z:Ref=\"i6\"/></SimpleDCWithRef><SimpleDCWithRef z:Id=\"i9\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"><Data z:Id=\"i10\"><Data>11:59:59 PM</Data></Data><RefData z:Id=\"i11\"><Data>11:59:59 PM</Data></RefData></SimpleDCWithRef></Data></_data><_data2 i:type=\"a:SerializationTestTypes.ContainsLinkedList***\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.ContainsLinkedList***\"><Data><SimpleDCWithRef z:Ref=\"i1\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"/><SimpleDCWithRef z:Ref=\"i3\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"/><SimpleDCWithRef z:Ref=\"i3\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"/><SimpleDCWithRef z:Ref=\"i1\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"/><SimpleDCWithRef z:Ref=\"i5\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"/><SimpleDCWithRef z:Ref=\"i8\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"/><SimpleDCWithRef z:Ref=\"i9\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"/></Data></_data2></ObjectContainer>");
-		
+        TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.ContainsLinkedList(true), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data i:type=\"a:SerializationTestTypes.ContainsLinkedList***\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.ContainsLinkedList***\"><Data><SimpleDCWithRef z:Id=\"i1\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"><Data z:Id=\"i2\"><Data>This is a string</Data></Data><RefData z:Ref=\"i2\"/></SimpleDCWithRef><SimpleDCWithRef z:Id=\"i3\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"><Data z:Id=\"i4\"><Data>This is a string</Data></Data><RefData z:Ref=\"i4\"/></SimpleDCWithRef><SimpleDCWithRef z:Ref=\"i3\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"/><SimpleDCWithRef z:Ref=\"i1\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"/><SimpleDCWithRef z:Id=\"i5\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"><Data z:Id=\"i6\"><Data>This is a string</Data></Data><RefData z:Id=\"i7\"><Data>This is a string</Data></RefData></SimpleDCWithRef><SimpleDCWithRef z:Id=\"i8\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"><Data z:Ref=\"i6\"/><RefData z:Ref=\"i6\"/></SimpleDCWithRef><SimpleDCWithRef z:Id=\"i9\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"><Data z:Id=\"i10\"><Data>This is a string</Data></Data><RefData z:Id=\"i11\"><Data>This is a string</Data></RefData></SimpleDCWithRef></Data></_data><_data2 i:type=\"a:SerializationTestTypes.ContainsLinkedList***\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.ContainsLinkedList***\"><Data><SimpleDCWithRef z:Ref=\"i1\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"/><SimpleDCWithRef z:Ref=\"i3\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"/><SimpleDCWithRef z:Ref=\"i3\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"/><SimpleDCWithRef z:Ref=\"i1\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"/><SimpleDCWithRef z:Ref=\"i5\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"/><SimpleDCWithRef z:Ref=\"i8\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"/><SimpleDCWithRef z:Ref=\"i9\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"/></Data></_data2></ObjectContainer>");
+
         TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.SimpleCDC(true), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data z:Id=\"i1\" i:type=\"a:SerializationTestTypes.SimpleCDC***\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.SimpleCDC***\"><Item>One</Item><Item>Two</Item><Item>two</Item></_data><_data2 z:Ref=\"i1\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"/></ObjectContainer>");
 
         TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.SimpleCDC2(true), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data z:Id=\"i1\" i:type=\"a:SerializationTestTypes.SimpleCDC2***\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.SimpleCDC2***\"><Item>One</Item><Item>Two</Item><Item>two</Item></_data><_data2 z:Ref=\"i1\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"/></ObjectContainer>");
 
         TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.ContainsSimpleCDC(true), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data z:Id=\"i1\" i:type=\"a:SerializationTestTypes.ContainsSimpleCDC***\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.ContainsSimpleCDC***\"><data1 z:Id=\"i2\"><Item>One</Item><Item>Two</Item><Item>two</Item></data1><data2 z:Id=\"i3\"><Item>One</Item><Item>Two</Item><Item>two</Item></data2></_data><_data2 z:Ref=\"i1\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"/></ObjectContainer>");
 
-        TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.DMInCollection1(true), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data z:Id=\"i1\" i:type=\"a:SerializationTestTypes.DMInCollection1***\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.DMInCollection1***\"><Data1 z:Id=\"i2\"><Data>11:59:59 PM</Data></Data1><List1><SimpleDC z:Ref=\"i2\"/><SimpleDC z:Id=\"i3\"><Data>11:59:59 PM</Data></SimpleDC><SimpleDC z:Ref=\"i3\"/></List1></_data><_data2 z:Ref=\"i1\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"/></ObjectContainer>");
+        TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.DMInCollection1(true), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data z:Id=\"i1\" i:type=\"a:SerializationTestTypes.DMInCollection1***\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.DMInCollection1***\"><Data1 z:Id=\"i2\"><Data>This is a string</Data></Data1><List1><SimpleDC z:Ref=\"i2\"/><SimpleDC z:Id=\"i3\"><Data>This is a string</Data></SimpleDC><SimpleDC z:Ref=\"i3\"/></List1></_data><_data2 z:Ref=\"i1\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"/></ObjectContainer>");
 
-        TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.DMWithRefInCollection1(true), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data z:Id=\"i1\" i:type=\"a:SerializationTestTypes.DMWithRefInCollection1***\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.DMWithRefInCollection1***\"><Data1 z:Id=\"i2\"><Data>11:59:59 PM</Data><RefData>11:59:59 PM</RefData></Data1><InnerData1>a6d053ed-f7d4-42fb-8e56-e4b425f26fa9</InnerData1><List1><SimpleDCWithSimpleDMRef z:Ref=\"i2\"/><SimpleDCWithSimpleDMRef z:Id=\"i3\"><Data>a6d053ed-f7d4-42fb-8e56-e4b425f26fa9</Data><RefData>11:59:59 PM</RefData></SimpleDCWithSimpleDMRef><SimpleDCWithSimpleDMRef z:Ref=\"i3\"/></List1></_data><_data2 z:Ref=\"i1\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"/></ObjectContainer>");
+        TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.DMWithRefInCollection1(true), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data z:Id=\"i1\" i:type=\"a:SerializationTestTypes.DMWithRefInCollection1***\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.DMWithRefInCollection1***\"><Data1 z:Id=\"i2\"><Data>This is a string</Data><RefData>This is a string</RefData></Data1><InnerData1>a6d053ed-f7d4-42fb-8e56-e4b425f26fa9</InnerData1><List1><SimpleDCWithSimpleDMRef z:Ref=\"i2\"/><SimpleDCWithSimpleDMRef z:Id=\"i3\"><Data>a6d053ed-f7d4-42fb-8e56-e4b425f26fa9</Data><RefData>This is a string</RefData></SimpleDCWithSimpleDMRef><SimpleDCWithSimpleDMRef z:Ref=\"i3\"/></List1></_data><_data2 z:Ref=\"i1\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"/></ObjectContainer>");
     }
 
     [Fact]
-    [ActiveIssue(22779, TargetFrameworkMonikers.UapAot)]
-    public static void DCS_BasicPerSerializerRoundTripAndCompare_Collections_FailedInuapaot_InCollections()
+    public static void DCS_BasicPerSerializerRoundTripAndCompare_CollectionDataContract()
     {
         string assemblyName = typeof(DataContractSerializerTests).Assembly.FullName;
         string corelibAssemblyName = typeof(String).Assembly.FullName;
 
-        TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.DMInCollection2(true), $"<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data z:Id=\"i1\" i:type=\"a:SerializationTestTypes.DMInCollection2***\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.DMInCollection2***\"><Data z:Id=\"i2\"><Data>11:59:59 PM</Data></Data><InnerContent>11:59:59 PM</InnerContent><InnerInnerContent>11:59:59 PM</InnerInnerContent><List1><SimpleDC z:Ref=\"i2\"/><SimpleDC z:Id=\"i3\"><Data>11:59:59 PM</Data></SimpleDC><SimpleDC z:Id=\"i4\"><Data>11:59:59 PM</Data></SimpleDC><SimpleDC z:Id=\"i5\"><Data>11:59:59 PM</Data></SimpleDC><SimpleDC z:Id=\"i6\"><Data>11:59:59 PM</Data></SimpleDC></List1><List2 i:type=\"b:System.Collections.Generic.List`1[[SerializationTestTypes.SimpleDC, {assemblyName}]]\" xmlns:b=\"{corelibAssemblyName}\"><SimpleDC z:Ref=\"i2\"/><SimpleDC z:Ref=\"i6\"/></List2><List3 i:type=\"b:System.Collections.Generic.List`1[[SerializationTestTypes.SimpleDC, {assemblyName}]]\" xmlns:b=\"{corelibAssemblyName}\"><SimpleDC z:Ref=\"i2\"/><SimpleDC z:Ref=\"i3\"/><SimpleDC z:Ref=\"i4\"/><SimpleDC z:Ref=\"i5\"/><SimpleDC z:Ref=\"i6\"/></List3><List4 i:type=\"b:System.Collections.Generic.List`1[[SerializationTestTypes.SimpleDC, {assemblyName}]]\" xmlns:b=\"{corelibAssemblyName}\"><SimpleDC z:Ref=\"i2\"/><SimpleDC z:Ref=\"i6\"/></List4></_data><_data2 z:Ref=\"i1\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"/></ObjectContainer>");
+        TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.DMInCollection2(true), $"<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data z:Id=\"i1\" i:type=\"a:SerializationTestTypes.DMInCollection2***\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.DMInCollection2***\"><Data z:Id=\"i2\"><Data>This is a string</Data></Data><InnerContent>This is a string</InnerContent><InnerInnerContent>This is a string</InnerInnerContent><List1><SimpleDC z:Ref=\"i2\"/><SimpleDC z:Id=\"i3\"><Data>This is a string</Data></SimpleDC><SimpleDC z:Id=\"i4\"><Data>This is a string</Data></SimpleDC><SimpleDC z:Id=\"i5\"><Data>This is a string</Data></SimpleDC><SimpleDC z:Id=\"i6\"><Data>This is a string</Data></SimpleDC></List1><List2 i:type=\"b:System.Collections.Generic.List`1[[SerializationTestTypes.SimpleDC, {assemblyName}]]\" xmlns:b=\"{corelibAssemblyName}\"><SimpleDC z:Ref=\"i2\"/><SimpleDC z:Ref=\"i6\"/></List2><List3 i:type=\"b:System.Collections.Generic.List`1[[SerializationTestTypes.SimpleDC, {assemblyName}]]\" xmlns:b=\"{corelibAssemblyName}\"><SimpleDC z:Ref=\"i2\"/><SimpleDC z:Ref=\"i3\"/><SimpleDC z:Ref=\"i4\"/><SimpleDC z:Ref=\"i5\"/><SimpleDC z:Ref=\"i6\"/></List3><List4 i:type=\"b:System.Collections.Generic.List`1[[SerializationTestTypes.SimpleDC, {assemblyName}]]\" xmlns:b=\"{corelibAssemblyName}\"><SimpleDC z:Ref=\"i2\"/><SimpleDC z:Ref=\"i6\"/></List4></_data><_data2 z:Ref=\"i1\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"/></ObjectContainer>");
 
-        TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.DMInDict1(true), $"<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data z:Id=\"i1\" i:type=\"a:SerializationTestTypes.DMInDict1***\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.DMInDict1***\"><Data1 z:Id=\"i2\"><Data>11:59:59 PM</Data></Data1><Data2 z:Id=\"i3\"><Data>11:59:59 PM</Data></Data2><Dict1 xmlns:b=\"http://schemas.microsoft.com/2003/10/Serialization/Arrays\"><b:KeyValueOfSimpleDCSimpleDCzETuxydO><b:Key z:Id=\"i4\"><Data>11:59:59 PM</Data></b:Key><b:Value z:Id=\"i5\"><Data>cd4f6d1f-db5e-49c9-bb43-13e73508a549</Data></b:Value></b:KeyValueOfSimpleDCSimpleDCzETuxydO><b:KeyValueOfSimpleDCSimpleDCzETuxydO><b:Key z:Ref=\"i2\"/><b:Value z:Ref=\"i3\"/></b:KeyValueOfSimpleDCSimpleDCzETuxydO><b:KeyValueOfSimpleDCSimpleDCzETuxydO><b:Key z:Id=\"i6\"><Data>11:59:59 PM</Data></b:Key><b:Value z:Ref=\"i5\"/></b:KeyValueOfSimpleDCSimpleDCzETuxydO><b:KeyValueOfSimpleDCSimpleDCzETuxydO><b:Key z:Ref=\"i5\"/><b:Value z:Id=\"i7\"><Data>11:59:59 PM</Data></b:Value></b:KeyValueOfSimpleDCSimpleDCzETuxydO></Dict1><Dict2 i:type=\"c:System.Collections.Generic.Dictionary`2[[SerializationTestTypes.SimpleDC, {assemblyName}],[SerializationTestTypes.SimpleDC, {assemblyName}]]\" xmlns:b=\"http://schemas.microsoft.com/2003/10/Serialization/Arrays\" xmlns:c=\"{corelibAssemblyName}\"><b:KeyValueOfSimpleDCSimpleDCzETuxydO><b:Key z:Ref=\"i4\"/><b:Value z:Ref=\"i5\"/></b:KeyValueOfSimpleDCSimpleDCzETuxydO><b:KeyValueOfSimpleDCSimpleDCzETuxydO><b:Key z:Ref=\"i2\"/><b:Value z:Ref=\"i3\"/></b:KeyValueOfSimpleDCSimpleDCzETuxydO><b:KeyValueOfSimpleDCSimpleDCzETuxydO><b:Key z:Ref=\"i6\"/><b:Value z:Ref=\"i5\"/></b:KeyValueOfSimpleDCSimpleDCzETuxydO><b:KeyValueOfSimpleDCSimpleDCzETuxydO><b:Key z:Ref=\"i5\"/><b:Value z:Ref=\"i7\"/></b:KeyValueOfSimpleDCSimpleDCzETuxydO></Dict2><InnerData1>11:59:59 PM</InnerData1><InnerInnerData1>cd4f6d1f-db5e-49c9-bb43-13e73508a549</InnerInnerData1><Kvp1 xmlns:b=\"http://schemas.datacontract.org/2004/07/System.Collections.Generic\"><b:key z:Ref=\"i5\"/><b:value z:Ref=\"i7\"/></Kvp1></_data><_data2 z:Ref=\"i1\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"/></ObjectContainer>");
+        TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.DMInDict1(true), $"<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data z:Id=\"i1\" i:type=\"a:SerializationTestTypes.DMInDict1***\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.DMInDict1***\"><Data1 z:Id=\"i2\"><Data>This is a string</Data></Data1><Data2 z:Id=\"i3\"><Data>This is a string</Data></Data2><Dict1 xmlns:b=\"http://schemas.microsoft.com/2003/10/Serialization/Arrays\"><b:KeyValueOfSimpleDCSimpleDCzETuxydO><b:Key z:Id=\"i4\"><Data>This is a string</Data></b:Key><b:Value z:Id=\"i5\"><Data>cd4f6d1f-db5e-49c9-bb43-13e73508a549</Data></b:Value></b:KeyValueOfSimpleDCSimpleDCzETuxydO><b:KeyValueOfSimpleDCSimpleDCzETuxydO><b:Key z:Ref=\"i2\"/><b:Value z:Ref=\"i3\"/></b:KeyValueOfSimpleDCSimpleDCzETuxydO><b:KeyValueOfSimpleDCSimpleDCzETuxydO><b:Key z:Id=\"i6\"><Data>This is a string</Data></b:Key><b:Value z:Ref=\"i5\"/></b:KeyValueOfSimpleDCSimpleDCzETuxydO><b:KeyValueOfSimpleDCSimpleDCzETuxydO><b:Key z:Ref=\"i5\"/><b:Value z:Id=\"i7\"><Data>This is a string</Data></b:Value></b:KeyValueOfSimpleDCSimpleDCzETuxydO></Dict1><Dict2 i:type=\"c:System.Collections.Generic.Dictionary`2[[SerializationTestTypes.SimpleDC, {assemblyName}],[SerializationTestTypes.SimpleDC, {assemblyName}]]\" xmlns:b=\"http://schemas.microsoft.com/2003/10/Serialization/Arrays\" xmlns:c=\"{corelibAssemblyName}\"><b:KeyValueOfSimpleDCSimpleDCzETuxydO><b:Key z:Ref=\"i4\"/><b:Value z:Ref=\"i5\"/></b:KeyValueOfSimpleDCSimpleDCzETuxydO><b:KeyValueOfSimpleDCSimpleDCzETuxydO><b:Key z:Ref=\"i2\"/><b:Value z:Ref=\"i3\"/></b:KeyValueOfSimpleDCSimpleDCzETuxydO><b:KeyValueOfSimpleDCSimpleDCzETuxydO><b:Key z:Ref=\"i6\"/><b:Value z:Ref=\"i5\"/></b:KeyValueOfSimpleDCSimpleDCzETuxydO><b:KeyValueOfSimpleDCSimpleDCzETuxydO><b:Key z:Ref=\"i5\"/><b:Value z:Ref=\"i7\"/></b:KeyValueOfSimpleDCSimpleDCzETuxydO></Dict2><InnerData1>This is a string</InnerData1><InnerInnerData1>cd4f6d1f-db5e-49c9-bb43-13e73508a549</InnerInnerData1><Kvp1 xmlns:b=\"http://schemas.datacontract.org/2004/07/System.Collections.Generic\"><b:key z:Ref=\"i5\"/><b:value z:Ref=\"i7\"/></Kvp1></_data><_data2 z:Ref=\"i1\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"/></ObjectContainer>");
 
-        TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.DMWithRefInCollection2(true), $"<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data z:Id=\"i1\" i:type=\"a:SerializationTestTypes.DMWithRefInCollection2***\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.DMWithRefInCollection2***\"><Data z:Id=\"i2\"><Data>11:59:59 PM</Data></Data><InnerContent>11:59:59 PM</InnerContent><InnerInnerContent>11:59:59 PM</InnerInnerContent><List1><SimpleDCWithRef z:Id=\"i3\"><Data z:Ref=\"i2\"/><RefData z:Ref=\"i2\"/></SimpleDCWithRef><SimpleDCWithRef z:Id=\"i4\"><Data z:Id=\"i5\"><Data>11:59:59 PM</Data></Data><RefData z:Ref=\"i5\"/></SimpleDCWithRef><SimpleDCWithRef z:Id=\"i6\"><Data z:Id=\"i7\"><Data>11:59:59 PM</Data></Data><RefData z:Ref=\"i7\"/></SimpleDCWithRef><SimpleDCWithRef z:Id=\"i8\"><Data z:Id=\"i9\"><Data>11:59:59 PM</Data></Data><RefData z:Ref=\"i9\"/></SimpleDCWithRef><SimpleDCWithRef z:Id=\"i10\"><Data z:Id=\"i11\"><Data>11:59:59 PM</Data></Data><RefData z:Ref=\"i11\"/></SimpleDCWithRef></List1><List2 i:type=\"b:System.Collections.Generic.List`1[[SerializationTestTypes.SimpleDCWithRef, {assemblyName}]]\" xmlns:b=\"{corelibAssemblyName}\"><SimpleDCWithRef z:Ref=\"i3\"/><SimpleDCWithRef z:Ref=\"i10\"/></List2><List3 i:type=\"b:System.Collections.Generic.List`1[[SerializationTestTypes.SimpleDCWithRef, {assemblyName}]]\" xmlns:b=\"{corelibAssemblyName}\"><SimpleDCWithRef z:Ref=\"i3\"/><SimpleDCWithRef z:Ref=\"i4\"/><SimpleDCWithRef z:Ref=\"i6\"/><SimpleDCWithRef z:Ref=\"i8\"/><SimpleDCWithRef z:Ref=\"i10\"/></List3><List4 i:type=\"b:System.Collections.Generic.List`1[[SerializationTestTypes.SimpleDCWithRef, {assemblyName}]]\" xmlns:b=\"{corelibAssemblyName}\"><SimpleDCWithRef z:Ref=\"i3\"/><SimpleDCWithRef z:Ref=\"i10\"/></List4><List5><SimpleDC z:Ref=\"i2\"/><SimpleDC z:Id=\"i12\"><Data>11:59:59 PM</Data></SimpleDC><SimpleDC z:Ref=\"i2\"/></List5><List6 xmlns:b=\"http://schemas.microsoft.com/2003/10/Serialization/Arrays\"><b:anyType z:Id=\"i13\" i:type=\"c:SerializationTestTypes.SimpleDC***\" xmlns:c=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.SimpleDC***\"><Data>11:59:59 PM</Data></b:anyType><b:anyType z:Id=\"i14\" i:type=\"c:SerializationTestTypes.SimpleDCWithRef***\" xmlns:c=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.SimpleDCWithRef***\"><Data z:Id=\"i15\"><Data>11:59:59 PM</Data></Data><RefData z:Ref=\"i15\"/></b:anyType><b:anyType z:Id=\"i16\" i:type=\"c:SerializationTestTypes.SimpleDCWithSimpleDMRef***\" xmlns:c=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.SimpleDCWithSimpleDMRef***\"><Data>11:59:59 PM</Data><RefData>11:59:59 PM</RefData></b:anyType><b:anyType i:type=\"ArrayOfSimpleDC\"/><b:anyType i:type=\"ArrayOfSimpleDCWithRef\"/><b:anyType i:type=\"ArrayOfSimpleDCWithSimpleDMRef\"/><b:anyType i:type=\"ArrayOfSimpleDCWithRef\"><SimpleDCWithRef z:Ref=\"i3\"/><SimpleDCWithRef z:Ref=\"i4\"/><SimpleDCWithRef z:Ref=\"i6\"/><SimpleDCWithRef z:Ref=\"i8\"/><SimpleDCWithRef z:Ref=\"i10\"/></b:anyType><b:anyType i:type=\"ArrayOfSimpleDCWithRef\"><SimpleDCWithRef z:Ref=\"i3\"/><SimpleDCWithRef z:Ref=\"i10\"/></b:anyType><b:anyType i:type=\"ArrayOfSimpleDCWithRef\"><SimpleDCWithRef z:Ref=\"i3\"/><SimpleDCWithRef z:Ref=\"i4\"/><SimpleDCWithRef z:Ref=\"i6\"/><SimpleDCWithRef z:Ref=\"i8\"/><SimpleDCWithRef z:Ref=\"i10\"/></b:anyType><b:anyType i:type=\"ArrayOfSimpleDCWithRef\"><SimpleDCWithRef z:Ref=\"i3\"/><SimpleDCWithRef z:Ref=\"i10\"/></b:anyType><b:anyType i:type=\"ArrayOfSimpleDC\"><SimpleDC z:Ref=\"i2\"/><SimpleDC z:Ref=\"i12\"/><SimpleDC z:Ref=\"i2\"/></b:anyType><b:anyType z:Ref=\"i2\"/><b:anyType i:type=\"c:string\" xmlns:c=\"http://www.w3.org/2001/XMLSchema\">11:59:59 PM</b:anyType><b:anyType i:type=\"c:string\" xmlns:c=\"http://www.w3.org/2001/XMLSchema\">11:59:59 PM</b:anyType></List6></_data><_data2 z:Ref=\"i1\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"/></ObjectContainer>");
+        TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.DMWithRefInCollection2(true), $"<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data z:Id=\"i1\" i:type=\"a:SerializationTestTypes.DMWithRefInCollection2***\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.DMWithRefInCollection2***\"><Data z:Id=\"i2\"><Data>This is a string</Data></Data><InnerContent>This is a string</InnerContent><InnerInnerContent>This is a string</InnerInnerContent><List1><SimpleDCWithRef z:Id=\"i3\"><Data z:Ref=\"i2\"/><RefData z:Ref=\"i2\"/></SimpleDCWithRef><SimpleDCWithRef z:Id=\"i4\"><Data z:Id=\"i5\"><Data>This is a string</Data></Data><RefData z:Ref=\"i5\"/></SimpleDCWithRef><SimpleDCWithRef z:Id=\"i6\"><Data z:Id=\"i7\"><Data>This is a string</Data></Data><RefData z:Ref=\"i7\"/></SimpleDCWithRef><SimpleDCWithRef z:Id=\"i8\"><Data z:Id=\"i9\"><Data>This is a string</Data></Data><RefData z:Ref=\"i9\"/></SimpleDCWithRef><SimpleDCWithRef z:Id=\"i10\"><Data z:Id=\"i11\"><Data>This is a string</Data></Data><RefData z:Ref=\"i11\"/></SimpleDCWithRef></List1><List2 i:type=\"b:System.Collections.Generic.List`1[[SerializationTestTypes.SimpleDCWithRef, {assemblyName}]]\" xmlns:b=\"{corelibAssemblyName}\"><SimpleDCWithRef z:Ref=\"i3\"/><SimpleDCWithRef z:Ref=\"i10\"/></List2><List3 i:type=\"b:System.Collections.Generic.List`1[[SerializationTestTypes.SimpleDCWithRef, {assemblyName}]]\" xmlns:b=\"{corelibAssemblyName}\"><SimpleDCWithRef z:Ref=\"i3\"/><SimpleDCWithRef z:Ref=\"i4\"/><SimpleDCWithRef z:Ref=\"i6\"/><SimpleDCWithRef z:Ref=\"i8\"/><SimpleDCWithRef z:Ref=\"i10\"/></List3><List4 i:type=\"b:System.Collections.Generic.List`1[[SerializationTestTypes.SimpleDCWithRef, {assemblyName}]]\" xmlns:b=\"{corelibAssemblyName}\"><SimpleDCWithRef z:Ref=\"i3\"/><SimpleDCWithRef z:Ref=\"i10\"/></List4><List5><SimpleDC z:Ref=\"i2\"/><SimpleDC z:Id=\"i12\"><Data>This is a string</Data></SimpleDC><SimpleDC z:Ref=\"i2\"/></List5><List6 xmlns:b=\"http://schemas.microsoft.com/2003/10/Serialization/Arrays\"><b:anyType z:Id=\"i13\" i:type=\"c:SerializationTestTypes.SimpleDC***\" xmlns:c=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.SimpleDC***\"><Data>This is a string</Data></b:anyType><b:anyType z:Id=\"i14\" i:type=\"c:SerializationTestTypes.SimpleDCWithRef***\" xmlns:c=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.SimpleDCWithRef***\"><Data z:Id=\"i15\"><Data>This is a string</Data></Data><RefData z:Ref=\"i15\"/></b:anyType><b:anyType z:Id=\"i16\" i:type=\"c:SerializationTestTypes.SimpleDCWithSimpleDMRef***\" xmlns:c=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.SimpleDCWithSimpleDMRef***\"><Data>This is a string</Data><RefData>This is a string</RefData></b:anyType><b:anyType i:type=\"ArrayOfSimpleDC\"/><b:anyType i:type=\"ArrayOfSimpleDCWithRef\"/><b:anyType i:type=\"ArrayOfSimpleDCWithSimpleDMRef\"/><b:anyType i:type=\"ArrayOfSimpleDCWithRef\"><SimpleDCWithRef z:Ref=\"i3\"/><SimpleDCWithRef z:Ref=\"i4\"/><SimpleDCWithRef z:Ref=\"i6\"/><SimpleDCWithRef z:Ref=\"i8\"/><SimpleDCWithRef z:Ref=\"i10\"/></b:anyType><b:anyType i:type=\"ArrayOfSimpleDCWithRef\"><SimpleDCWithRef z:Ref=\"i3\"/><SimpleDCWithRef z:Ref=\"i10\"/></b:anyType><b:anyType i:type=\"ArrayOfSimpleDCWithRef\"><SimpleDCWithRef z:Ref=\"i3\"/><SimpleDCWithRef z:Ref=\"i4\"/><SimpleDCWithRef z:Ref=\"i6\"/><SimpleDCWithRef z:Ref=\"i8\"/><SimpleDCWithRef z:Ref=\"i10\"/></b:anyType><b:anyType i:type=\"ArrayOfSimpleDCWithRef\"><SimpleDCWithRef z:Ref=\"i3\"/><SimpleDCWithRef z:Ref=\"i10\"/></b:anyType><b:anyType i:type=\"ArrayOfSimpleDC\"><SimpleDC z:Ref=\"i2\"/><SimpleDC z:Ref=\"i12\"/><SimpleDC z:Ref=\"i2\"/></b:anyType><b:anyType z:Ref=\"i2\"/><b:anyType i:type=\"c:string\" xmlns:c=\"http://www.w3.org/2001/XMLSchema\">This is a string</b:anyType><b:anyType i:type=\"c:string\" xmlns:c=\"http://www.w3.org/2001/XMLSchema\">This is a string</b:anyType></List6></_data><_data2 z:Ref=\"i1\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"/></ObjectContainer>");
 
-        TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.DMWithRefInDict1(true), $"<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data z:Id=\"i1\" i:type=\"a:SerializationTestTypes.DMWithRefInDict1***\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.DMWithRefInDict1***\"><Data1 z:Id=\"i2\"><Data z:Id=\"i3\"><Data>11:59:59 PM</Data></Data><RefData z:Ref=\"i3\"/></Data1><Data2 z:Id=\"i4\"><Data z:Id=\"i5\"><Data>11:59:59 PM</Data></Data><RefData z:Ref=\"i5\"/></Data2><Dict1 xmlns:b=\"http://schemas.microsoft.com/2003/10/Serialization/Arrays\"><b:KeyValueOfSimpleDCWithRefSimpleDCWithRefzETuxydO><b:Key z:Id=\"i6\"><Data z:Id=\"i7\"><Data>11:59:59 PM</Data></Data><RefData z:Ref=\"i7\"/></b:Key><b:Value z:Id=\"i8\"><Data z:Id=\"i9\"><Data>6d807157-536f-4794-a157-e463a11029aa</Data></Data><RefData z:Ref=\"i9\"/></b:Value></b:KeyValueOfSimpleDCWithRefSimpleDCWithRefzETuxydO><b:KeyValueOfSimpleDCWithRefSimpleDCWithRefzETuxydO><b:Key z:Ref=\"i2\"/><b:Value z:Ref=\"i4\"/></b:KeyValueOfSimpleDCWithRefSimpleDCWithRefzETuxydO><b:KeyValueOfSimpleDCWithRefSimpleDCWithRefzETuxydO><b:Key z:Id=\"i10\"><Data z:Id=\"i11\"><Data>11:59:59 PM</Data></Data><RefData z:Ref=\"i11\"/></b:Key><b:Value z:Ref=\"i8\"/></b:KeyValueOfSimpleDCWithRefSimpleDCWithRefzETuxydO><b:KeyValueOfSimpleDCWithRefSimpleDCWithRefzETuxydO><b:Key z:Ref=\"i8\"/><b:Value z:Id=\"i12\"><Data z:Id=\"i13\"><Data>11:59:59 PM</Data></Data><RefData z:Ref=\"i13\"/></b:Value></b:KeyValueOfSimpleDCWithRefSimpleDCWithRefzETuxydO></Dict1><Dict2 i:type=\"c:System.Collections.Generic.Dictionary`2[[SerializationTestTypes.SimpleDCWithRef, {assemblyName}],[SerializationTestTypes.SimpleDCWithRef, {assemblyName}]]\" xmlns:b=\"http://schemas.microsoft.com/2003/10/Serialization/Arrays\" xmlns:c=\"{corelibAssemblyName}\"><b:KeyValueOfSimpleDCWithRefSimpleDCWithRefzETuxydO><b:Key z:Ref=\"i6\"/><b:Value z:Ref=\"i8\"/></b:KeyValueOfSimpleDCWithRefSimpleDCWithRefzETuxydO><b:KeyValueOfSimpleDCWithRefSimpleDCWithRefzETuxydO><b:Key z:Ref=\"i2\"/><b:Value z:Ref=\"i4\"/></b:KeyValueOfSimpleDCWithRefSimpleDCWithRefzETuxydO><b:KeyValueOfSimpleDCWithRefSimpleDCWithRefzETuxydO><b:Key z:Ref=\"i10\"/><b:Value z:Ref=\"i8\"/></b:KeyValueOfSimpleDCWithRefSimpleDCWithRefzETuxydO><b:KeyValueOfSimpleDCWithRefSimpleDCWithRefzETuxydO><b:Key z:Ref=\"i8\"/><b:Value z:Ref=\"i12\"/></b:KeyValueOfSimpleDCWithRefSimpleDCWithRefzETuxydO></Dict2><InnerData1 z:Ref=\"i3\"/><InnerInnerData1>6d807157-536f-4794-a157-e463a11029aa</InnerInnerData1><Kvp1 xmlns:b=\"http://schemas.datacontract.org/2004/07/System.Collections.Generic\"><b:key z:Ref=\"i8\"/><b:value z:Ref=\"i12\"/></Kvp1></_data><_data2 z:Ref=\"i1\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"/></ObjectContainer>");
+        TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.DMWithRefInDict1(true), $"<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data z:Id=\"i1\" i:type=\"a:SerializationTestTypes.DMWithRefInDict1***\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.DMWithRefInDict1***\"><Data1 z:Id=\"i2\"><Data z:Id=\"i3\"><Data>This is a string</Data></Data><RefData z:Ref=\"i3\"/></Data1><Data2 z:Id=\"i4\"><Data z:Id=\"i5\"><Data>This is a string</Data></Data><RefData z:Ref=\"i5\"/></Data2><Dict1 xmlns:b=\"http://schemas.microsoft.com/2003/10/Serialization/Arrays\"><b:KeyValueOfSimpleDCWithRefSimpleDCWithRefzETuxydO><b:Key z:Id=\"i6\"><Data z:Id=\"i7\"><Data>This is a string</Data></Data><RefData z:Ref=\"i7\"/></b:Key><b:Value z:Id=\"i8\"><Data z:Id=\"i9\"><Data>6d807157-536f-4794-a157-e463a11029aa</Data></Data><RefData z:Ref=\"i9\"/></b:Value></b:KeyValueOfSimpleDCWithRefSimpleDCWithRefzETuxydO><b:KeyValueOfSimpleDCWithRefSimpleDCWithRefzETuxydO><b:Key z:Ref=\"i2\"/><b:Value z:Ref=\"i4\"/></b:KeyValueOfSimpleDCWithRefSimpleDCWithRefzETuxydO><b:KeyValueOfSimpleDCWithRefSimpleDCWithRefzETuxydO><b:Key z:Id=\"i10\"><Data z:Id=\"i11\"><Data>This is a string</Data></Data><RefData z:Ref=\"i11\"/></b:Key><b:Value z:Ref=\"i8\"/></b:KeyValueOfSimpleDCWithRefSimpleDCWithRefzETuxydO><b:KeyValueOfSimpleDCWithRefSimpleDCWithRefzETuxydO><b:Key z:Ref=\"i8\"/><b:Value z:Id=\"i12\"><Data z:Id=\"i13\"><Data>This is a string</Data></Data><RefData z:Ref=\"i13\"/></b:Value></b:KeyValueOfSimpleDCWithRefSimpleDCWithRefzETuxydO></Dict1><Dict2 i:type=\"c:System.Collections.Generic.Dictionary`2[[SerializationTestTypes.SimpleDCWithRef, {assemblyName}],[SerializationTestTypes.SimpleDCWithRef, {assemblyName}]]\" xmlns:b=\"http://schemas.microsoft.com/2003/10/Serialization/Arrays\" xmlns:c=\"{corelibAssemblyName}\"><b:KeyValueOfSimpleDCWithRefSimpleDCWithRefzETuxydO><b:Key z:Ref=\"i6\"/><b:Value z:Ref=\"i8\"/></b:KeyValueOfSimpleDCWithRefSimpleDCWithRefzETuxydO><b:KeyValueOfSimpleDCWithRefSimpleDCWithRefzETuxydO><b:Key z:Ref=\"i2\"/><b:Value z:Ref=\"i4\"/></b:KeyValueOfSimpleDCWithRefSimpleDCWithRefzETuxydO><b:KeyValueOfSimpleDCWithRefSimpleDCWithRefzETuxydO><b:Key z:Ref=\"i10\"/><b:Value z:Ref=\"i8\"/></b:KeyValueOfSimpleDCWithRefSimpleDCWithRefzETuxydO><b:KeyValueOfSimpleDCWithRefSimpleDCWithRefzETuxydO><b:Key z:Ref=\"i8\"/><b:Value z:Ref=\"i12\"/></b:KeyValueOfSimpleDCWithRefSimpleDCWithRefzETuxydO></Dict2><InnerData1 z:Ref=\"i3\"/><InnerInnerData1>6d807157-536f-4794-a157-e463a11029aa</InnerInnerData1><Kvp1 xmlns:b=\"http://schemas.datacontract.org/2004/07/System.Collections.Generic\"><b:key z:Ref=\"i8\"/><b:value z:Ref=\"i12\"/></Kvp1></_data><_data2 z:Ref=\"i1\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"/></ObjectContainer>");
     }
 
     [Fact]
     public static void DCS_BasicPerSerializerRoundTripAndCompare_ItRef()
     {
-        TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.TestInheritence9(true), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data i:type=\"a:SerializationTestTypes.TestInheritence9***\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.TestInheritence9***\"><base1 i:type=\"b:SerializationTestTypes.Derived2Serializable***\" xmlns:b=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.Derived2Serializable***\"><data>12:00:00 AM</data><data2>12:00:00 AM</data2><data0>12:00:00 AM</data0><data1>12:00:00 AM</data1><data3>12:00:00 AM</data3><data00>12:00:00 AM</data00><data122>12:00:00 AM</data122><data4>12:00:00 AM</data4></base1><baseDC i:type=\"b:SerializationTestTypes.DerivedSerializable***\" xmlns:b=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.DerivedSerializable***\"><data>12:00:00 AM</data><data2>12:00:00 AM</data2><days xmlns:c=\"http://schemas.microsoft.com/2003/10/Serialization/Arrays\"><c:string>Base1</c:string><c:string>Base2</c:string><c:string>Base3</c:string><c:string>Base4</c:string><c:string>Base5</c:string><c:string>Base6</c:string><c:string>Base7</c:string></days><data0>12:00:00 AM</data0><data1>12:00:00 AM</data1><data3>12:00:00 AM</data3></baseDC><derived2><data>12:00:00 AM</data><data2>12:00:00 AM</data2><data0>12:00:00 AM</data0><data1>12:00:00 AM</data1><data3>12:00:00 AM</data3><data00>12:00:00 AM</data00><data122>12:00:00 AM</data122><data4>12:00:00 AM</data4></derived2><derivedDC><data>12:00:00 AM</data><data2>12:00:00 AM</data2><days xmlns:b=\"http://schemas.microsoft.com/2003/10/Serialization/Arrays\"><b:string>Base1</b:string><b:string>Base2</b:string><b:string>Base3</b:string><b:string>Base4</b:string><b:string>Base5</b:string><b:string>Base6</b:string><b:string>Base7</b:string></days><data0>12:00:00 AM</data0><data1>12:00:00 AM</data1><data3>12:00:00 AM</data3></derivedDC></_data><_data2 i:type=\"a:SerializationTestTypes.TestInheritence9***\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.TestInheritence9***\"><base1 i:type=\"b:SerializationTestTypes.Derived2Serializable***\" xmlns:b=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.Derived2Serializable***\"><data>12:00:00 AM</data><data2>12:00:00 AM</data2><data0>12:00:00 AM</data0><data1>12:00:00 AM</data1><data3>12:00:00 AM</data3><data00>12:00:00 AM</data00><data122>12:00:00 AM</data122><data4>12:00:00 AM</data4></base1><baseDC i:type=\"b:SerializationTestTypes.DerivedSerializable***\" xmlns:b=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.DerivedSerializable***\"><data>12:00:00 AM</data><data2>12:00:00 AM</data2><days xmlns:c=\"http://schemas.microsoft.com/2003/10/Serialization/Arrays\"><c:string>Base1</c:string><c:string>Base2</c:string><c:string>Base3</c:string><c:string>Base4</c:string><c:string>Base5</c:string><c:string>Base6</c:string><c:string>Base7</c:string></days><data0>12:00:00 AM</data0><data1>12:00:00 AM</data1><data3>12:00:00 AM</data3></baseDC><derived2><data>12:00:00 AM</data><data2>12:00:00 AM</data2><data0>12:00:00 AM</data0><data1>12:00:00 AM</data1><data3>12:00:00 AM</data3><data00>12:00:00 AM</data00><data122>12:00:00 AM</data122><data4>12:00:00 AM</data4></derived2><derivedDC><data>12:00:00 AM</data><data2>12:00:00 AM</data2><days xmlns:b=\"http://schemas.microsoft.com/2003/10/Serialization/Arrays\"><b:string>Base1</b:string><b:string>Base2</b:string><b:string>Base3</b:string><b:string>Base4</b:string><b:string>Base5</b:string><b:string>Base6</b:string><b:string>Base7</b:string></days><data0>12:00:00 AM</data0><data1>12:00:00 AM</data1><data3>12:00:00 AM</data3></derivedDC></_data2></ObjectContainer>");
+        TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.TestInheritence9(true), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data i:type=\"a:SerializationTestTypes.TestInheritence9***\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.TestInheritence9***\"><base1 i:type=\"b:SerializationTestTypes.Derived2Serializable***\" xmlns:b=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.Derived2Serializable***\"><data>TestString</data><data2>TestString2</data2><data0>TestString0</data0><data1>TestString1</data1><data3>TestString3</data3><data00>TestString00</data00><data122>TestString122</data122><data4>TestString4</data4></base1><baseDC i:type=\"b:SerializationTestTypes.DerivedSerializable***\" xmlns:b=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.DerivedSerializable***\"><data>TestString</data><data2>TestString2</data2><days xmlns:c=\"http://schemas.microsoft.com/2003/10/Serialization/Arrays\"><c:string>Base1</c:string><c:string>Base2</c:string><c:string>Base3</c:string><c:string>Base4</c:string><c:string>Base5</c:string><c:string>Base6</c:string><c:string>Base7</c:string></days><data0>TestString0</data0><data1>TestString1</data1><data3>TestString3</data3></baseDC><derived2><data>TestString</data><data2>TestString2</data2><data0>TestString0</data0><data1>TestString1</data1><data3>TestString3</data3><data00>TestString00</data00><data122>TestString122</data122><data4>TestString4</data4></derived2><derivedDC><data>TestString</data><data2>TestString2</data2><days xmlns:b=\"http://schemas.microsoft.com/2003/10/Serialization/Arrays\"><b:string>Base1</b:string><b:string>Base2</b:string><b:string>Base3</b:string><b:string>Base4</b:string><b:string>Base5</b:string><b:string>Base6</b:string><b:string>Base7</b:string></days><data0>TestString0</data0><data1>TestString1</data1><data3>TestString3</data3></derivedDC></_data><_data2 i:type=\"a:SerializationTestTypes.TestInheritence9***\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.TestInheritence9***\"><base1 i:type=\"b:SerializationTestTypes.Derived2Serializable***\" xmlns:b=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.Derived2Serializable***\"><data>TestString</data><data2>TestString2</data2><data0>TestString0</data0><data1>TestString1</data1><data3>TestString3</data3><data00>TestString00</data00><data122>TestString122</data122><data4>TestString4</data4></base1><baseDC i:type=\"b:SerializationTestTypes.DerivedSerializable***\" xmlns:b=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.DerivedSerializable***\"><data>TestString</data><data2>TestString2</data2><days xmlns:c=\"http://schemas.microsoft.com/2003/10/Serialization/Arrays\"><c:string>Base1</c:string><c:string>Base2</c:string><c:string>Base3</c:string><c:string>Base4</c:string><c:string>Base5</c:string><c:string>Base6</c:string><c:string>Base7</c:string></days><data0>TestString0</data0><data1>TestString1</data1><data3>TestString3</data3></baseDC><derived2><data>TestString</data><data2>TestString2</data2><data0>TestString0</data0><data1>TestString1</data1><data3>TestString3</data3><data00>TestString00</data00><data122>TestString122</data122><data4>TestString4</data4></derived2><derivedDC><data>TestString</data><data2>TestString2</data2><days xmlns:b=\"http://schemas.microsoft.com/2003/10/Serialization/Arrays\"><b:string>Base1</b:string><b:string>Base2</b:string><b:string>Base3</b:string><b:string>Base4</b:string><b:string>Base5</b:string><b:string>Base6</b:string><b:string>Base7</b:string></days><data0>TestString0</data0><data1>TestString1</data1><data3>TestString3</data3></derivedDC></_data2></ObjectContainer>");
 
-        TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.SimpleDC(true), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data z:Id=\"i1\" i:type=\"a:SerializationTestTypes.SimpleDC***\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.SimpleDC***\"><Data>11:59:59 PM</Data></_data><_data2 z:Ref=\"i1\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"/></ObjectContainer>");
+        TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.SimpleDC(true), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data z:Id=\"i1\" i:type=\"a:SerializationTestTypes.SimpleDC***\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.SimpleDC***\"><Data>This is a string</Data></_data><_data2 z:Ref=\"i1\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"/></ObjectContainer>");
 
-        TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.SimpleDCWithSimpleDMRef(true), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data z:Id=\"i1\" i:type=\"a:SerializationTestTypes.SimpleDCWithSimpleDMRef***\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.SimpleDCWithSimpleDMRef***\"><Data>11:59:59 PM</Data><RefData>11:59:59 PM</RefData></_data><_data2 z:Ref=\"i1\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"/></ObjectContainer>");
+        TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.SimpleDCWithSimpleDMRef(true), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data z:Id=\"i1\" i:type=\"a:SerializationTestTypes.SimpleDCWithSimpleDMRef***\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.SimpleDCWithSimpleDMRef***\"><Data>This is a string</Data><RefData>This is a string</RefData></_data><_data2 z:Ref=\"i1\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"/></ObjectContainer>");
 
-        TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.SimpleDCWithRef(true), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data z:Id=\"i1\" i:type=\"a:SerializationTestTypes.SimpleDCWithRef***\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.SimpleDCWithRef***\"><Data z:Id=\"i2\"><Data>11:59:59 PM</Data></Data><RefData z:Ref=\"i2\"/></_data><_data2 z:Ref=\"i1\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"/></ObjectContainer>");
+        TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.SimpleDCWithRef(true), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data z:Id=\"i1\" i:type=\"a:SerializationTestTypes.SimpleDCWithRef***\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.SimpleDCWithRef***\"><Data z:Id=\"i2\"><Data>This is a string</Data></Data><RefData z:Ref=\"i2\"/></_data><_data2 z:Ref=\"i1\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"/></ObjectContainer>");
 
-        TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.ContainsSimpleDCWithRef(true), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data z:Id=\"i1\" i:type=\"a:SerializationTestTypes.ContainsSimpleDCWithRef***\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.ContainsSimpleDCWithRef***\"><Data z:Id=\"i2\"><Data z:Id=\"i3\"><Data>11:59:59 PM</Data></Data><RefData z:Ref=\"i3\"/></Data><RefData z:Ref=\"i2\"/></_data><_data2 z:Ref=\"i1\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"/></ObjectContainer>");
+        TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.ContainsSimpleDCWithRef(true), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data z:Id=\"i1\" i:type=\"a:SerializationTestTypes.ContainsSimpleDCWithRef***\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.ContainsSimpleDCWithRef***\"><Data z:Id=\"i2\"><Data z:Id=\"i3\"><Data>This is a string</Data></Data><RefData z:Ref=\"i3\"/></Data><RefData z:Ref=\"i2\"/></_data><_data2 z:Ref=\"i1\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"/></ObjectContainer>");
 
-        TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.SimpleDCWithIsRequiredFalse(true), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data z:Id=\"i1\" i:type=\"a:SerializationTestTypes.SimpleDCWithIsRequiredFalse***\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.SimpleDCWithIsRequiredFalse***\"><Data>11:59:59 PM</Data></_data><_data2 z:Ref=\"i1\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"/></ObjectContainer>");
+        TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.SimpleDCWithIsRequiredFalse(true), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data z:Id=\"i1\" i:type=\"a:SerializationTestTypes.SimpleDCWithIsRequiredFalse***\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.SimpleDCWithIsRequiredFalse***\"><Data>This is a string</Data></_data><_data2 z:Ref=\"i1\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"/></ObjectContainer>");
 
-        TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.Mixed1(true), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data z:Id=\"i1\" i:type=\"a:SerializationTestTypes.Mixed1***\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.Mixed1***\"><Data1 z:Id=\"i2\"><Data>11:59:59 PM</Data></Data1><Data2 z:Id=\"i3\"><Data z:Id=\"i4\"><Data>11:59:59 PM</Data></Data><RefData z:Ref=\"i4\"/></Data2><Data3 z:Id=\"i5\"><Data>11:59:59 PM</Data><RefData>11:59:59 PM</RefData></Data3><Data4><Data>11:59:59 PM</Data></Data4><Data5><Data><Data>11:59:59 PM</Data></Data><RefData><Data>11:59:59 PM</Data></RefData></Data5></_data><_data2 z:Ref=\"i1\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"/></ObjectContainer>");
+        TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.Mixed1(true), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data z:Id=\"i1\" i:type=\"a:SerializationTestTypes.Mixed1***\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.Mixed1***\"><Data1 z:Id=\"i2\"><Data>This is a string</Data></Data1><Data2 z:Id=\"i3\"><Data z:Id=\"i4\"><Data>This is a string</Data></Data><RefData z:Ref=\"i4\"/></Data2><Data3 z:Id=\"i5\"><Data>This is a string</Data><RefData>This is a string</RefData></Data3><Data4><Data>This is a string</Data></Data4><Data5><Data><Data>This is a string</Data></Data><RefData><Data>This is a string</Data></RefData></Data5></_data><_data2 z:Ref=\"i1\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"/></ObjectContainer>");
 
         TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.SerIser(), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data i:type=\"a:SerializationTestTypes.SerIser***\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.SerIser***\"><containedData z:Id=\"i1\" i:type=\"b:SerializationTestTypes.PublicDC***\" xmlns=\"\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\" xmlns:b=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.PublicDC***\"><Data xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\">55cb1688-dec7-4106-a6d8-7e57590cb20a</Data></containedData></_data><_data2 i:type=\"a:SerializationTestTypes.SerIser***\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.SerIser***\"><containedData z:Ref=\"i1\" xmlns=\"\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"/></_data2></ObjectContainer>");
 
-        TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.DCVersioned1(true), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data z:Id=\"i1\" i:type=\"a:SerializationTestTypes.DCVersioned1***\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.DCVersioned1***\"><Data z:Id=\"i2\" xmlns=\"SerializationTestTypes.ExtensionData\" xmlns:b=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\"><b:Data>11:59:59 PM</b:Data></Data><RefData z:Ref=\"i2\" xmlns=\"SerializationTestTypes.ExtensionData\" xmlns:b=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\"/></_data><_data2 z:Ref=\"i1\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"/></ObjectContainer>");
+        TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.DCVersioned1(true), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data z:Id=\"i1\" i:type=\"a:SerializationTestTypes.DCVersioned1***\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.DCVersioned1***\"><Data z:Id=\"i2\" xmlns=\"SerializationTestTypes.ExtensionData\" xmlns:b=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\"><b:Data>This is a string</b:Data></Data><RefData z:Ref=\"i2\" xmlns=\"SerializationTestTypes.ExtensionData\" xmlns:b=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\"/></_data><_data2 z:Ref=\"i1\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"/></ObjectContainer>");
 
-        TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.DCVersioned2(true), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data z:Id=\"i1\" i:type=\"a:SerializationTestTypes.DCVersioned2***\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.DCVersioned2***\"><Data z:Id=\"i2\" xmlns=\"SerializationTestTypes.ExtensionData\" xmlns:b=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\"><b:Data>11:59:59 PM</b:Data></Data></_data><_data2 z:Ref=\"i1\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"/></ObjectContainer>");
+        TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.DCVersioned2(true), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data z:Id=\"i1\" i:type=\"a:SerializationTestTypes.DCVersioned2***\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.DCVersioned2***\"><Data z:Id=\"i2\" xmlns=\"SerializationTestTypes.ExtensionData\" xmlns:b=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\"><b:Data>This is a string</b:Data></Data></_data><_data2 z:Ref=\"i1\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"/></ObjectContainer>");
 
-        TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.DCVersionedContainer1(true), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data z:Id=\"i1\" i:type=\"a:SerializationTestTypes.DCVersionedContainer1***\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.DCVersionedContainer1***\"><DataVersion1 z:Id=\"i2\" xmlns=\"SerializationTestTypes.ExtensionData\"><Data z:Id=\"i3\" xmlns:b=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\"><b:Data>11:59:59 PM</b:Data></Data><RefData z:Ref=\"i3\" xmlns:b=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\"/></DataVersion1></_data><_data2 z:Ref=\"i1\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"/></ObjectContainer>");
+        TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.DCVersionedContainer1(true), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data z:Id=\"i1\" i:type=\"a:SerializationTestTypes.DCVersionedContainer1***\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.DCVersionedContainer1***\"><DataVersion1 z:Id=\"i2\" xmlns=\"SerializationTestTypes.ExtensionData\"><Data z:Id=\"i3\" xmlns:b=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\"><b:Data>This is a string</b:Data></Data><RefData z:Ref=\"i3\" xmlns:b=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\"/></DataVersion1></_data><_data2 z:Ref=\"i1\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"/></ObjectContainer>");
 
-        TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.DCVersionedContainerVersion1(true), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data z:Id=\"i1\" i:type=\"a:SerializationTestTypes.DCVersionedContainerVersion1***\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.DCVersionedContainerVersion1***\"><DataVersion1 z:Id=\"i2\" xmlns=\"SerializationTestTypes.ExtensionData\"><Data z:Id=\"i3\" xmlns:b=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\"><b:Data>11:59:59 PM</b:Data></Data><RefData z:Ref=\"i3\" xmlns:b=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\"/></DataVersion1><DataVersion2 z:Id=\"i4\" xmlns=\"SerializationTestTypes.ExtensionData\"><Data z:Id=\"i5\" xmlns:b=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\"><b:Data>11:59:59 PM</b:Data></Data></DataVersion2><RefDataVersion1 z:Ref=\"i2\" xmlns=\"SerializationTestTypes.ExtensionData\"/><RefDataVersion2 z:Ref=\"i4\" xmlns=\"SerializationTestTypes.ExtensionData\"/></_data><_data2 z:Ref=\"i1\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"/></ObjectContainer>");
+        TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.DCVersionedContainerVersion1(true), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data z:Id=\"i1\" i:type=\"a:SerializationTestTypes.DCVersionedContainerVersion1***\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.DCVersionedContainerVersion1***\"><DataVersion1 z:Id=\"i2\" xmlns=\"SerializationTestTypes.ExtensionData\"><Data z:Id=\"i3\" xmlns:b=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\"><b:Data>This is a string</b:Data></Data><RefData z:Ref=\"i3\" xmlns:b=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\"/></DataVersion1><DataVersion2 z:Id=\"i4\" xmlns=\"SerializationTestTypes.ExtensionData\"><Data z:Id=\"i5\" xmlns:b=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\"><b:Data>This is a string</b:Data></Data></DataVersion2><RefDataVersion1 z:Ref=\"i2\" xmlns=\"SerializationTestTypes.ExtensionData\"/><RefDataVersion2 z:Ref=\"i4\" xmlns=\"SerializationTestTypes.ExtensionData\"/></_data><_data2 z:Ref=\"i1\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"/></ObjectContainer>");
 
-        TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.DCVersionedContainerVersion2(true), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data z:Id=\"i1\" i:type=\"a:SerializationTestTypes.DCVersionedContainerVersion2***\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.DCVersionedContainerVersion2***\"><DataVersion1 z:Id=\"i2\" xmlns=\"SerializationTestTypes.ExtensionData\"><Data z:Id=\"i3\" xmlns:b=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\"><b:Data>11:59:59 PM</b:Data></Data><RefData z:Ref=\"i3\" xmlns:b=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\"/></DataVersion1><DataVersion2 z:Id=\"i4\" xmlns=\"SerializationTestTypes.ExtensionData\"><Data z:Id=\"i5\" xmlns:b=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\"><b:Data>11:59:59 PM</b:Data></Data></DataVersion2></_data><_data2 z:Ref=\"i1\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"/></ObjectContainer>");
+        TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.DCVersionedContainerVersion2(true), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data z:Id=\"i1\" i:type=\"a:SerializationTestTypes.DCVersionedContainerVersion2***\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.DCVersionedContainerVersion2***\"><DataVersion1 z:Id=\"i2\" xmlns=\"SerializationTestTypes.ExtensionData\"><Data z:Id=\"i3\" xmlns:b=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\"><b:Data>This is a string</b:Data></Data><RefData z:Ref=\"i3\" xmlns:b=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\"/></DataVersion1><DataVersion2 z:Id=\"i4\" xmlns=\"SerializationTestTypes.ExtensionData\"><Data z:Id=\"i5\" xmlns:b=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\"><b:Data>This is a string</b:Data></Data></DataVersion2></_data><_data2 z:Ref=\"i1\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"/></ObjectContainer>");
 
-        TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.DCVersionedContainerVersion3(true), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data z:Id=\"i1\" i:type=\"a:SerializationTestTypes.DCVersionedContainerVersion3***\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.DCVersionedContainerVersion3***\"><DCVersioned1 z:Id=\"i2\" i:type=\"b:SerializationTestTypes.DCVersioned1***\" xmlns=\"SerializationTestTypes.ExtensionData\" xmlns:b=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.DCVersioned1***\"><Data z:Id=\"i3\" xmlns:c=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\"><c:Data>11:59:59 PM</c:Data></Data><RefData z:Ref=\"i3\" xmlns:c=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\"/></DCVersioned1><NewRefDataVersion1 z:Ref=\"i2\" xmlns=\"SerializationTestTypes.ExtensionData\"/><RefDataVersion2 i:nil=\"true\" xmlns=\"SerializationTestTypes.ExtensionData\"/></_data><_data2 z:Ref=\"i1\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"/></ObjectContainer>");
+        TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.DCVersionedContainerVersion3(true), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data z:Id=\"i1\" i:type=\"a:SerializationTestTypes.DCVersionedContainerVersion3***\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.DCVersionedContainerVersion3***\"><DCVersioned1 z:Id=\"i2\" i:type=\"b:SerializationTestTypes.DCVersioned1***\" xmlns=\"SerializationTestTypes.ExtensionData\" xmlns:b=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.DCVersioned1***\"><Data z:Id=\"i3\" xmlns:c=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\"><c:Data>This is a string</c:Data></Data><RefData z:Ref=\"i3\" xmlns:c=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\"/></DCVersioned1><NewRefDataVersion1 z:Ref=\"i2\" xmlns=\"SerializationTestTypes.ExtensionData\"/><RefDataVersion2 i:nil=\"true\" xmlns=\"SerializationTestTypes.ExtensionData\"/></_data><_data2 z:Ref=\"i1\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"/></ObjectContainer>");
 
-        TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.BaseDC(true), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data i:type=\"a:SerializationTestTypes.BaseDC***\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.BaseDC***\"><data>12:00:00 AM</data><data2>12:00:00 AM</data2></_data><_data2 i:type=\"a:SerializationTestTypes.BaseDC***\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.BaseDC***\"><data>12:00:00 AM</data><data2>12:00:00 AM</data2></_data2></ObjectContainer>");
+        TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.BaseDC(true), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data i:type=\"a:SerializationTestTypes.BaseDC***\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.BaseDC***\"><data>TestString</data><data2>TestString2</data2></_data><_data2 i:type=\"a:SerializationTestTypes.BaseDC***\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.BaseDC***\"><data>TestString</data><data2>TestString2</data2></_data2></ObjectContainer>");
 
-        TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.BaseSerializable(true), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data i:type=\"a:SerializationTestTypes.BaseSerializable***\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.BaseSerializable***\"><data>12:00:00 AM</data><data2>12:00:00 AM</data2><days xmlns:b=\"http://schemas.microsoft.com/2003/10/Serialization/Arrays\"><b:string>Base1</b:string><b:string>Base2</b:string><b:string>Base3</b:string><b:string>Base4</b:string><b:string>Base5</b:string><b:string>Base6</b:string><b:string>Base7</b:string></days></_data><_data2 i:type=\"a:SerializationTestTypes.BaseSerializable***\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.BaseSerializable***\"><data>12:00:00 AM</data><data2>12:00:00 AM</data2><days xmlns:b=\"http://schemas.microsoft.com/2003/10/Serialization/Arrays\"><b:string>Base1</b:string><b:string>Base2</b:string><b:string>Base3</b:string><b:string>Base4</b:string><b:string>Base5</b:string><b:string>Base6</b:string><b:string>Base7</b:string></days></_data2></ObjectContainer>");
+        TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.BaseSerializable(true), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data i:type=\"a:SerializationTestTypes.BaseSerializable***\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.BaseSerializable***\"><data>TestString</data><data2>TestString2</data2><days xmlns:b=\"http://schemas.microsoft.com/2003/10/Serialization/Arrays\"><b:string>Base1</b:string><b:string>Base2</b:string><b:string>Base3</b:string><b:string>Base4</b:string><b:string>Base5</b:string><b:string>Base6</b:string><b:string>Base7</b:string></days></_data><_data2 i:type=\"a:SerializationTestTypes.BaseSerializable***\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.BaseSerializable***\"><data>TestString</data><data2>TestString2</data2><days xmlns:b=\"http://schemas.microsoft.com/2003/10/Serialization/Arrays\"><b:string>Base1</b:string><b:string>Base2</b:string><b:string>Base3</b:string><b:string>Base4</b:string><b:string>Base5</b:string><b:string>Base6</b:string><b:string>Base7</b:string></days></_data2></ObjectContainer>");
 
-        TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.DerivedDC(true), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data i:type=\"a:SerializationTestTypes.DerivedDC***\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.DerivedDC***\"><data>12:00:00 AM</data><data2>12:00:00 AM</data2><data0>12:00:00 AM</data0><data1>12:00:00 AM</data1><data3>12:00:00 AM</data3></_data><_data2 i:type=\"a:SerializationTestTypes.DerivedDC***\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.DerivedDC***\"><data>12:00:00 AM</data><data2>12:00:00 AM</data2><data0>12:00:00 AM</data0><data1>12:00:00 AM</data1><data3>12:00:00 AM</data3></_data2></ObjectContainer>");
+        TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.DerivedDC(true), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data i:type=\"a:SerializationTestTypes.DerivedDC***\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.DerivedDC***\"><data>TestString</data><data2>TestString2</data2><data0>TestString0</data0><data1>TestString1</data1><data3>TestString3</data3></_data><_data2 i:type=\"a:SerializationTestTypes.DerivedDC***\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.DerivedDC***\"><data>TestString</data><data2>TestString2</data2><data0>TestString0</data0><data1>TestString1</data1><data3>TestString3</data3></_data2></ObjectContainer>");
 
-        TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.DerivedSerializable(true), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data i:type=\"a:SerializationTestTypes.DerivedSerializable***\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.DerivedSerializable***\"><data>12:00:00 AM</data><data2>12:00:00 AM</data2><days xmlns:b=\"http://schemas.microsoft.com/2003/10/Serialization/Arrays\"><b:string>Base1</b:string><b:string>Base2</b:string><b:string>Base3</b:string><b:string>Base4</b:string><b:string>Base5</b:string><b:string>Base6</b:string><b:string>Base7</b:string></days><data0>12:00:00 AM</data0><data1>12:00:00 AM</data1><data3>12:00:00 AM</data3></_data><_data2 i:type=\"a:SerializationTestTypes.DerivedSerializable***\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.DerivedSerializable***\"><data>12:00:00 AM</data><data2>12:00:00 AM</data2><days xmlns:b=\"http://schemas.microsoft.com/2003/10/Serialization/Arrays\"><b:string>Base1</b:string><b:string>Base2</b:string><b:string>Base3</b:string><b:string>Base4</b:string><b:string>Base5</b:string><b:string>Base6</b:string><b:string>Base7</b:string></days><data0>12:00:00 AM</data0><data1>12:00:00 AM</data1><data3>12:00:00 AM</data3></_data2></ObjectContainer>");
+        TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.DerivedSerializable(true), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data i:type=\"a:SerializationTestTypes.DerivedSerializable***\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.DerivedSerializable***\"><data>TestString</data><data2>TestString2</data2><days xmlns:b=\"http://schemas.microsoft.com/2003/10/Serialization/Arrays\"><b:string>Base1</b:string><b:string>Base2</b:string><b:string>Base3</b:string><b:string>Base4</b:string><b:string>Base5</b:string><b:string>Base6</b:string><b:string>Base7</b:string></days><data0>TestString0</data0><data1>TestString1</data1><data3>TestString3</data3></_data><_data2 i:type=\"a:SerializationTestTypes.DerivedSerializable***\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.DerivedSerializable***\"><data>TestString</data><data2>TestString2</data2><days xmlns:b=\"http://schemas.microsoft.com/2003/10/Serialization/Arrays\"><b:string>Base1</b:string><b:string>Base2</b:string><b:string>Base3</b:string><b:string>Base4</b:string><b:string>Base5</b:string><b:string>Base6</b:string><b:string>Base7</b:string></days><data0>TestString0</data0><data1>TestString1</data1><data3>TestString3</data3></_data2></ObjectContainer>");
 
         TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.DerivedDCIsRefBaseSerializable(), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data i:type=\"a:SerializationTestTypes.DerivedDCIsRefBaseSerializable***\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.DerivedDCIsRefBaseSerializable***\"><data i:nil=\"true\"/><data2 i:nil=\"true\"/><days i:nil=\"true\" xmlns:b=\"http://schemas.microsoft.com/2003/10/Serialization/Arrays\"/><Data33 i:nil=\"true\"/></_data><_data2 i:type=\"a:SerializationTestTypes.DerivedDCIsRefBaseSerializable***\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.DerivedDCIsRefBaseSerializable***\"><data i:nil=\"true\"/><data2 i:nil=\"true\"/><days i:nil=\"true\" xmlns:b=\"http://schemas.microsoft.com/2003/10/Serialization/Arrays\"/><Data33 i:nil=\"true\"/></_data2></ObjectContainer>");
 
         TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.DerivedDCBaseSerializable(), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data i:type=\"a:SerializationTestTypes.DerivedDCBaseSerializable***\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.DerivedDCBaseSerializable***\"><data i:nil=\"true\"/><data2 i:nil=\"true\"/><days i:nil=\"true\" xmlns:b=\"http://schemas.microsoft.com/2003/10/Serialization/Arrays\"/><Data33 i:nil=\"true\"/></_data><_data2 i:type=\"a:SerializationTestTypes.DerivedDCBaseSerializable***\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.DerivedDCBaseSerializable***\"><data i:nil=\"true\"/><data2 i:nil=\"true\"/><days i:nil=\"true\" xmlns:b=\"http://schemas.microsoft.com/2003/10/Serialization/Arrays\"/><Data33 i:nil=\"true\"/></_data2></ObjectContainer>");
 
-        TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.Derived2DC(true), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data i:type=\"a:SerializationTestTypes.Derived2DC***\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.Derived2DC***\"><data>12:00:00 AM</data><data2>12:00:00 AM</data2><data0>12:00:00 AM</data0><data1>12:00:00 AM</data1><data3>12:00:00 AM</data3><data11>12:00:00 AM</data11><data12>12:00:00 AM</data12><data4>12:00:00 AM</data4></_data><_data2 i:type=\"a:SerializationTestTypes.Derived2DC***\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.Derived2DC***\"><data>12:00:00 AM</data><data2>12:00:00 AM</data2><data0>12:00:00 AM</data0><data1>12:00:00 AM</data1><data3>12:00:00 AM</data3><data11>12:00:00 AM</data11><data12>12:00:00 AM</data12><data4>12:00:00 AM</data4></_data2></ObjectContainer>");
+        TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.Derived2DC(true), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data i:type=\"a:SerializationTestTypes.Derived2DC***\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.Derived2DC***\"><data>TestString</data><data2>TestString2</data2><data0>TestString0</data0><data1>TestString1</data1><data3>TestString3</data3><data11>TestString11</data11><data12>TestString12</data12><data4>TestString4</data4></_data><_data2 i:type=\"a:SerializationTestTypes.Derived2DC***\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.Derived2DC***\"><data>TestString</data><data2>TestString2</data2><data0>TestString0</data0><data1>TestString1</data1><data3>TestString3</data3><data11>TestString11</data11><data12>TestString12</data12><data4>TestString4</data4></_data2></ObjectContainer>");
 
         TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.BaseDCNoIsRef(), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data i:type=\"a:SerializationTestTypes.BaseDCNoIsRef***\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.BaseDCNoIsRef***\"><_data/></_data><_data2 i:type=\"a:SerializationTestTypes.BaseDCNoIsRef***\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.BaseDCNoIsRef***\"><_data/></_data2></ObjectContainer>");
 
         TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.DerivedPOCOBaseDCNOISRef(), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data i:type=\"a:SerializationTestTypes.DerivedPOCOBaseDCNOISRef***\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.DerivedPOCOBaseDCNOISRef***\"><_data/><Data22 i:nil=\"true\"/></_data><_data2 i:type=\"a:SerializationTestTypes.DerivedPOCOBaseDCNOISRef***\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.DerivedPOCOBaseDCNOISRef***\"><_data/><Data22 i:nil=\"true\"/></_data2></ObjectContainer>");
 
-        TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.DerivedIXmlSerializable_POCOBaseDCNOISRef(), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data i:type=\"a:SerializationTestTypes.DerivedIXmlSerializable_POCOBaseDCNOISRef***\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.DerivedIXmlSerializable_POCOBaseDCNOISRef***\">12:00 AM</_data><_data2 i:type=\"a:SerializationTestTypes.DerivedIXmlSerializable_POCOBaseDCNOISRef***\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.DerivedIXmlSerializable_POCOBaseDCNOISRef***\">12:00 AM</_data2></ObjectContainer>");
+        TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.DerivedIXmlSerializable_POCOBaseDCNOISRef(), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data i:type=\"a:SerializationTestTypes.DerivedIXmlSerializable_POCOBaseDCNOISRef***\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.DerivedIXmlSerializable_POCOBaseDCNOISRef***\">TestString</_data><_data2 i:type=\"a:SerializationTestTypes.DerivedIXmlSerializable_POCOBaseDCNOISRef***\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.DerivedIXmlSerializable_POCOBaseDCNOISRef***\">TestString</_data2></ObjectContainer>");
 
         TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.DerivedCDCFromBaseDC(), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data i:type=\"a:SerializationTestTypes.DerivedCDCFromBaseDC***\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.DerivedCDCFromBaseDC***\"/><_data2 i:type=\"a:SerializationTestTypes.DerivedCDCFromBaseDC***\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.DerivedCDCFromBaseDC***\"/></ObjectContainer>");
 
-        TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.Derived2Serializable(true), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data i:type=\"a:SerializationTestTypes.Derived2Serializable***\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.Derived2Serializable***\"><data>12:00:00 AM</data><data2>12:00:00 AM</data2><data0>12:00:00 AM</data0><data1>12:00:00 AM</data1><data3>12:00:00 AM</data3><data00>12:00:00 AM</data00><data122>12:00:00 AM</data122><data4>12:00:00 AM</data4></_data><_data2 i:type=\"a:SerializationTestTypes.Derived2Serializable***\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.Derived2Serializable***\"><data>12:00:00 AM</data><data2>12:00:00 AM</data2><data0>12:00:00 AM</data0><data1>12:00:00 AM</data1><data3>12:00:00 AM</data3><data00>12:00:00 AM</data00><data122>12:00:00 AM</data122><data4>12:00:00 AM</data4></_data2></ObjectContainer>");
+        TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.Derived2Serializable(true), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data i:type=\"a:SerializationTestTypes.Derived2Serializable***\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.Derived2Serializable***\"><data>TestString</data><data2>TestString2</data2><data0>TestString0</data0><data1>TestString1</data1><data3>TestString3</data3><data00>TestString00</data00><data122>TestString122</data122><data4>TestString4</data4></_data><_data2 i:type=\"a:SerializationTestTypes.Derived2Serializable***\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.Derived2Serializable***\"><data>TestString</data><data2>TestString2</data2><data0>TestString0</data0><data1>TestString1</data1><data3>TestString3</data3><data00>TestString00</data00><data122>TestString122</data122><data4>TestString4</data4></_data2></ObjectContainer>");
 
-        TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.Derived2SerializablePositive(true), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data i:type=\"a:SerializationTestTypes.Derived2SerializablePositive***\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.Derived2SerializablePositive***\"><data>12:00:00 AM</data><data2>12:00:00 AM</data2><data0>12:00:00 AM</data0><data1>12:00:00 AM</data1><data3>12:00:00 AM</data3><data00>11:59:59 PM</data00><data122>12:00:00 AM</data122><data4>12:00:00 AM</data4></_data><_data2 i:type=\"a:SerializationTestTypes.Derived2SerializablePositive***\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.Derived2SerializablePositive***\"><data>12:00:00 AM</data><data2>12:00:00 AM</data2><data0>12:00:00 AM</data0><data1>12:00:00 AM</data1><data3>12:00:00 AM</data3><data00>11:59:59 PM</data00><data122>12:00:00 AM</data122><data4>12:00:00 AM</data4></_data2></ObjectContainer>");
+        TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.Derived2SerializablePositive(true), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data i:type=\"a:SerializationTestTypes.Derived2SerializablePositive***\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.Derived2SerializablePositive***\"><data>TestString</data><data2>TestString2</data2><data0>TestString0</data0><data1>TestString1</data1><data3>TestString3</data3><data00>TestString00</data00><data122>TestString122</data122><data4>TestString4</data4></_data><_data2 i:type=\"a:SerializationTestTypes.Derived2SerializablePositive***\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.Derived2SerializablePositive***\"><data>TestString</data><data2>TestString2</data2><data0>TestString0</data0><data1>TestString1</data1><data3>TestString3</data3><data00>TestString00</data00><data122>TestString122</data122><data4>TestString4</data4></_data2></ObjectContainer>");
 
-        TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.Derived2Derived2Serializable(true), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data i:type=\"a:SerializationTestTypes.Derived2Derived2Serializable***\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.Derived2Derived2Serializable***\"><data>12:00:00 AM</data><data2>12:00:00 AM</data2><data0>12:00:00 AM</data0><data1>12:00:00 AM</data1><data3>12:00:00 AM</data3><data00>12:00:00 AM</data00><data122>12:00:00 AM</data122><data4>12:00:00 AM</data4></_data><_data2 i:type=\"a:SerializationTestTypes.Derived2Derived2Serializable***\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.Derived2Derived2Serializable***\"><data>12:00:00 AM</data><data2>12:00:00 AM</data2><data0>12:00:00 AM</data0><data1>12:00:00 AM</data1><data3>12:00:00 AM</data3><data00>12:00:00 AM</data00><data122>12:00:00 AM</data122><data4>12:00:00 AM</data4></_data2></ObjectContainer>");
+        TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.Derived2Derived2Serializable(true), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data i:type=\"a:SerializationTestTypes.Derived2Derived2Serializable***\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.Derived2Derived2Serializable***\"><data>TestString</data><data2>TestString2</data2><data0>TestString0</data0><data1>TestString1</data1><data3>TestString3</data3><data00>TestString00</data00><data122>TestString122</data122><data4>TestString4</data4></_data><_data2 i:type=\"a:SerializationTestTypes.Derived2Derived2Serializable***\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.Derived2Derived2Serializable***\"><data>TestString</data><data2>TestString2</data2><data0>TestString0</data0><data1>TestString1</data1><data3>TestString3</data3><data00>TestString00</data00><data122>TestString122</data122><data4>TestString4</data4></_data2></ObjectContainer>");
 
-        TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.Derived3Derived2Serializable(true), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data i:type=\"a:SerializationTestTypes.Derived3Derived2Serializable***\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.Derived3Derived2Serializable***\"><data>12:00:00 AM</data><data2>12:00:00 AM</data2><data0>12:00:00 AM</data0><data1>12:00:00 AM</data1><data3>12:00:00 AM</data3><data00>12:00:00 AM</data00><data122>12:00:00 AM</data122><data4>12:00:00 AM</data4></_data><_data2 i:type=\"a:SerializationTestTypes.Derived3Derived2Serializable***\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.Derived3Derived2Serializable***\"><data>12:00:00 AM</data><data2>12:00:00 AM</data2><data0>12:00:00 AM</data0><data1>12:00:00 AM</data1><data3>12:00:00 AM</data3><data00>12:00:00 AM</data00><data122>12:00:00 AM</data122><data4>12:00:00 AM</data4></_data2></ObjectContainer>");
+        TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.Derived3Derived2Serializable(true), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data i:type=\"a:SerializationTestTypes.Derived3Derived2Serializable***\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.Derived3Derived2Serializable***\"><data>TestString</data><data2>TestString2</data2><data0>TestString0</data0><data1>TestString1</data1><data3>TestString3</data3><data00>TestString00</data00><data122>TestString122</data122><data4>TestString4</data4></_data><_data2 i:type=\"a:SerializationTestTypes.Derived3Derived2Serializable***\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.Derived3Derived2Serializable***\"><data>TestString</data><data2>TestString2</data2><data0>TestString0</data0><data1>TestString1</data1><data3>TestString3</data3><data00>TestString00</data00><data122>TestString122</data122><data4>TestString4</data4></_data2></ObjectContainer>");
 
-        TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.Derived31Derived2SerializablePOCO(true), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data i:type=\"a:SerializationTestTypes.Derived31Derived2SerializablePOCO***\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.Derived31Derived2SerializablePOCO***\"><data>12:00:00 AM</data><data2>12:00:00 AM</data2><data0>12:00:00 AM</data0><data1>12:00:00 AM</data1><data3>12:00:00 AM</data3><data00>12:00:00 AM</data00><data122>12:00:00 AM</data122><data4>12:00:00 AM</data4><RefData z:Id=\"i1\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"><Data z:Id=\"i2\"><Data>11:59:59 PM</Data></Data><RefData z:Ref=\"i2\"/></RefData><SimpleDCWithRefData z:Ref=\"i1\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"/></_data><_data2 i:type=\"a:SerializationTestTypes.Derived31Derived2SerializablePOCO***\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.Derived31Derived2SerializablePOCO***\"><data>12:00:00 AM</data><data2>12:00:00 AM</data2><data0>12:00:00 AM</data0><data1>12:00:00 AM</data1><data3>12:00:00 AM</data3><data00>12:00:00 AM</data00><data122>12:00:00 AM</data122><data4>12:00:00 AM</data4><RefData z:Ref=\"i1\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"/><SimpleDCWithRefData z:Ref=\"i1\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"/></_data2></ObjectContainer>");
+        TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.Derived31Derived2SerializablePOCO(true), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data i:type=\"a:SerializationTestTypes.Derived31Derived2SerializablePOCO***\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.Derived31Derived2SerializablePOCO***\"><data>TestString</data><data2>TestString2</data2><data0>TestString0</data0><data1>TestString1</data1><data3>TestString3</data3><data00>TestString00</data00><data122>TestString122</data122><data4>TestString4</data4><RefData z:Id=\"i1\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"><Data z:Id=\"i2\"><Data>This is a string</Data></Data><RefData z:Ref=\"i2\"/></RefData><SimpleDCWithRefData z:Ref=\"i1\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"/></_data><_data2 i:type=\"a:SerializationTestTypes.Derived31Derived2SerializablePOCO***\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.Derived31Derived2SerializablePOCO***\"><data>TestString</data><data2>TestString2</data2><data0>TestString0</data0><data1>TestString1</data1><data3>TestString3</data3><data00>TestString00</data00><data122>TestString122</data122><data4>TestString4</data4><RefData z:Ref=\"i1\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"/><SimpleDCWithRefData z:Ref=\"i1\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"/></_data2></ObjectContainer>");
 
-        TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.Derived4Derived2Serializable(true), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data i:type=\"a:SerializationTestTypes.Derived4Derived2Serializable***\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.Derived4Derived2Serializable***\"><data>12:00:00 AM</data><data2>12:00:00 AM</data2><data0>12:00:00 AM</data0><data1>12:00:00 AM</data1><data3>12:00:00 AM</data3><data00>12:00:00 AM</data00><data122>12:00:00 AM</data122><data4>12:00:00 AM</data4></_data><_data2 i:type=\"a:SerializationTestTypes.Derived4Derived2Serializable***\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.Derived4Derived2Serializable***\"><data>12:00:00 AM</data><data2>12:00:00 AM</data2><data0>12:00:00 AM</data0><data1>12:00:00 AM</data1><data3>12:00:00 AM</data3><data00>12:00:00 AM</data00><data122>12:00:00 AM</data122><data4>12:00:00 AM</data4></_data2></ObjectContainer>");
+        TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.Derived4Derived2Serializable(true), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data i:type=\"a:SerializationTestTypes.Derived4Derived2Serializable***\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.Derived4Derived2Serializable***\"><data>TestString</data><data2>TestString2</data2><data0>TestString0</data0><data1>TestString1</data1><data3>TestString3</data3><data00>TestString00</data00><data122>TestString122</data122><data4>TestString4</data4></_data><_data2 i:type=\"a:SerializationTestTypes.Derived4Derived2Serializable***\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.Derived4Derived2Serializable***\"><data>TestString</data><data2>TestString2</data2><data0>TestString0</data0><data1>TestString1</data1><data3>TestString3</data3><data00>TestString00</data00><data122>TestString122</data122><data4>TestString4</data4></_data2></ObjectContainer>");
 
-        TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.Derived5Derived2Serializable(true), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data i:type=\"a:SerializationTestTypes.Derived5Derived2Serializable***\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.Derived5Derived2Serializable***\"><data>12:00:00 AM</data><data2>12:00:00 AM</data2><data0>12:00:00 AM</data0><data1>12:00:00 AM</data1><data3>12:00:00 AM</data3><data00>12:00:00 AM</data00><data122>12:00:00 AM</data122><data4>12:00:00 AM</data4></_data><_data2 i:type=\"a:SerializationTestTypes.Derived5Derived2Serializable***\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.Derived5Derived2Serializable***\"><data>12:00:00 AM</data><data2>12:00:00 AM</data2><data0>12:00:00 AM</data0><data1>12:00:00 AM</data1><data3>12:00:00 AM</data3><data00>12:00:00 AM</data00><data122>12:00:00 AM</data122><data4>12:00:00 AM</data4></_data2></ObjectContainer>");
+        TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.Derived5Derived2Serializable(true), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data i:type=\"a:SerializationTestTypes.Derived5Derived2Serializable***\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.Derived5Derived2Serializable***\"><data>TestString</data><data2>TestString2</data2><data0>TestString0</data0><data1>TestString1</data1><data3>TestString3</data3><data00>TestString00</data00><data122>TestString122</data122><data4>TestString4</data4></_data><_data2 i:type=\"a:SerializationTestTypes.Derived5Derived2Serializable***\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.Derived5Derived2Serializable***\"><data>TestString</data><data2>TestString2</data2><data0>TestString0</data0><data1>TestString1</data1><data3>TestString3</data3><data00>TestString00</data00><data122>TestString122</data122><data4>TestString4</data4></_data2></ObjectContainer>");
 
-        TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.Derived6Derived2SerializablePOCO(true), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data i:type=\"a:SerializationTestTypes.Derived6Derived2SerializablePOCO***\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.Derived6Derived2SerializablePOCO***\"><data>12:00:00 AM</data><data2>12:00:00 AM</data2><data0>12:00:00 AM</data0><data1>12:00:00 AM</data1><data3>12:00:00 AM</data3><data00>12:00:00 AM</data00><data122>12:00:00 AM</data122><data4>12:00:00 AM</data4><RefData z:Id=\"i1\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"><Data z:Id=\"i2\"><Data>11:59:59 PM</Data></Data><RefData z:Ref=\"i2\"/></RefData><SimpleDCWithRefData z:Ref=\"i1\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"/></_data><_data2 i:type=\"a:SerializationTestTypes.Derived6Derived2SerializablePOCO***\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.Derived6Derived2SerializablePOCO***\"><data>12:00:00 AM</data><data2>12:00:00 AM</data2><data0>12:00:00 AM</data0><data1>12:00:00 AM</data1><data3>12:00:00 AM</data3><data00>12:00:00 AM</data00><data122>12:00:00 AM</data122><data4>12:00:00 AM</data4><RefData z:Ref=\"i1\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"/><SimpleDCWithRefData z:Ref=\"i1\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"/></_data2></ObjectContainer>");
+        TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.Derived6Derived2SerializablePOCO(true), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data i:type=\"a:SerializationTestTypes.Derived6Derived2SerializablePOCO***\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.Derived6Derived2SerializablePOCO***\"><data>TestString</data><data2>TestString2</data2><data0>TestString0</data0><data1>TestString1</data1><data3>TestString3</data3><data00>TestString00</data00><data122>TestString122</data122><data4>TestString4</data4><RefData z:Id=\"i1\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"><Data z:Id=\"i2\"><Data>This is a string</Data></Data><RefData z:Ref=\"i2\"/></RefData><SimpleDCWithRefData z:Ref=\"i1\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"/></_data><_data2 i:type=\"a:SerializationTestTypes.Derived6Derived2SerializablePOCO***\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.Derived6Derived2SerializablePOCO***\"><data>TestString</data><data2>TestString2</data2><data0>TestString0</data0><data1>TestString1</data1><data3>TestString3</data3><data00>TestString00</data00><data122>TestString122</data122><data4>TestString4</data4><RefData z:Ref=\"i1\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"/><SimpleDCWithRefData z:Ref=\"i1\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"/></_data2></ObjectContainer>");
 
-        TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.BaseWithIsRefTrue(true), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data z:Id=\"i1\" i:type=\"a:SerializationTestTypes.BaseWithIsRefTrue***\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.BaseWithIsRefTrue***\"><Data z:Id=\"i2\"><Data>11:59:59 PM</Data></Data></_data><_data2 z:Ref=\"i1\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"/></ObjectContainer>");
+        TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.BaseWithIsRefTrue(true), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data z:Id=\"i1\" i:type=\"a:SerializationTestTypes.BaseWithIsRefTrue***\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.BaseWithIsRefTrue***\"><Data z:Id=\"i2\"><Data>This is a string</Data></Data></_data><_data2 z:Ref=\"i1\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"/></ObjectContainer>");
 
-        TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.DerivedNoIsRef(true), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data z:Id=\"i1\" i:type=\"a:SerializationTestTypes.DerivedNoIsRef***\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.DerivedNoIsRef***\"><Data z:Id=\"i2\"><Data>11:59:59 PM</Data></Data><RefData z:Ref=\"i2\"/></_data><_data2 z:Ref=\"i1\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"/></ObjectContainer>");
+        TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.DerivedNoIsRef(true), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data z:Id=\"i1\" i:type=\"a:SerializationTestTypes.DerivedNoIsRef***\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.DerivedNoIsRef***\"><Data z:Id=\"i2\"><Data>This is a string</Data></Data><RefData z:Ref=\"i2\"/></_data><_data2 z:Ref=\"i1\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"/></ObjectContainer>");
 
-        TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.DerivedNoIsRef2(true), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data z:Id=\"i1\" i:type=\"a:SerializationTestTypes.DerivedNoIsRef2***\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.DerivedNoIsRef2***\"><Data z:Id=\"i2\"><Data>11:59:59 PM</Data></Data><RefData z:Ref=\"i2\"/><RefData2 z:Ref=\"i2\"/></_data><_data2 z:Ref=\"i1\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"/></ObjectContainer>");
+        TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.DerivedNoIsRef2(true), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data z:Id=\"i1\" i:type=\"a:SerializationTestTypes.DerivedNoIsRef2***\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.DerivedNoIsRef2***\"><Data z:Id=\"i2\"><Data>This is a string</Data></Data><RefData z:Ref=\"i2\"/><RefData2 z:Ref=\"i2\"/></_data><_data2 z:Ref=\"i1\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"/></ObjectContainer>");
 
-        TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.DerivedNoIsRef3(true), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data z:Id=\"i1\" i:type=\"a:SerializationTestTypes.DerivedNoIsRef3***\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.DerivedNoIsRef3***\"><Data z:Id=\"i2\"><Data>11:59:59 PM</Data></Data><RefData z:Ref=\"i2\"/><RefData2 z:Ref=\"i2\"/><RefData3 z:Ref=\"i2\"/></_data><_data2 z:Ref=\"i1\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"/></ObjectContainer>");
+        TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.DerivedNoIsRef3(true), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data z:Id=\"i1\" i:type=\"a:SerializationTestTypes.DerivedNoIsRef3***\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.DerivedNoIsRef3***\"><Data z:Id=\"i2\"><Data>This is a string</Data></Data><RefData z:Ref=\"i2\"/><RefData2 z:Ref=\"i2\"/><RefData3 z:Ref=\"i2\"/></_data><_data2 z:Ref=\"i1\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"/></ObjectContainer>");
 
-        TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.DerivedNoIsRef4(true), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data z:Id=\"i1\" i:type=\"a:SerializationTestTypes.DerivedNoIsRef4***\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.DerivedNoIsRef4***\"><Data z:Id=\"i2\"><Data>11:59:59 PM</Data></Data><RefData z:Ref=\"i2\"/><RefData2 z:Ref=\"i2\"/><RefData3 z:Ref=\"i2\"/><RefData4 z:Ref=\"i2\"/></_data><_data2 z:Ref=\"i1\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"/></ObjectContainer>");
+        TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.DerivedNoIsRef4(true), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data z:Id=\"i1\" i:type=\"a:SerializationTestTypes.DerivedNoIsRef4***\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.DerivedNoIsRef4***\"><Data z:Id=\"i2\"><Data>This is a string</Data></Data><RefData z:Ref=\"i2\"/><RefData2 z:Ref=\"i2\"/><RefData3 z:Ref=\"i2\"/><RefData4 z:Ref=\"i2\"/></_data><_data2 z:Ref=\"i1\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"/></ObjectContainer>");
 
-        TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.DerivedNoIsRef5(true), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data z:Id=\"i1\" i:type=\"a:SerializationTestTypes.DerivedNoIsRef5***\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.DerivedNoIsRef5***\"><Data z:Id=\"i2\"><Data>11:59:59 PM</Data></Data><RefData z:Ref=\"i2\"/><RefData2 z:Ref=\"i2\"/><RefData3 z:Ref=\"i2\"/><RefData4 z:Ref=\"i2\"/><RefData5 z:Ref=\"i2\"/></_data><_data2 z:Ref=\"i1\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"/></ObjectContainer>");
+        TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.DerivedNoIsRef5(true), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data z:Id=\"i1\" i:type=\"a:SerializationTestTypes.DerivedNoIsRef5***\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.DerivedNoIsRef5***\"><Data z:Id=\"i2\"><Data>This is a string</Data></Data><RefData z:Ref=\"i2\"/><RefData2 z:Ref=\"i2\"/><RefData3 z:Ref=\"i2\"/><RefData4 z:Ref=\"i2\"/><RefData5 z:Ref=\"i2\"/></_data><_data2 z:Ref=\"i1\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"/></ObjectContainer>");
 
-        TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.DerivedNoIsRefWithIsRefTrue6(true), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data z:Id=\"i1\" i:type=\"a:SerializationTestTypes.DerivedNoIsRefWithIsRefTrue6***\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.DerivedNoIsRefWithIsRefTrue6***\"><Data z:Id=\"i2\"><Data>11:59:59 PM</Data></Data><RefData z:Ref=\"i2\"/><RefData2 z:Ref=\"i2\"/><RefData3 z:Ref=\"i2\"/><RefData4 z:Ref=\"i2\"/><RefData5 z:Ref=\"i2\"/><RefData6 z:Ref=\"i2\"/></_data><_data2 z:Ref=\"i1\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"/></ObjectContainer>");
+        TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.DerivedNoIsRefWithIsRefTrue6(true), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data z:Id=\"i1\" i:type=\"a:SerializationTestTypes.DerivedNoIsRefWithIsRefTrue6***\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.DerivedNoIsRefWithIsRefTrue6***\"><Data z:Id=\"i2\"><Data>This is a string</Data></Data><RefData z:Ref=\"i2\"/><RefData2 z:Ref=\"i2\"/><RefData3 z:Ref=\"i2\"/><RefData4 z:Ref=\"i2\"/><RefData5 z:Ref=\"i2\"/><RefData6 z:Ref=\"i2\"/></_data><_data2 z:Ref=\"i1\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"/></ObjectContainer>");
 
-        TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.DerivedWithIsRefFalse(true), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data z:Id=\"i1\" i:type=\"a:SerializationTestTypes.DerivedWithIsRefFalse***\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.DerivedWithIsRefFalse***\"><Data z:Id=\"i2\"><Data>11:59:59 PM</Data></Data><RefData z:Ref=\"i2\"/></_data><_data2 z:Ref=\"i1\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"/></ObjectContainer>");
+        TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.DerivedWithIsRefFalse(true), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data z:Id=\"i1\" i:type=\"a:SerializationTestTypes.DerivedWithIsRefFalse***\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.DerivedWithIsRefFalse***\"><Data z:Id=\"i2\"><Data>This is a string</Data></Data><RefData z:Ref=\"i2\"/></_data><_data2 z:Ref=\"i1\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"/></ObjectContainer>");
 
-        TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.DerivedWithIsRefFalse2(true), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data z:Id=\"i1\" i:type=\"a:SerializationTestTypes.DerivedWithIsRefFalse2***\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.DerivedWithIsRefFalse2***\"><Data z:Id=\"i2\"><Data>11:59:59 PM</Data></Data><RefData z:Ref=\"i2\"/><RefData2 z:Ref=\"i2\"/></_data><_data2 z:Ref=\"i1\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"/></ObjectContainer>");
+        TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.DerivedWithIsRefFalse2(true), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data z:Id=\"i1\" i:type=\"a:SerializationTestTypes.DerivedWithIsRefFalse2***\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.DerivedWithIsRefFalse2***\"><Data z:Id=\"i2\"><Data>This is a string</Data></Data><RefData z:Ref=\"i2\"/><RefData2 z:Ref=\"i2\"/></_data><_data2 z:Ref=\"i1\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"/></ObjectContainer>");
 
-        TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.DerivedWithIsRefFalse3(true), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data z:Id=\"i1\" i:type=\"a:SerializationTestTypes.DerivedWithIsRefFalse3***\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.DerivedWithIsRefFalse3***\"><Data z:Id=\"i2\"><Data>11:59:59 PM</Data></Data><RefData z:Ref=\"i2\"/><RefData2 z:Ref=\"i2\"/><RefData3 z:Ref=\"i2\"/></_data><_data2 z:Ref=\"i1\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"/></ObjectContainer>");
+        TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.DerivedWithIsRefFalse3(true), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data z:Id=\"i1\" i:type=\"a:SerializationTestTypes.DerivedWithIsRefFalse3***\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.DerivedWithIsRefFalse3***\"><Data z:Id=\"i2\"><Data>This is a string</Data></Data><RefData z:Ref=\"i2\"/><RefData2 z:Ref=\"i2\"/><RefData3 z:Ref=\"i2\"/></_data><_data2 z:Ref=\"i1\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"/></ObjectContainer>");
 
-        TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.DerivedWithIsRefFalse4(true), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data z:Id=\"i1\" i:type=\"a:SerializationTestTypes.DerivedWithIsRefFalse4***\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.DerivedWithIsRefFalse4***\"><Data z:Id=\"i2\"><Data>11:59:59 PM</Data></Data><RefData z:Ref=\"i2\"/><RefData2 z:Ref=\"i2\"/><RefData3 z:Ref=\"i2\"/><RefData4 z:Ref=\"i2\"/></_data><_data2 z:Ref=\"i1\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"/></ObjectContainer>");
+        TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.DerivedWithIsRefFalse4(true), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data z:Id=\"i1\" i:type=\"a:SerializationTestTypes.DerivedWithIsRefFalse4***\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.DerivedWithIsRefFalse4***\"><Data z:Id=\"i2\"><Data>This is a string</Data></Data><RefData z:Ref=\"i2\"/><RefData2 z:Ref=\"i2\"/><RefData3 z:Ref=\"i2\"/><RefData4 z:Ref=\"i2\"/></_data><_data2 z:Ref=\"i1\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"/></ObjectContainer>");
 
-        TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.DerivedWithIsRefFalse5(true), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data z:Id=\"i1\" i:type=\"a:SerializationTestTypes.DerivedWithIsRefFalse5***\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.DerivedWithIsRefFalse5***\"><Data z:Id=\"i2\"><Data>11:59:59 PM</Data></Data><RefData z:Ref=\"i2\"/><RefData2 z:Ref=\"i2\"/><RefData3 z:Ref=\"i2\"/><RefData4 z:Ref=\"i2\"/><RefData5 z:Ref=\"i2\"/></_data><_data2 z:Ref=\"i1\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"/></ObjectContainer>");
+        TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.DerivedWithIsRefFalse5(true), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data z:Id=\"i1\" i:type=\"a:SerializationTestTypes.DerivedWithIsRefFalse5***\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.DerivedWithIsRefFalse5***\"><Data z:Id=\"i2\"><Data>This is a string</Data></Data><RefData z:Ref=\"i2\"/><RefData2 z:Ref=\"i2\"/><RefData3 z:Ref=\"i2\"/><RefData4 z:Ref=\"i2\"/><RefData5 z:Ref=\"i2\"/></_data><_data2 z:Ref=\"i1\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"/></ObjectContainer>");
 
-        TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.DerivedWithIsRefTrue6(true), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data z:Id=\"i1\" i:type=\"a:SerializationTestTypes.DerivedWithIsRefTrue6***\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.DerivedWithIsRefTrue6***\"><Data z:Id=\"i2\"><Data>11:59:59 PM</Data></Data><RefData z:Ref=\"i2\"/><RefData2 z:Ref=\"i2\"/><RefData3 z:Ref=\"i2\"/><RefData4 z:Ref=\"i2\"/><RefData5 z:Ref=\"i2\"/><RefData6 z:Ref=\"i2\"/></_data><_data2 z:Ref=\"i1\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"/></ObjectContainer>");
+        TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.DerivedWithIsRefTrue6(true), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data z:Id=\"i1\" i:type=\"a:SerializationTestTypes.DerivedWithIsRefTrue6***\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.DerivedWithIsRefTrue6***\"><Data z:Id=\"i2\"><Data>This is a string</Data></Data><RefData z:Ref=\"i2\"/><RefData2 z:Ref=\"i2\"/><RefData3 z:Ref=\"i2\"/><RefData4 z:Ref=\"i2\"/><RefData5 z:Ref=\"i2\"/><RefData6 z:Ref=\"i2\"/></_data><_data2 z:Ref=\"i1\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"/></ObjectContainer>");
 
-        TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.DerivedWithIsRefTrueExplicit(true), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data z:Id=\"i1\" i:type=\"a:SerializationTestTypes.DerivedWithIsRefTrueExplicit***\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.DerivedWithIsRefTrueExplicit***\"><Data z:Id=\"i2\"><Data>11:59:59 PM</Data></Data><RefData z:Ref=\"i2\"/></_data><_data2 z:Ref=\"i1\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"/></ObjectContainer>");
+        TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.DerivedWithIsRefTrueExplicit(true), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data z:Id=\"i1\" i:type=\"a:SerializationTestTypes.DerivedWithIsRefTrueExplicit***\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.DerivedWithIsRefTrueExplicit***\"><Data z:Id=\"i2\"><Data>This is a string</Data></Data><RefData z:Ref=\"i2\"/></_data><_data2 z:Ref=\"i1\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"/></ObjectContainer>");
 
-        TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.DerivedWithIsRefTrueExplicit2(true), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data z:Id=\"i1\" i:type=\"a:SerializationTestTypes.DerivedWithIsRefTrueExplicit2***\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.DerivedWithIsRefTrueExplicit2***\"><Data z:Id=\"i2\"><Data>11:59:59 PM</Data></Data><RefData z:Ref=\"i2\"/><RefData2 z:Ref=\"i2\"/></_data><_data2 z:Ref=\"i1\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"/></ObjectContainer>");
+        TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.DerivedWithIsRefTrueExplicit2(true), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data z:Id=\"i1\" i:type=\"a:SerializationTestTypes.DerivedWithIsRefTrueExplicit2***\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.DerivedWithIsRefTrueExplicit2***\"><Data z:Id=\"i2\"><Data>This is a string</Data></Data><RefData z:Ref=\"i2\"/><RefData2 z:Ref=\"i2\"/></_data><_data2 z:Ref=\"i1\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"/></ObjectContainer>");
 
-        TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.BaseNoIsRef(true), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data i:type=\"a:SerializationTestTypes.BaseNoIsRef***\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.BaseNoIsRef***\"><Data z:Id=\"i1\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"><Data>11:59:59 PM</Data></Data></_data><_data2 i:type=\"a:SerializationTestTypes.BaseNoIsRef***\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.BaseNoIsRef***\"><Data z:Ref=\"i1\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"/></_data2></ObjectContainer>");
+        TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.BaseNoIsRef(true), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data i:type=\"a:SerializationTestTypes.BaseNoIsRef***\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.BaseNoIsRef***\"><Data z:Id=\"i1\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"><Data>This is a string</Data></Data></_data><_data2 i:type=\"a:SerializationTestTypes.BaseNoIsRef***\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.BaseNoIsRef***\"><Data z:Ref=\"i1\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"/></_data2></ObjectContainer>");
 
-        TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.DerivedWithIsRefFalseExplicit(true), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data i:type=\"a:SerializationTestTypes.DerivedWithIsRefFalseExplicit***\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.DerivedWithIsRefFalseExplicit***\"><Data z:Id=\"i1\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"><Data>11:59:59 PM</Data></Data><RefData z:Ref=\"i1\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"/></_data><_data2 i:type=\"a:SerializationTestTypes.DerivedWithIsRefFalseExplicit***\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.DerivedWithIsRefFalseExplicit***\"><Data z:Ref=\"i1\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"/><RefData z:Ref=\"i1\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"/></_data2></ObjectContainer>");
+        TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.DerivedWithIsRefFalseExplicit(true), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data i:type=\"a:SerializationTestTypes.DerivedWithIsRefFalseExplicit***\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.DerivedWithIsRefFalseExplicit***\"><Data z:Id=\"i1\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"><Data>This is a string</Data></Data><RefData z:Ref=\"i1\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"/></_data><_data2 i:type=\"a:SerializationTestTypes.DerivedWithIsRefFalseExplicit***\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.DerivedWithIsRefFalseExplicit***\"><Data z:Ref=\"i1\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"/><RefData z:Ref=\"i1\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"/></_data2></ObjectContainer>");
 
-        TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.TestInheritence(true), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data z:Id=\"i1\" i:type=\"a:SerializationTestTypes.TestInheritence***\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.TestInheritence***\"><baseDC i:type=\"b:SerializationTestTypes.DerivedDC***\" xmlns:b=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.DerivedDC***\"><data>12:00:00 AM</data><data2>12:00:00 AM</data2><data0>12:00:00 AM</data0><data1>12:00:00 AM</data1><data3>12:00:00 AM</data3></baseDC><derivedDC><data>12:00:00 AM</data><data2>12:00:00 AM</data2><data0>12:00:00 AM</data0><data1>12:00:00 AM</data1><data3>12:00:00 AM</data3></derivedDC></_data><_data2 z:Ref=\"i1\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"/></ObjectContainer>");
+        TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.TestInheritence(true), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data z:Id=\"i1\" i:type=\"a:SerializationTestTypes.TestInheritence***\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.TestInheritence***\"><baseDC i:type=\"b:SerializationTestTypes.DerivedDC***\" xmlns:b=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.DerivedDC***\"><data>TestString</data><data2>TestString2</data2><data0>TestString0</data0><data1>TestString1</data1><data3>TestString3</data3></baseDC><derivedDC><data>TestString</data><data2>TestString2</data2><data0>TestString0</data0><data1>TestString1</data1><data3>TestString3</data3></derivedDC></_data><_data2 z:Ref=\"i1\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"/></ObjectContainer>");
 
-        TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.TestInheritence91(true), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data i:type=\"a:SerializationTestTypes.TestInheritence91***\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.TestInheritence91***\"><base1 i:type=\"b:SerializationTestTypes.Derived2Serializable***\" xmlns:b=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.Derived2Serializable***\"><data>12:00:00 AM</data><data2>12:00:00 AM</data2><data0>12:00:00 AM</data0><data1>12:00:00 AM</data1><data3>12:00:00 AM</data3><data00>12:00:00 AM</data00><data122>12:00:00 AM</data122><data4>12:00:00 AM</data4></base1><baseDC i:type=\"b:SerializationTestTypes.DerivedSerializable***\" xmlns:b=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.DerivedSerializable***\"><data>12:00:00 AM</data><data2>12:00:00 AM</data2><days xmlns:c=\"http://schemas.microsoft.com/2003/10/Serialization/Arrays\"><c:string>Base1</c:string><c:string>Base2</c:string><c:string>Base3</c:string><c:string>Base4</c:string><c:string>Base5</c:string><c:string>Base6</c:string><c:string>Base7</c:string></days><data0>12:00:00 AM</data0><data1>12:00:00 AM</data1><data3>12:00:00 AM</data3></baseDC><derived2 i:type=\"b:SerializationTestTypes.Derived3Derived2Serializable***\" xmlns:b=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.Derived3Derived2Serializable***\"><data>12:00:00 AM</data><data2>12:00:00 AM</data2><data0>12:00:00 AM</data0><data1>12:00:00 AM</data1><data3>12:00:00 AM</data3><data00>12:00:00 AM</data00><data122>12:00:00 AM</data122><data4>12:00:00 AM</data4></derived2><derived3><data>12:00:00 AM</data><data2>12:00:00 AM</data2><data0>12:00:00 AM</data0><data1>12:00:00 AM</data1><data3>12:00:00 AM</data3><data00>12:00:00 AM</data00><data122>12:00:00 AM</data122><data4>12:00:00 AM</data4></derived3><derivedDC><data>12:00:00 AM</data><data2>12:00:00 AM</data2><days xmlns:b=\"http://schemas.microsoft.com/2003/10/Serialization/Arrays\"><b:string>Base1</b:string><b:string>Base2</b:string><b:string>Base3</b:string><b:string>Base4</b:string><b:string>Base5</b:string><b:string>Base6</b:string><b:string>Base7</b:string></days><data0>12:00:00 AM</data0><data1>12:00:00 AM</data1><data3>12:00:00 AM</data3></derivedDC></_data><_data2 i:type=\"a:SerializationTestTypes.TestInheritence91***\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.TestInheritence91***\"><base1 i:type=\"b:SerializationTestTypes.Derived2Serializable***\" xmlns:b=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.Derived2Serializable***\"><data>12:00:00 AM</data><data2>12:00:00 AM</data2><data0>12:00:00 AM</data0><data1>12:00:00 AM</data1><data3>12:00:00 AM</data3><data00>12:00:00 AM</data00><data122>12:00:00 AM</data122><data4>12:00:00 AM</data4></base1><baseDC i:type=\"b:SerializationTestTypes.DerivedSerializable***\" xmlns:b=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.DerivedSerializable***\"><data>12:00:00 AM</data><data2>12:00:00 AM</data2><days xmlns:c=\"http://schemas.microsoft.com/2003/10/Serialization/Arrays\"><c:string>Base1</c:string><c:string>Base2</c:string><c:string>Base3</c:string><c:string>Base4</c:string><c:string>Base5</c:string><c:string>Base6</c:string><c:string>Base7</c:string></days><data0>12:00:00 AM</data0><data1>12:00:00 AM</data1><data3>12:00:00 AM</data3></baseDC><derived2 i:type=\"b:SerializationTestTypes.Derived3Derived2Serializable***\" xmlns:b=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.Derived3Derived2Serializable***\"><data>12:00:00 AM</data><data2>12:00:00 AM</data2><data0>12:00:00 AM</data0><data1>12:00:00 AM</data1><data3>12:00:00 AM</data3><data00>12:00:00 AM</data00><data122>12:00:00 AM</data122><data4>12:00:00 AM</data4></derived2><derived3><data>12:00:00 AM</data><data2>12:00:00 AM</data2><data0>12:00:00 AM</data0><data1>12:00:00 AM</data1><data3>12:00:00 AM</data3><data00>12:00:00 AM</data00><data122>12:00:00 AM</data122><data4>12:00:00 AM</data4></derived3><derivedDC><data>12:00:00 AM</data><data2>12:00:00 AM</data2><days xmlns:b=\"http://schemas.microsoft.com/2003/10/Serialization/Arrays\"><b:string>Base1</b:string><b:string>Base2</b:string><b:string>Base3</b:string><b:string>Base4</b:string><b:string>Base5</b:string><b:string>Base6</b:string><b:string>Base7</b:string></days><data0>12:00:00 AM</data0><data1>12:00:00 AM</data1><data3>12:00:00 AM</data3></derivedDC></_data2></ObjectContainer>");
+        TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.TestInheritence91(true), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data i:type=\"a:SerializationTestTypes.TestInheritence91***\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.TestInheritence91***\"><base1 i:type=\"b:SerializationTestTypes.Derived2Serializable***\" xmlns:b=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.Derived2Serializable***\"><data>TestString</data><data2>TestString2</data2><data0>TestString0</data0><data1>TestString1</data1><data3>TestString3</data3><data00>TestString00</data00><data122>TestString122</data122><data4>TestString4</data4></base1><baseDC i:type=\"b:SerializationTestTypes.DerivedSerializable***\" xmlns:b=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.DerivedSerializable***\"><data>TestString</data><data2>TestString2</data2><days xmlns:c=\"http://schemas.microsoft.com/2003/10/Serialization/Arrays\"><c:string>Base1</c:string><c:string>Base2</c:string><c:string>Base3</c:string><c:string>Base4</c:string><c:string>Base5</c:string><c:string>Base6</c:string><c:string>Base7</c:string></days><data0>TestString0</data0><data1>TestString1</data1><data3>TestString3</data3></baseDC><derived2 i:type=\"b:SerializationTestTypes.Derived3Derived2Serializable***\" xmlns:b=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.Derived3Derived2Serializable***\"><data>TestString</data><data2>TestString2</data2><data0>TestString0</data0><data1>TestString1</data1><data3>TestString3</data3><data00>TestString00</data00><data122>TestString122</data122><data4>TestString4</data4></derived2><derived3><data>TestString</data><data2>TestString2</data2><data0>TestString0</data0><data1>TestString1</data1><data3>TestString3</data3><data00>TestString00</data00><data122>TestString122</data122><data4>TestString4</data4></derived3><derivedDC><data>TestString</data><data2>TestString2</data2><days xmlns:b=\"http://schemas.microsoft.com/2003/10/Serialization/Arrays\"><b:string>Base1</b:string><b:string>Base2</b:string><b:string>Base3</b:string><b:string>Base4</b:string><b:string>Base5</b:string><b:string>Base6</b:string><b:string>Base7</b:string></days><data0>TestString0</data0><data1>TestString1</data1><data3>TestString3</data3></derivedDC></_data><_data2 i:type=\"a:SerializationTestTypes.TestInheritence91***\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.TestInheritence91***\"><base1 i:type=\"b:SerializationTestTypes.Derived2Serializable***\" xmlns:b=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.Derived2Serializable***\"><data>TestString</data><data2>TestString2</data2><data0>TestString0</data0><data1>TestString1</data1><data3>TestString3</data3><data00>TestString00</data00><data122>TestString122</data122><data4>TestString4</data4></base1><baseDC i:type=\"b:SerializationTestTypes.DerivedSerializable***\" xmlns:b=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.DerivedSerializable***\"><data>TestString</data><data2>TestString2</data2><days xmlns:c=\"http://schemas.microsoft.com/2003/10/Serialization/Arrays\"><c:string>Base1</c:string><c:string>Base2</c:string><c:string>Base3</c:string><c:string>Base4</c:string><c:string>Base5</c:string><c:string>Base6</c:string><c:string>Base7</c:string></days><data0>TestString0</data0><data1>TestString1</data1><data3>TestString3</data3></baseDC><derived2 i:type=\"b:SerializationTestTypes.Derived3Derived2Serializable***\" xmlns:b=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.Derived3Derived2Serializable***\"><data>TestString</data><data2>TestString2</data2><data0>TestString0</data0><data1>TestString1</data1><data3>TestString3</data3><data00>TestString00</data00><data122>TestString122</data122><data4>TestString4</data4></derived2><derived3><data>TestString</data><data2>TestString2</data2><data0>TestString0</data0><data1>TestString1</data1><data3>TestString3</data3><data00>TestString00</data00><data122>TestString122</data122><data4>TestString4</data4></derived3><derivedDC><data>TestString</data><data2>TestString2</data2><days xmlns:b=\"http://schemas.microsoft.com/2003/10/Serialization/Arrays\"><b:string>Base1</b:string><b:string>Base2</b:string><b:string>Base3</b:string><b:string>Base4</b:string><b:string>Base5</b:string><b:string>Base6</b:string><b:string>Base7</b:string></days><data0>TestString0</data0><data1>TestString1</data1><data3>TestString3</data3></derivedDC></_data2></ObjectContainer>");
 
         TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.TestInheritence5(true), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data z:Id=\"i1\" i:type=\"a:SerializationTestTypes.TestInheritence5***\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.TestInheritence5***\"><baseDC i:nil=\"true\"/><derivedDC i:nil=\"true\"/></_data><_data2 z:Ref=\"i1\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"/></ObjectContainer>");
 
         TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.TestInheritence10(true), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data i:type=\"a:SerializationTestTypes.TestInheritence10***\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.TestInheritence10***\"/><_data2 i:type=\"a:SerializationTestTypes.TestInheritence10***\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.TestInheritence10***\"/></ObjectContainer>");
 
-        TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.TestInheritence2(true), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data z:Id=\"i1\" i:type=\"a:SerializationTestTypes.TestInheritence2***\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.TestInheritence2***\"><baseDC><data>12:00:00 AM</data><data2>12:00:00 AM</data2></baseDC><derivedDC><data>12:00:00 AM</data><data2>12:00:00 AM</data2><data0>12:00:00 AM</data0><data1>12:00:00 AM</data1><data3>12:00:00 AM</data3></derivedDC></_data><_data2 z:Ref=\"i1\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"/></ObjectContainer>");
+        TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.TestInheritence2(true), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data z:Id=\"i1\" i:type=\"a:SerializationTestTypes.TestInheritence2***\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.TestInheritence2***\"><baseDC><data>String3</data><data2>String3</data2></baseDC><derivedDC><data>TestString</data><data2>TestString2</data2><data0>String1</data0><data1>String2</data1><data3>TestString3</data3></derivedDC></_data><_data2 z:Ref=\"i1\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"/></ObjectContainer>");
 
-        TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.TestInheritence11(true), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data i:type=\"a:SerializationTestTypes.TestInheritence11***\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.TestInheritence11***\"><baseDC><data>12:00:00 AM</data><data2>12:00:00 AM</data2><days xmlns:b=\"http://schemas.microsoft.com/2003/10/Serialization/Arrays\"><b:string>Base1</b:string><b:string>Base2</b:string><b:string>Base3</b:string><b:string>Base4</b:string><b:string>Base5</b:string><b:string>Base6</b:string><b:string>Base7</b:string></days></baseDC><derivedDC><data>12:00:00 AM</data><data2>12:00:00 AM</data2><days xmlns:b=\"http://schemas.microsoft.com/2003/10/Serialization/Arrays\"><b:string>Base1</b:string><b:string>Base2</b:string><b:string>Base3</b:string><b:string>Base4</b:string><b:string>Base5</b:string><b:string>Base6</b:string><b:string>Base7</b:string></days><data0>12:00:00 AM</data0><data1>12:00:00 AM</data1><data3>12:00:00 AM</data3></derivedDC></_data><_data2 i:type=\"a:SerializationTestTypes.TestInheritence11***\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.TestInheritence11***\"><baseDC><data>12:00:00 AM</data><data2>12:00:00 AM</data2><days xmlns:b=\"http://schemas.microsoft.com/2003/10/Serialization/Arrays\"><b:string>Base1</b:string><b:string>Base2</b:string><b:string>Base3</b:string><b:string>Base4</b:string><b:string>Base5</b:string><b:string>Base6</b:string><b:string>Base7</b:string></days></baseDC><derivedDC><data>12:00:00 AM</data><data2>12:00:00 AM</data2><days xmlns:b=\"http://schemas.microsoft.com/2003/10/Serialization/Arrays\"><b:string>Base1</b:string><b:string>Base2</b:string><b:string>Base3</b:string><b:string>Base4</b:string><b:string>Base5</b:string><b:string>Base6</b:string><b:string>Base7</b:string></days><data0>12:00:00 AM</data0><data1>12:00:00 AM</data1><data3>12:00:00 AM</data3></derivedDC></_data2></ObjectContainer>");
+        TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.TestInheritence11(true), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data i:type=\"a:SerializationTestTypes.TestInheritence11***\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.TestInheritence11***\"><baseDC><data>String3</data><data2>String3</data2><days xmlns:b=\"http://schemas.microsoft.com/2003/10/Serialization/Arrays\"><b:string>Base1</b:string><b:string>Base2</b:string><b:string>Base3</b:string><b:string>Base4</b:string><b:string>Base5</b:string><b:string>Base6</b:string><b:string>Base7</b:string></days></baseDC><derivedDC><data>TestString</data><data2>TestString2</data2><days xmlns:b=\"http://schemas.microsoft.com/2003/10/Serialization/Arrays\"><b:string>Base1</b:string><b:string>Base2</b:string><b:string>Base3</b:string><b:string>Base4</b:string><b:string>Base5</b:string><b:string>Base6</b:string><b:string>Base7</b:string></days><data0>String1</data0><data1>String2</data1><data3>TestString3</data3></derivedDC></_data><_data2 i:type=\"a:SerializationTestTypes.TestInheritence11***\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.TestInheritence11***\"><baseDC><data>String3</data><data2>String3</data2><days xmlns:b=\"http://schemas.microsoft.com/2003/10/Serialization/Arrays\"><b:string>Base1</b:string><b:string>Base2</b:string><b:string>Base3</b:string><b:string>Base4</b:string><b:string>Base5</b:string><b:string>Base6</b:string><b:string>Base7</b:string></days></baseDC><derivedDC><data>TestString</data><data2>TestString2</data2><days xmlns:b=\"http://schemas.microsoft.com/2003/10/Serialization/Arrays\"><b:string>Base1</b:string><b:string>Base2</b:string><b:string>Base3</b:string><b:string>Base4</b:string><b:string>Base5</b:string><b:string>Base6</b:string><b:string>Base7</b:string></days><data0>String1</data0><data1>String2</data1><data3>TestString3</data3></derivedDC></_data2></ObjectContainer>");
 
-        TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.TestInheritence3(true), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data z:Id=\"i1\" i:type=\"a:SerializationTestTypes.TestInheritence3***\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.TestInheritence3***\"><baseDC><data>12:00:00 AM</data><data2>12:00:00 AM</data2></baseDC><derivedDC><data>12:00:00 AM</data><data2>12:00:00 AM</data2><data0>12:00:00 AM</data0><data1>12:00:00 AM</data1><data3>12:00:00 AM</data3></derivedDC></_data><_data2 z:Ref=\"i1\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"/></ObjectContainer>");
+        TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.TestInheritence3(true), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data z:Id=\"i1\" i:type=\"a:SerializationTestTypes.TestInheritence3***\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.TestInheritence3***\"><baseDC><data>String1</data><data2>String2</data2></baseDC><derivedDC><data>TestString1</data><data2>TestString2</data2><data0>String3</data0><data1>String3</data1><data3>TestString3</data3></derivedDC></_data><_data2 z:Ref=\"i1\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"/></ObjectContainer>");
 
-        TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.TestInheritence16(true), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data i:type=\"a:SerializationTestTypes.TestInheritence16***\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.TestInheritence16***\"><baseDC><data>12:00:00 AM</data><data2>12:00:00 AM</data2><days xmlns:b=\"http://schemas.microsoft.com/2003/10/Serialization/Arrays\"><b:string>Base1</b:string><b:string>Base2</b:string><b:string>Base3</b:string><b:string>Base4</b:string><b:string>Base5</b:string><b:string>Base6</b:string><b:string>Base7</b:string></days></baseDC><derivedDC><data>12:00:00 AM</data><data2>12:00:00 AM</data2><days xmlns:b=\"http://schemas.microsoft.com/2003/10/Serialization/Arrays\"><b:string>Base1</b:string><b:string>Base2</b:string><b:string>Base3</b:string><b:string>Base4</b:string><b:string>Base5</b:string><b:string>Base6</b:string><b:string>Base7</b:string></days><data0>12:00:00 AM</data0><data1>12:00:00 AM</data1><data3>12:00:00 AM</data3></derivedDC></_data><_data2 i:type=\"a:SerializationTestTypes.TestInheritence16***\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.TestInheritence16***\"><baseDC><data>12:00:00 AM</data><data2>12:00:00 AM</data2><days xmlns:b=\"http://schemas.microsoft.com/2003/10/Serialization/Arrays\"><b:string>Base1</b:string><b:string>Base2</b:string><b:string>Base3</b:string><b:string>Base4</b:string><b:string>Base5</b:string><b:string>Base6</b:string><b:string>Base7</b:string></days></baseDC><derivedDC><data>12:00:00 AM</data><data2>12:00:00 AM</data2><days xmlns:b=\"http://schemas.microsoft.com/2003/10/Serialization/Arrays\"><b:string>Base1</b:string><b:string>Base2</b:string><b:string>Base3</b:string><b:string>Base4</b:string><b:string>Base5</b:string><b:string>Base6</b:string><b:string>Base7</b:string></days><data0>12:00:00 AM</data0><data1>12:00:00 AM</data1><data3>12:00:00 AM</data3></derivedDC></_data2></ObjectContainer>");
+        TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.TestInheritence16(true), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data i:type=\"a:SerializationTestTypes.TestInheritence16***\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.TestInheritence16***\"><baseDC><data>String1</data><data2>String2</data2><days xmlns:b=\"http://schemas.microsoft.com/2003/10/Serialization/Arrays\"><b:string>Base1</b:string><b:string>Base2</b:string><b:string>Base3</b:string><b:string>Base4</b:string><b:string>Base5</b:string><b:string>Base6</b:string><b:string>Base7</b:string></days></baseDC><derivedDC><data>TestString1</data><data2>TestString2</data2><days xmlns:b=\"http://schemas.microsoft.com/2003/10/Serialization/Arrays\"><b:string>Base1</b:string><b:string>Base2</b:string><b:string>Base3</b:string><b:string>Base4</b:string><b:string>Base5</b:string><b:string>Base6</b:string><b:string>Base7</b:string></days><data0>String3</data0><data1>String3</data1><data3>TestString3</data3></derivedDC></_data><_data2 i:type=\"a:SerializationTestTypes.TestInheritence16***\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.TestInheritence16***\"><baseDC><data>String1</data><data2>String2</data2><days xmlns:b=\"http://schemas.microsoft.com/2003/10/Serialization/Arrays\"><b:string>Base1</b:string><b:string>Base2</b:string><b:string>Base3</b:string><b:string>Base4</b:string><b:string>Base5</b:string><b:string>Base6</b:string><b:string>Base7</b:string></days></baseDC><derivedDC><data>TestString1</data><data2>TestString2</data2><days xmlns:b=\"http://schemas.microsoft.com/2003/10/Serialization/Arrays\"><b:string>Base1</b:string><b:string>Base2</b:string><b:string>Base3</b:string><b:string>Base4</b:string><b:string>Base5</b:string><b:string>Base6</b:string><b:string>Base7</b:string></days><data0>String3</data0><data1>String3</data1><data3>TestString3</data3></derivedDC></_data2></ObjectContainer>");
 
-        TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.TestInheritence4(true), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data z:Id=\"i1\" i:type=\"a:SerializationTestTypes.TestInheritence4***\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.TestInheritence4***\"><baseDC><data>12:00:00 AM</data><data2>12:00:00 AM</data2></baseDC><derivedDC><data>12:00:00 AM</data><data2>12:00:00 AM</data2><data0>12:00:00 AM</data0><data1>12:00:00 AM</data1><data3>12:00:00 AM</data3></derivedDC></_data><_data2 z:Ref=\"i1\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"/></ObjectContainer>");
+        TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.TestInheritence4(true), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data z:Id=\"i1\" i:type=\"a:SerializationTestTypes.TestInheritence4***\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.TestInheritence4***\"><baseDC><data>TestString</data><data2>TestString2</data2></baseDC><derivedDC><data>TestString2</data><data2>String3</data2><data0>String3</data0><data1>String2</data1><data3>TestString3</data3></derivedDC></_data><_data2 z:Ref=\"i1\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"/></ObjectContainer>");
 
-        TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.TestInheritence12(true), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data i:type=\"a:SerializationTestTypes.TestInheritence12***\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.TestInheritence12***\"><baseDC><data>12:00:00 AM</data><data2>12:00:00 AM</data2><days xmlns:b=\"http://schemas.microsoft.com/2003/10/Serialization/Arrays\"><b:string>Base1</b:string><b:string>Base2</b:string><b:string>Base3</b:string><b:string>Base4</b:string><b:string>Base5</b:string><b:string>Base6</b:string><b:string>Base7</b:string></days></baseDC><derivedDC><data>12:00:00 AM</data><data2>12:00:00 AM</data2><days xmlns:b=\"http://schemas.microsoft.com/2003/10/Serialization/Arrays\"><b:string>Base1</b:string><b:string>Base2</b:string><b:string>Base3</b:string><b:string>Base4</b:string><b:string>Base5</b:string><b:string>Base6</b:string><b:string>Base7</b:string></days><data0>12:00:00 AM</data0><data1>12:00:00 AM</data1><data3>12:00:00 AM</data3></derivedDC></_data><_data2 i:type=\"a:SerializationTestTypes.TestInheritence12***\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.TestInheritence12***\"><baseDC><data>12:00:00 AM</data><data2>12:00:00 AM</data2><days xmlns:b=\"http://schemas.microsoft.com/2003/10/Serialization/Arrays\"><b:string>Base1</b:string><b:string>Base2</b:string><b:string>Base3</b:string><b:string>Base4</b:string><b:string>Base5</b:string><b:string>Base6</b:string><b:string>Base7</b:string></days></baseDC><derivedDC><data>12:00:00 AM</data><data2>12:00:00 AM</data2><days xmlns:b=\"http://schemas.microsoft.com/2003/10/Serialization/Arrays\"><b:string>Base1</b:string><b:string>Base2</b:string><b:string>Base3</b:string><b:string>Base4</b:string><b:string>Base5</b:string><b:string>Base6</b:string><b:string>Base7</b:string></days><data0>12:00:00 AM</data0><data1>12:00:00 AM</data1><data3>12:00:00 AM</data3></derivedDC></_data2></ObjectContainer>");
+        TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.TestInheritence12(true), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data i:type=\"a:SerializationTestTypes.TestInheritence12***\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.TestInheritence12***\"><baseDC><data>TestString</data><data2>TestString2</data2><days xmlns:b=\"http://schemas.microsoft.com/2003/10/Serialization/Arrays\"><b:string>Base1</b:string><b:string>Base2</b:string><b:string>Base3</b:string><b:string>Base4</b:string><b:string>Base5</b:string><b:string>Base6</b:string><b:string>Base7</b:string></days></baseDC><derivedDC><data>TestString2</data><data2>String3</data2><days xmlns:b=\"http://schemas.microsoft.com/2003/10/Serialization/Arrays\"><b:string>Base1</b:string><b:string>Base2</b:string><b:string>Base3</b:string><b:string>Base4</b:string><b:string>Base5</b:string><b:string>Base6</b:string><b:string>Base7</b:string></days><data0>String3</data0><data1>String2</data1><data3>TestString3</data3></derivedDC></_data><_data2 i:type=\"a:SerializationTestTypes.TestInheritence12***\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.TestInheritence12***\"><baseDC><data>TestString</data><data2>TestString2</data2><days xmlns:b=\"http://schemas.microsoft.com/2003/10/Serialization/Arrays\"><b:string>Base1</b:string><b:string>Base2</b:string><b:string>Base3</b:string><b:string>Base4</b:string><b:string>Base5</b:string><b:string>Base6</b:string><b:string>Base7</b:string></days></baseDC><derivedDC><data>TestString2</data><data2>String3</data2><days xmlns:b=\"http://schemas.microsoft.com/2003/10/Serialization/Arrays\"><b:string>Base1</b:string><b:string>Base2</b:string><b:string>Base3</b:string><b:string>Base4</b:string><b:string>Base5</b:string><b:string>Base6</b:string><b:string>Base7</b:string></days><data0>String3</data0><data1>String2</data1><data3>TestString3</data3></derivedDC></_data2></ObjectContainer>");
 
-        TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.TestInheritence6(true), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data z:Id=\"i1\" i:type=\"a:SerializationTestTypes.TestInheritence6***\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.TestInheritence6***\"><baseDC><data>12:00:00 AM</data><data2>12:00:00 AM</data2></baseDC><derived2DC><data>12:00:00 AM</data><data2>12:00:00 AM</data2><data0>12:00:00 AM</data0><data1>12:00:00 AM</data1><data3>12:00:00 AM</data3><data11>12:00:00 AM</data11><data12>12:00:00 AM</data12><data4>12:00:00 AM</data4></derived2DC><derivedDC><data>12:00:00 AM</data><data2>12:00:00 AM</data2><data0>12:00:00 AM</data0><data1>12:00:00 AM</data1><data3>12:00:00 AM</data3></derivedDC></_data><_data2 z:Ref=\"i1\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"/></ObjectContainer>");
+        TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.TestInheritence6(true), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data z:Id=\"i1\" i:type=\"a:SerializationTestTypes.TestInheritence6***\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.TestInheritence6***\"><baseDC><data>TestString</data><data2>TestString2</data2></baseDC><derived2DC><data>TestString3</data><data2>String4</data2><data0>TestString0</data0><data1>TestString2</data1><data3>TestString3</data3><data11>String2</data11><data12>String4</data12><data4>String3</data4></derived2DC><derivedDC><data>TestString</data><data2>TestString2</data2><data0>String1</data0><data1>String3</data1><data3>String2</data3></derivedDC></_data><_data2 z:Ref=\"i1\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"/></ObjectContainer>");
 
-        TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.TestInheritence7(true), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data z:Id=\"i1\" i:type=\"a:SerializationTestTypes.TestInheritence7***\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.TestInheritence7***\"><baseDC><data>12:00:00 AM</data><data2>12:00:00 AM</data2></baseDC><derived2DC><data>12:00:00 AM</data><data2>12:00:00 AM</data2><data0>12:00:00 AM</data0><data1>12:00:00 AM</data1><data3>12:00:00 AM</data3><data11>12:00:00 AM</data11><data12>12:00:00 AM</data12><data4>12:00:00 AM</data4></derived2DC></_data><_data2 z:Ref=\"i1\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"/></ObjectContainer>");
+        TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.TestInheritence7(true), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data z:Id=\"i1\" i:type=\"a:SerializationTestTypes.TestInheritence7***\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.TestInheritence7***\"><baseDC><data>String1</data><data2>String2</data2></baseDC><derived2DC><data>TestString2</data><data2>TestString2</data2><data0>TestString0</data0><data1>TestString1</data1><data3>TestString3</data3><data11>String2</data11><data12>TestString12</data12><data4>TestString4</data4></derived2DC></_data><_data2 z:Ref=\"i1\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"/></ObjectContainer>");
 
-        TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.TestInheritence14(true), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data i:type=\"a:SerializationTestTypes.TestInheritence14***\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.TestInheritence14***\"><baseDC><data>12:00:00 AM</data><data2>12:00:00 AM</data2><days xmlns:b=\"http://schemas.microsoft.com/2003/10/Serialization/Arrays\"><b:string>Base1</b:string><b:string>Base2</b:string><b:string>Base3</b:string><b:string>Base4</b:string><b:string>Base5</b:string><b:string>Base6</b:string><b:string>Base7</b:string></days></baseDC><derived2DC><data>12:00:00 AM</data><data2>12:00:00 AM</data2><data0>12:00:00 AM</data0><data1>12:00:00 AM</data1><data3>12:00:00 AM</data3><data00>12:00:00 AM</data00><data122>12:00:00 AM</data122><data4>12:00:00 AM</data4></derived2DC></_data><_data2 i:type=\"a:SerializationTestTypes.TestInheritence14***\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.TestInheritence14***\"><baseDC><data>12:00:00 AM</data><data2>12:00:00 AM</data2><days xmlns:b=\"http://schemas.microsoft.com/2003/10/Serialization/Arrays\"><b:string>Base1</b:string><b:string>Base2</b:string><b:string>Base3</b:string><b:string>Base4</b:string><b:string>Base5</b:string><b:string>Base6</b:string><b:string>Base7</b:string></days></baseDC><derived2DC><data>12:00:00 AM</data><data2>12:00:00 AM</data2><data0>12:00:00 AM</data0><data1>12:00:00 AM</data1><data3>12:00:00 AM</data3><data00>12:00:00 AM</data00><data122>12:00:00 AM</data122><data4>12:00:00 AM</data4></derived2DC></_data2></ObjectContainer>");
+        TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.TestInheritence14(true), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data i:type=\"a:SerializationTestTypes.TestInheritence14***\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.TestInheritence14***\"><baseDC><data>String1</data><data2>String2</data2><days xmlns:b=\"http://schemas.microsoft.com/2003/10/Serialization/Arrays\"><b:string>Base1</b:string><b:string>Base2</b:string><b:string>Base3</b:string><b:string>Base4</b:string><b:string>Base5</b:string><b:string>Base6</b:string><b:string>Base7</b:string></days></baseDC><derived2DC><data>TestString2</data><data2>TestString2</data2><data0>TestString0</data0><data1>TestString1</data1><data3>TestString3</data3><data00>String2</data00><data122>TestString122</data122><data4>TestString4</data4></derived2DC></_data><_data2 i:type=\"a:SerializationTestTypes.TestInheritence14***\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.TestInheritence14***\"><baseDC><data>String1</data><data2>String2</data2><days xmlns:b=\"http://schemas.microsoft.com/2003/10/Serialization/Arrays\"><b:string>Base1</b:string><b:string>Base2</b:string><b:string>Base3</b:string><b:string>Base4</b:string><b:string>Base5</b:string><b:string>Base6</b:string><b:string>Base7</b:string></days></baseDC><derived2DC><data>TestString2</data><data2>TestString2</data2><data0>TestString0</data0><data1>TestString1</data1><data3>TestString3</data3><data00>String2</data00><data122>TestString122</data122><data4>TestString4</data4></derived2DC></_data2></ObjectContainer>");
 
-        TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.TestInheritence8(true), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data z:Id=\"i1\" i:type=\"a:SerializationTestTypes.TestInheritence8***\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.TestInheritence8***\"><baseDC><data>12:00:00 AM</data><data2>12:00:00 AM</data2></baseDC><derived2DC><data>12:00:00 AM</data><data2>12:00:00 AM</data2><data0>12:00:00 AM</data0><data1>12:00:00 AM</data1><data3>12:00:00 AM</data3><data11>12:00:00 AM</data11><data12>12:00:00 AM</data12><data4>12:00:00 AM</data4></derived2DC></_data><_data2 z:Ref=\"i1\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"/></ObjectContainer>");
-		
+        TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.TestInheritence8(true), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data z:Id=\"i1\" i:type=\"a:SerializationTestTypes.TestInheritence8***\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.TestInheritence8***\"><baseDC><data>String2</data><data2>TestString2</data2></baseDC><derived2DC><data>TestString</data><data2>TestString2</data2><data0>TestString0</data0><data1>TestString1</data1><data3>TestString3</data3><data11>String1</data11><data12>String2</data12><data4>TestString4</data4></derived2DC></_data><_data2 z:Ref=\"i1\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"/></ObjectContainer>");
+
     }
 
     [Fact]
@@ -3734,7 +3732,7 @@ public static partial class DataContractSerializerTests
         TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.BB1(true), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data z:Id=\"i1\" i:type=\"a:SerializationTestTypes.BB1***\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.BB1***\"><Data z:Id=\"i2\"><Data z:Id=\"i3\"><Data z:Id=\"i4\"><Data z:Id=\"i5\"><Data z:Ref=\"i2\"/></Data><Data2 z:Id=\"i6\"><Data z:Ref=\"i4\"/></Data2></Data></Data></Data></_data><_data2 z:Ref=\"i1\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"/></ObjectContainer>");
 
         TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.BBB1(true), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data z:Id=\"i1\" i:type=\"a:SerializationTestTypes.BBB1***\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.BBB1***\"><Data z:Id=\"i2\"><Data z:Id=\"i3\"><Data z:Id=\"i4\"><Data z:Ref=\"i1\"/></Data><Data2 z:Id=\"i5\"><Data z:Ref=\"i3\"/></Data2></Data></Data></_data><_data2 z:Ref=\"i1\" xmlns:z=\"http://schemas.microsoft.com/2003/10/Serialization/\"/></ObjectContainer>");
-		
+
     }
 
     [Fact]
@@ -3747,10 +3745,6 @@ public static partial class DataContractSerializerTests
         TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.Person("Hi"), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data i:type=\"a:SerializationTestTypes.Person***\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.Person***\"><Age>6</Age><Name>smith</Name></_data><_data2 i:type=\"a:SerializationTestTypes.Person***\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.Person***\"><Age>6</Age><Name>smith</Name></_data2></ObjectContainer>");
 
         TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.CharClass(), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data i:type=\"a:SerializationTestTypes.CharClass***\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.CharClass***\"><c>0</c><c1>65535</c1><c2>0</c2><c3>99</c3></_data><_data2 i:type=\"a:SerializationTestTypes.CharClass***\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.CharClass***\"><c>0</c><c1>65535</c1><c2>0</c2><c3>99</c3></_data2></ObjectContainer>");
-
-        TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.AllTypes(), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data i:type=\"a:SerializationTestTypes.AllTypes***\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.AllTypes***\"><a>false</a><array1><anyType xmlns=\"http://schemas.microsoft.com/2003/10/Serialization/Arrays\"/><anyType xmlns=\"http://schemas.microsoft.com/2003/10/Serialization/Arrays\"/><anyType xmlns=\"http://schemas.microsoft.com/2003/10/Serialization/Arrays\"/></array1><b>255</b><c>0</c><d>65535</d><e>79228162514264337593543950335</e><enumArrayData><MyEnum1>red</MyEnum1></enumArrayData><enumBase1 i:type=\"b:SerializationTestTypes.MyEnum1***\" xmlns:b=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.MyEnum1***\">red</enumBase1><f>-1</f><f5>0001-01-01T00:00:00</f5><g>-79228162514264337593543950335</g><guidData>5642b5d2-87c3-a724-2390-997062f3f7a2</guidData><h>1</h><i>0</i><j>0</j><k>0</k><l>4.94065645841247E-324</l><lDTO xmlns:b=\"http://schemas.datacontract.org/2004/07/System\"/><m>1.7976931348623157E+308</m><n>-1.7976931348623157E+308</n><nDTO xmlns:b=\"http://schemas.datacontract.org/2004/07/System\"><b:DateTime>9999-12-31T23:59:59.9999999Z</b:DateTime><b:OffsetMinutes>0</b:OffsetMinutes></nDTO><o>NaN</o><obj/><p>-INF</p><q>INF</q><r>0</r><s>1.401298E-45</s><strData i:nil=\"true\"/><t>-3.40282347E+38</t><timeSpan i:type=\"b:duration\" xmlns:b=\"http://schemas.microsoft.com/2003/10/Serialization/\">P10675199DT2H48M5.4775807S</timeSpan><u>3.40282347E+38</u><uri>http://www.microsoft.com/</uri><v>NaN</v><valType i:type=\"PublicDCStruct\"><Data>Data</Data></valType><w>-INF</w><x>INF</x><q:xmlQualifiedName xmlns:q=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:b=\"http://www.microsoft.com\">b:WCF</q:xmlQualifiedName><y>0</y><z>2147483647</z><z1>-2147483648</z1><z2>0</z2><z3>9223372036854775807</z3><z4>-9223372036854775808</z4><z5/><z6>0</z6><z7>127</z7><z8>-128</z8><z9>0</z9><z91>32767</z91><z92>-32768</z92><z93>abc</z93><z94>0</z94><z95>65535</z95><z96>0</z96><z97>0</z97><z98>4294967295</z98><z99>0</z99><z990>0</z990><z991>18446744073709551615</z991><z992>0</z992></_data><_data2 i:type=\"a:SerializationTestTypes.AllTypes***\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.AllTypes***\"><a>false</a><array1><anyType xmlns=\"http://schemas.microsoft.com/2003/10/Serialization/Arrays\"/><anyType xmlns=\"http://schemas.microsoft.com/2003/10/Serialization/Arrays\"/><anyType xmlns=\"http://schemas.microsoft.com/2003/10/Serialization/Arrays\"/></array1><b>255</b><c>0</c><d>65535</d><e>79228162514264337593543950335</e><enumArrayData><MyEnum1>red</MyEnum1></enumArrayData><enumBase1 i:type=\"b:SerializationTestTypes.MyEnum1***\" xmlns:b=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.MyEnum1***\">red</enumBase1><f>-1</f><f5>0001-01-01T00:00:00</f5><g>-79228162514264337593543950335</g><guidData>5642b5d2-87c3-a724-2390-997062f3f7a2</guidData><h>1</h><i>0</i><j>0</j><k>0</k><l>4.94065645841247E-324</l><lDTO xmlns:b=\"http://schemas.datacontract.org/2004/07/System\"/><m>1.7976931348623157E+308</m><n>-1.7976931348623157E+308</n><nDTO xmlns:b=\"http://schemas.datacontract.org/2004/07/System\"><b:DateTime>9999-12-31T23:59:59.9999999Z</b:DateTime><b:OffsetMinutes>0</b:OffsetMinutes></nDTO><o>NaN</o><obj/><p>-INF</p><q>INF</q><r>0</r><s>1.401298E-45</s><strData i:nil=\"true\"/><t>-3.40282347E+38</t><timeSpan i:type=\"b:duration\" xmlns:b=\"http://schemas.microsoft.com/2003/10/Serialization/\">P10675199DT2H48M5.4775807S</timeSpan><u>3.40282347E+38</u><uri>http://www.microsoft.com/</uri><v>NaN</v><valType i:type=\"PublicDCStruct\"><Data>Data</Data></valType><w>-INF</w><x>INF</x><q:xmlQualifiedName xmlns:q=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:b=\"http://www.microsoft.com\">b:WCF</q:xmlQualifiedName><y>0</y><z>2147483647</z><z1>-2147483648</z1><z2>0</z2><z3>9223372036854775807</z3><z4>-9223372036854775808</z4><z5/><z6>0</z6><z7>127</z7><z8>-128</z8><z9>0</z9><z91>32767</z91><z92>-32768</z92><z93>abc</z93><z94>0</z94><z95>65535</z95><z96>0</z96><z97>0</z97><z98>4294967295</z98><z99>0</z99><z990>0</z990><z991>18446744073709551615</z991><z992>0</z992></_data2></ObjectContainer>");
-
-        TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.AllTypes2(), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data i:type=\"a:SerializationTestTypes.AllTypes2***\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.AllTypes2***\"><a>false</a><array1><anyType xmlns=\"http://schemas.microsoft.com/2003/10/Serialization/Arrays\"/><anyType xmlns=\"http://schemas.microsoft.com/2003/10/Serialization/Arrays\"/><anyType xmlns=\"http://schemas.microsoft.com/2003/10/Serialization/Arrays\"/></array1><b>255</b><c>0</c><d>65535</d><e>79228162514264337593543950335</e><enumArrayData><MyEnum1>red</MyEnum1></enumArrayData><enumBase1 i:type=\"b:SerializationTestTypes.MyEnum1***\" xmlns:b=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.MyEnum1***\">red</enumBase1><f>-1</f><f5>0001-01-01T00:00:00</f5><g>-79228162514264337593543950335</g><guidData>cac76333-577f-7e1f-0389-789b0d97f395</guidData><h>1</h><i>0</i><j>0</j><k>0</k><l>4.94065645841247E-324</l><m>1.7976931348623157E+308</m><n>-1.7976931348623157E+308</n><nDTO xmlns:b=\"http://schemas.datacontract.org/2004/07/System\"><b:DateTime>9999-12-31T23:59:59.9999999Z</b:DateTime><b:OffsetMinutes>0</b:OffsetMinutes></nDTO><o>NaN</o><obj/><p>-INF</p><q>INF</q><r>0</r><s>1.401298E-45</s><strData i:nil=\"true\"/><t>-3.40282347E+38</t><timeSpan>P10675199DT2H48M5.4775807S</timeSpan><u>3.40282347E+38</u><uri>http://www.microsoft.com/</uri><v>NaN</v><valType i:type=\"PublicDCStruct\"><Data>Data</Data></valType><w>-INF</w><x>INF</x><q:xmlQualifiedName xmlns:q=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:b=\"http://www.microsoft.com\">b:WCF</q:xmlQualifiedName><y>0</y><z>2147483647</z><z1>-2147483648</z1><z2>0</z2><z3>9223372036854775807</z3><z4>-9223372036854775808</z4><z5/><z6>0</z6><z7>127</z7><z8>-128</z8><z9>0</z9><z91>32767</z91><z92>-32768</z92><z93>abc</z93><z94>0</z94><z95>65535</z95><z96>0</z96><z97>0</z97><z98>4294967295</z98><z99>0</z99><z990>0</z990><z991>18446744073709551615</z991><z992>0</z992></_data><_data2 i:type=\"a:SerializationTestTypes.AllTypes2***\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.AllTypes2***\"><a>false</a><array1><anyType xmlns=\"http://schemas.microsoft.com/2003/10/Serialization/Arrays\"/><anyType xmlns=\"http://schemas.microsoft.com/2003/10/Serialization/Arrays\"/><anyType xmlns=\"http://schemas.microsoft.com/2003/10/Serialization/Arrays\"/></array1><b>255</b><c>0</c><d>65535</d><e>79228162514264337593543950335</e><enumArrayData><MyEnum1>red</MyEnum1></enumArrayData><enumBase1 i:type=\"b:SerializationTestTypes.MyEnum1***\" xmlns:b=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.MyEnum1***\">red</enumBase1><f>-1</f><f5>0001-01-01T00:00:00</f5><g>-79228162514264337593543950335</g><guidData>cac76333-577f-7e1f-0389-789b0d97f395</guidData><h>1</h><i>0</i><j>0</j><k>0</k><l>4.94065645841247E-324</l><m>1.7976931348623157E+308</m><n>-1.7976931348623157E+308</n><nDTO xmlns:b=\"http://schemas.datacontract.org/2004/07/System\"><b:DateTime>9999-12-31T23:59:59.9999999Z</b:DateTime><b:OffsetMinutes>0</b:OffsetMinutes></nDTO><o>NaN</o><obj/><p>-INF</p><q>INF</q><r>0</r><s>1.401298E-45</s><strData i:nil=\"true\"/><t>-3.40282347E+38</t><timeSpan>P10675199DT2H48M5.4775807S</timeSpan><u>3.40282347E+38</u><uri>http://www.microsoft.com/</uri><v>NaN</v><valType i:type=\"PublicDCStruct\"><Data>Data</Data></valType><w>-INF</w><x>INF</x><q:xmlQualifiedName xmlns:q=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:b=\"http://www.microsoft.com\">b:WCF</q:xmlQualifiedName><y>0</y><z>2147483647</z><z1>-2147483648</z1><z2>0</z2><z3>9223372036854775807</z3><z4>-9223372036854775808</z4><z5/><z6>0</z6><z7>127</z7><z8>-128</z8><z9>0</z9><z91>32767</z91><z92>-32768</z92><z93>abc</z93><z94>0</z94><z95>65535</z95><z96>0</z96><z97>0</z97><z98>4294967295</z98><z99>0</z99><z990>0</z990><z991>18446744073709551615</z991><z992>0</z992></_data2></ObjectContainer>");
 
         TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.DictContainer(), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data i:type=\"a:SerializationTestTypes.DictContainer***\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.DictContainer***\"><dictionaryData xmlns:b=\"http://schemas.microsoft.com/2003/10/Serialization/Arrays\"><b:KeyValueOfbase64Binarybase64Binary><b:Key>S3sf7NHCbkyVtgYKERsK/Q==</b:Key><b:Value>kNwxmEzKsk2TNVihAl7PKQ==</b:Value></b:KeyValueOfbase64Binarybase64Binary><b:KeyValueOfbase64Binarybase64Binary><b:Key>R5hoXhAack+qrhmyR80IeA==</b:Key><b:Value>kYav59VD50mHdRsBJr2UPA==</b:Value></b:KeyValueOfbase64Binarybase64Binary><b:KeyValueOfbase64Binarybase64Binary><b:Key>3WgRcQBK5U2fPjjd+9oBRA==</b:Key><b:Value>r7SFJrYJVkqB25UjGj0Cdg==</b:Value></b:KeyValueOfbase64Binarybase64Binary></dictionaryData></_data><_data2 i:type=\"a:SerializationTestTypes.DictContainer***\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.DictContainer***\"><dictionaryData xmlns:b=\"http://schemas.microsoft.com/2003/10/Serialization/Arrays\"><b:KeyValueOfbase64Binarybase64Binary><b:Key>S3sf7NHCbkyVtgYKERsK/Q==</b:Key><b:Value>kNwxmEzKsk2TNVihAl7PKQ==</b:Value></b:KeyValueOfbase64Binarybase64Binary><b:KeyValueOfbase64Binarybase64Binary><b:Key>R5hoXhAack+qrhmyR80IeA==</b:Key><b:Value>kYav59VD50mHdRsBJr2UPA==</b:Value></b:KeyValueOfbase64Binarybase64Binary><b:KeyValueOfbase64Binarybase64Binary><b:Key>3WgRcQBK5U2fPjjd+9oBRA==</b:Key><b:Value>r7SFJrYJVkqB25UjGj0Cdg==</b:Value></b:KeyValueOfbase64Binarybase64Binary></dictionaryData></_data2></ObjectContainer>");
 
@@ -3819,10 +3813,19 @@ public static partial class DataContractSerializerTests
             var input = possibleValues.GetValue(new Random().Next(possibleValues.Length));
             string baseline = $"<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data i:type=\"a:{type}***\" xmlns:a=\"http://schemas.datacontract.org/2004/07/{type}***\">{input}</_data><_data2 i:type=\"a:{type}***\" xmlns:a=\"http://schemas.datacontract.org/2004/07/{type}***\">{input}</_data2></ObjectContainer>";
             var value = new SerializationTestTypes.ObjectContainer(input);
-            var actual = SerializeAndDeserialize(value, baseline, setting);
+            var actual = DataContractSerializerHelper.SerializeAndDeserialize(value, baseline, setting);
             SerializationTestTypes.ComparisonHelper.CompareRecursively(value, actual);
         }
     }
+
+    [Fact]
+    public static void DCS_BasicPerSerializerRoundTripAndCompare_EnumStruct_NotNetFramework()
+    {
+        TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.AllTypes(), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data i:type=\"a:SerializationTestTypes.AllTypes***\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.AllTypes***\"><a>false</a><array1><anyType xmlns=\"http://schemas.microsoft.com/2003/10/Serialization/Arrays\"/><anyType xmlns=\"http://schemas.microsoft.com/2003/10/Serialization/Arrays\"/><anyType xmlns=\"http://schemas.microsoft.com/2003/10/Serialization/Arrays\"/></array1><b>255</b><c>0</c><d>65535</d><e>79228162514264337593543950335</e><enumArrayData><MyEnum1>red</MyEnum1></enumArrayData><enumBase1 i:type=\"b:SerializationTestTypes.MyEnum1***\" xmlns:b=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.MyEnum1***\">red</enumBase1><f>-1</f><f5>0001-01-01T00:00:00</f5><g>-79228162514264337593543950335</g><guidData>5642b5d2-87c3-a724-2390-997062f3f7a2</guidData><h>1</h><i>0</i><j>0</j><k>0</k><l>5E-324</l><lDTO xmlns:b=\"http://schemas.datacontract.org/2004/07/System\"/><m>1.7976931348623157E+308</m><n>-1.7976931348623157E+308</n><nDTO xmlns:b=\"http://schemas.datacontract.org/2004/07/System\"><b:DateTime>9999-12-31T23:59:59.9999999Z</b:DateTime><b:OffsetMinutes>0</b:OffsetMinutes></nDTO><o>NaN</o><obj/><p>-INF</p><q>INF</q><r>0</r><s>1E-45</s><strData i:nil=\"true\"/><t>-3.4028235E+38</t><timeSpan i:type=\"b:duration\" xmlns:b=\"http://schemas.microsoft.com/2003/10/Serialization/\">P10675199DT2H48M5.4775807S</timeSpan><u>3.4028235E+38</u><uri>http://www.microsoft.com/</uri><v>NaN</v><valType i:type=\"PublicDCStruct\"><Data>Data</Data></valType><w>-INF</w><x>INF</x><q:xmlQualifiedName xmlns:q=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:b=\"http://www.microsoft.com\">b:WCF</q:xmlQualifiedName><y>0</y><z>2147483647</z><z1>-2147483648</z1><z2>0</z2><z3>9223372036854775807</z3><z4>-9223372036854775808</z4><z5/><z6>0</z6><z7>127</z7><z8>-128</z8><z9>0</z9><z91>32767</z91><z92>-32768</z92><z93>abc</z93><z94>0</z94><z95>65535</z95><z96>0</z96><z97>0</z97><z98>4294967295</z98><z99>0</z99><z990>0</z990><z991>18446744073709551615</z991><z992>0</z992></_data><_data2 i:type=\"a:SerializationTestTypes.AllTypes***\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.AllTypes***\"><a>false</a><array1><anyType xmlns=\"http://schemas.microsoft.com/2003/10/Serialization/Arrays\"/><anyType xmlns=\"http://schemas.microsoft.com/2003/10/Serialization/Arrays\"/><anyType xmlns=\"http://schemas.microsoft.com/2003/10/Serialization/Arrays\"/></array1><b>255</b><c>0</c><d>65535</d><e>79228162514264337593543950335</e><enumArrayData><MyEnum1>red</MyEnum1></enumArrayData><enumBase1 i:type=\"b:SerializationTestTypes.MyEnum1***\" xmlns:b=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.MyEnum1***\">red</enumBase1><f>-1</f><f5>0001-01-01T00:00:00</f5><g>-79228162514264337593543950335</g><guidData>5642b5d2-87c3-a724-2390-997062f3f7a2</guidData><h>1</h><i>0</i><j>0</j><k>0</k><l>5E-324</l><lDTO xmlns:b=\"http://schemas.datacontract.org/2004/07/System\"/><m>1.7976931348623157E+308</m><n>-1.7976931348623157E+308</n><nDTO xmlns:b=\"http://schemas.datacontract.org/2004/07/System\"><b:DateTime>9999-12-31T23:59:59.9999999Z</b:DateTime><b:OffsetMinutes>0</b:OffsetMinutes></nDTO><o>NaN</o><obj/><p>-INF</p><q>INF</q><r>0</r><s>1E-45</s><strData i:nil=\"true\"/><t>-3.4028235E+38</t><timeSpan i:type=\"b:duration\" xmlns:b=\"http://schemas.microsoft.com/2003/10/Serialization/\">P10675199DT2H48M5.4775807S</timeSpan><u>3.4028235E+38</u><uri>http://www.microsoft.com/</uri><v>NaN</v><valType i:type=\"PublicDCStruct\"><Data>Data</Data></valType><w>-INF</w><x>INF</x><q:xmlQualifiedName xmlns:q=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:b=\"http://www.microsoft.com\">b:WCF</q:xmlQualifiedName><y>0</y><z>2147483647</z><z1>-2147483648</z1><z2>0</z2><z3>9223372036854775807</z3><z4>-9223372036854775808</z4><z5/><z6>0</z6><z7>127</z7><z8>-128</z8><z9>0</z9><z91>32767</z91><z92>-32768</z92><z93>abc</z93><z94>0</z94><z95>65535</z95><z96>0</z96><z97>0</z97><z98>4294967295</z98><z99>0</z99><z990>0</z990><z991>18446744073709551615</z991><z992>0</z992></_data2></ObjectContainer>");
+
+        TestObjectInObjectContainerWithSimpleResolver(new SerializationTestTypes.AllTypes2(), "<ObjectContainer xmlns=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><_data i:type=\"a:SerializationTestTypes.AllTypes2***\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.AllTypes2***\"><a>false</a><array1><anyType xmlns=\"http://schemas.microsoft.com/2003/10/Serialization/Arrays\"/><anyType xmlns=\"http://schemas.microsoft.com/2003/10/Serialization/Arrays\"/><anyType xmlns=\"http://schemas.microsoft.com/2003/10/Serialization/Arrays\"/></array1><b>255</b><c>0</c><d>65535</d><e>79228162514264337593543950335</e><enumArrayData><MyEnum1>red</MyEnum1></enumArrayData><enumBase1 i:type=\"b:SerializationTestTypes.MyEnum1***\" xmlns:b=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.MyEnum1***\">red</enumBase1><f>-1</f><f5>0001-01-01T00:00:00</f5><g>-79228162514264337593543950335</g><guidData>cac76333-577f-7e1f-0389-789b0d97f395</guidData><h>1</h><i>0</i><j>0</j><k>0</k><l>5E-324</l><m>1.7976931348623157E+308</m><n>-1.7976931348623157E+308</n><nDTO xmlns:b=\"http://schemas.datacontract.org/2004/07/System\"><b:DateTime>9999-12-31T23:59:59.9999999Z</b:DateTime><b:OffsetMinutes>0</b:OffsetMinutes></nDTO><o>NaN</o><obj/><p>-INF</p><q>INF</q><r>0</r><s>1E-45</s><strData i:nil=\"true\"/><t>-3.4028235E+38</t><timeSpan>P10675199DT2H48M5.4775807S</timeSpan><u>3.4028235E+38</u><uri>http://www.microsoft.com/</uri><v>NaN</v><valType i:type=\"PublicDCStruct\"><Data>Data</Data></valType><w>-INF</w><x>INF</x><q:xmlQualifiedName xmlns:q=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:b=\"http://www.microsoft.com\">b:WCF</q:xmlQualifiedName><y>0</y><z>2147483647</z><z1>-2147483648</z1><z2>0</z2><z3>9223372036854775807</z3><z4>-9223372036854775808</z4><z5/><z6>0</z6><z7>127</z7><z8>-128</z8><z9>0</z9><z91>32767</z91><z92>-32768</z92><z93>abc</z93><z94>0</z94><z95>65535</z95><z96>0</z96><z97>0</z97><z98>4294967295</z98><z99>0</z99><z990>0</z990><z991>18446744073709551615</z991><z992>0</z992></_data><_data2 i:type=\"a:SerializationTestTypes.AllTypes2***\" xmlns:a=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.AllTypes2***\"><a>false</a><array1><anyType xmlns=\"http://schemas.microsoft.com/2003/10/Serialization/Arrays\"/><anyType xmlns=\"http://schemas.microsoft.com/2003/10/Serialization/Arrays\"/><anyType xmlns=\"http://schemas.microsoft.com/2003/10/Serialization/Arrays\"/></array1><b>255</b><c>0</c><d>65535</d><e>79228162514264337593543950335</e><enumArrayData><MyEnum1>red</MyEnum1></enumArrayData><enumBase1 i:type=\"b:SerializationTestTypes.MyEnum1***\" xmlns:b=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes.MyEnum1***\">red</enumBase1><f>-1</f><f5>0001-01-01T00:00:00</f5><g>-79228162514264337593543950335</g><guidData>cac76333-577f-7e1f-0389-789b0d97f395</guidData><h>1</h><i>0</i><j>0</j><k>0</k><l>5E-324</l><m>1.7976931348623157E+308</m><n>-1.7976931348623157E+308</n><nDTO xmlns:b=\"http://schemas.datacontract.org/2004/07/System\"><b:DateTime>9999-12-31T23:59:59.9999999Z</b:DateTime><b:OffsetMinutes>0</b:OffsetMinutes></nDTO><o>NaN</o><obj/><p>-INF</p><q>INF</q><r>0</r><s>1E-45</s><strData i:nil=\"true\"/><t>-3.4028235E+38</t><timeSpan>P10675199DT2H48M5.4775807S</timeSpan><u>3.4028235E+38</u><uri>http://www.microsoft.com/</uri><v>NaN</v><valType i:type=\"PublicDCStruct\"><Data>Data</Data></valType><w>-INF</w><x>INF</x><q:xmlQualifiedName xmlns:q=\"http://schemas.datacontract.org/2004/07/SerializationTestTypes\" xmlns:b=\"http://www.microsoft.com\">b:WCF</q:xmlQualifiedName><y>0</y><z>2147483647</z><z1>-2147483648</z1><z2>0</z2><z3>9223372036854775807</z3><z4>-9223372036854775808</z4><z5/><z6>0</z6><z7>127</z7><z8>-128</z8><z9>0</z9><z91>32767</z91><z92>-32768</z92><z93>abc</z93><z94>0</z94><z95>65535</z95><z96>0</z96><z97>0</z97><z98>4294967295</z98><z99>0</z99><z990>0</z990><z991>18446744073709551615</z991><z992>0</z992></_data2></ObjectContainer>");
+    }
+
 
 #endregion
 
@@ -3830,12 +3833,12 @@ public static partial class DataContractSerializerTests
     public static void DCS_TypeWithVirtualGenericProperty()
     {
         var value1 = new TypeWithVirtualGenericProperty<int>() { Value = 1 };
-        var actual1 = SerializeAndDeserialize(value1, string.Empty, skipStringCompare: true);
+        var actual1 = DataContractSerializerHelper.SerializeAndDeserialize(value1, string.Empty, skipStringCompare: true);
         Assert.NotNull(actual1);
         Assert.Equal(value1.Value, actual1.Value);
 
         var value2 = new TypeWithVirtualGenericPropertyDerived<int>() { Value = 2 };
-        var actual2 = SerializeAndDeserialize(value2, string.Empty, skipStringCompare: true);
+        var actual2 = DataContractSerializerHelper.SerializeAndDeserialize(value2, string.Empty, skipStringCompare: true);
         Assert.NotNull(actual2);
         Assert.Equal(value2.Value, actual2.Value);
     }
@@ -3861,7 +3864,7 @@ public static partial class DataContractSerializerTests
         Assert.StrictEqual(myFamily.Members.Length, newFamily.Members.Length);
         for (int i = 0; i < myFamily.Members.Length; ++i)
         {
-            Assert.StrictEqual(myFamily.Members[i].Name, newFamily.Members[i].Name);
+            Assert.Equal(myFamily.Members[i].Name, newFamily.Members[i].Name);
         }
     }
 
@@ -3896,7 +3899,7 @@ public static partial class DataContractSerializerTests
                 using (var stream2 = (MyFileStream)dcs.ReadObject(stream))
                 {
                     string fileData = stream2.ReadLine();
-                    Assert.StrictEqual(TestFileData, fileData);
+                    Assert.Equal(TestFileData, fileData);
                 }
             }
         }
@@ -3913,7 +3916,7 @@ public static partial class DataContractSerializerTests
             emps = new EmployeeC[] { emp1, emp2 }
         };
 
-        Manager actual = SerializeAndDeserialize(value, @"<Manager xmlns=""http://schemas.datacontract.org/2004/07/"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><Name>Tony</Name><age>30</age><emps><EmployeeC><Name>Steve</Name></EmployeeC><EmployeeC><Name>Lilian</Name></EmployeeC></emps></Manager>");
+        Manager actual = DataContractSerializerHelper.SerializeAndDeserialize(value, @"<Manager xmlns=""http://schemas.datacontract.org/2004/07/"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><Name>Tony</Name><age>30</age><emps><EmployeeC><Name>Steve</Name></EmployeeC><EmployeeC><Name>Lilian</Name></EmployeeC></emps></Manager>");
         Assert.NotNull(actual);
         Assert.Equal(value.age, actual.age);
         Assert.NotNull(actual.emps);
@@ -3934,8 +3937,8 @@ public static partial class DataContractSerializerTests
     [Fact]
     public static void DCS_InvalidDataContract_Write_Invalid_Types_Throws()
     {
-        // Attempting to serialize any invalid type should create an InvalidDataContract that throws 
-        foreach (NetNativeTestData td in NetNativeTestData.InvalidTypes) 
+        // Attempting to serialize any invalid type should create an InvalidDataContract that throws
+        foreach (NetNativeTestData td in NetNativeTestData.InvalidTypes)
         {
             object o = td.Instantiate();
             DataContractSerializer dcs = new DataContractSerializer(o.GetType());
@@ -3979,43 +3982,118 @@ public static partial class DataContractSerializerTests
     {
         var value = new UnspecifiedRootSerializationType();
         string baseline = @"<UnspecifiedRootSerializationType xmlns=""http://schemas.datacontract.org/2004/07/SerializationTypes"" xmlns:i=""http://www.w3.org/2001/XMLSchema-instance""><MyIntProperty>0</MyIntProperty><MyStringProperty i:nil=""true""/></UnspecifiedRootSerializationType>";
-        var actual = SerializeAndDeserialize(value, baseline);
-        
+        var actual = DataContractSerializerHelper.SerializeAndDeserialize(value, baseline);
+
         Assert.Equal(value.MyIntProperty, actual.MyIntProperty);
         Assert.Equal(value.MyStringProperty, actual.MyStringProperty);
-    } 
+    }
 
-    private static T SerializeAndDeserialize<T>(T value, string baseline, DataContractSerializerSettings settings = null, Func<DataContractSerializer> serializerFactory = null, bool skipStringCompare = false)
+    [Fact]
+    public static void DCS_TypeWithCollectionAndDateTimeOffset()
     {
-        DataContractSerializer dcs;
-        if (serializerFactory != null)
+        // Adding offsetMinutes so the DateTime component in serialized strings are time-zone independent
+        int offsetMinutes = (int)TimeZoneInfo.Local.GetUtcOffset(new DateTime(2013, 1, 2)).TotalMinutes;
+        DateTimeOffset dateTimeOffset = new DateTimeOffset(new DateTime(2013, 1, 2, 3, 4, 5, 6).AddMinutes(offsetMinutes));
+        var value = new TypeWithCollectionAndDateTimeOffset(new List<int>() { 1, 2, 3 }, dateTimeOffset);
+
+        TypeWithCollectionAndDateTimeOffset actual = DataContractSerializerHelper.SerializeAndDeserialize(value, $"<TypeWithCollectionAndDateTimeOffset xmlns=\"http://schemas.datacontract.org/2004/07/\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><AnIntList xmlns:a=\"http://schemas.microsoft.com/2003/10/Serialization/Arrays\"><a:int>1</a:int><a:int>2</a:int><a:int>3</a:int></AnIntList><DateTimeOffset xmlns:a=\"http://schemas.datacontract.org/2004/07/System\"><a:DateTime>2013-01-02T03:04:05.006Z</a:DateTime><a:OffsetMinutes>{offsetMinutes}</a:OffsetMinutes></DateTimeOffset></TypeWithCollectionAndDateTimeOffset>");
+        Assert.NotNull(actual);
+        Assert.Equal(value.DateTimeOffset, actual.DateTimeOffset);
+        Assert.NotNull(actual.AnIntList);
+        Assert.True(Enumerable.SequenceEqual(value.AnIntList, actual.AnIntList));
+    }
+
+    [Fact]
+    public static void DCS_TypeWithCollectionAndDateTimeOffset_ListIsNull()
+    {
+        // Adding offsetMinutes so the DateTime component in serialized strings are time-zone independent
+        int offsetMinutes = (int)TimeZoneInfo.Local.GetUtcOffset(new DateTime(2013, 1, 2)).TotalMinutes;
+        DateTimeOffset dateTimeOffset = new DateTimeOffset(new DateTime(2013, 1, 2, 3, 4, 5, 6).AddMinutes(offsetMinutes));
+        var value = new TypeWithCollectionAndDateTimeOffset(null, dateTimeOffset);
+
+        TypeWithCollectionAndDateTimeOffset actual = DataContractSerializerHelper.SerializeAndDeserialize(value, $"<TypeWithCollectionAndDateTimeOffset xmlns=\"http://schemas.datacontract.org/2004/07/\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><AnIntList i:nil=\"true\" xmlns:a=\"http://schemas.microsoft.com/2003/10/Serialization/Arrays\"/><DateTimeOffset xmlns:a=\"http://schemas.datacontract.org/2004/07/System\"><a:DateTime>2013-01-02T03:04:05.006Z</a:DateTime><a:OffsetMinutes>{offsetMinutes}</a:OffsetMinutes></DateTimeOffset></TypeWithCollectionAndDateTimeOffset>");
+        Assert.NotNull(actual);
+        Assert.Equal(value.DateTimeOffset, actual.DateTimeOffset);
+        Assert.NotNull(actual.AnIntList);
+        Assert.Equal(0, actual.AnIntList.Count);
+    }
+
+    [Fact]
+    public static void DCS_TypeWithPrimitiveKnownTypes()
+    {
+        var list = new TypeWithPrimitiveKnownTypes();
+        list.Add(true);
+        list.Add('c');
+        list.Add(new DateTime(100));
+        list.Add(11.1m);
+        list.Add(22.2);
+        list.Add(33.3f);
+        list.Add(new Guid());
+        list.Add(11);
+        list.Add(1111111111111111111L);
+        list.Add(new XmlQualifiedName("NAME", "NS"));
+        list.Add((short)44);
+        list.Add((sbyte)-1);
+        list.Add("test string");
+        list.Add(new TimeSpan(100));
+        list.Add((byte)1);
+        list.Add(uint.MaxValue);
+        list.Add(ulong.MaxValue);
+        list.Add(ushort.MaxValue);
+        list.Add(new Uri("http://foo"));
+        var actual = DataContractSerializerHelper.SerializeAndDeserialize(list, "<TypeWithPrimitiveKnownTypes xmlns=\"http://schemas.datacontract.org/2004/07/\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><anyType i:type=\"a:boolean\" xmlns:a=\"http://www.w3.org/2001/XMLSchema\">true</anyType><anyType i:type=\"a:char\" xmlns:a=\"http://schemas.microsoft.com/2003/10/Serialization/\">99</anyType><anyType i:type=\"a:dateTime\" xmlns:a=\"http://www.w3.org/2001/XMLSchema\">0001-01-01T00:00:00.00001</anyType><anyType i:type=\"a:decimal\" xmlns:a=\"http://www.w3.org/2001/XMLSchema\">11.1</anyType><anyType i:type=\"a:double\" xmlns:a=\"http://www.w3.org/2001/XMLSchema\">22.2</anyType><anyType i:type=\"a:float\" xmlns:a=\"http://www.w3.org/2001/XMLSchema\">33.3</anyType><anyType i:type=\"a:guid\" xmlns:a=\"http://schemas.microsoft.com/2003/10/Serialization/\">00000000-0000-0000-0000-000000000000</anyType><anyType i:type=\"a:int\" xmlns:a=\"http://www.w3.org/2001/XMLSchema\">11</anyType><anyType i:type=\"a:long\" xmlns:a=\"http://www.w3.org/2001/XMLSchema\">1111111111111111111</anyType><anyType i:type=\"a:QName\" xmlns:a=\"http://www.w3.org/2001/XMLSchema\" xmlns:b=\"NS\">b:NAME</anyType><anyType i:type=\"a:short\" xmlns:a=\"http://www.w3.org/2001/XMLSchema\">44</anyType><anyType i:type=\"a:byte\" xmlns:a=\"http://www.w3.org/2001/XMLSchema\">-1</anyType><anyType i:type=\"a:string\" xmlns:a=\"http://www.w3.org/2001/XMLSchema\">test string</anyType><anyType i:type=\"a:duration\" xmlns:a=\"http://schemas.microsoft.com/2003/10/Serialization/\">PT0.00001S</anyType><anyType i:type=\"a:unsignedByte\" xmlns:a=\"http://www.w3.org/2001/XMLSchema\">1</anyType><anyType i:type=\"a:unsignedInt\" xmlns:a=\"http://www.w3.org/2001/XMLSchema\">4294967295</anyType><anyType i:type=\"a:unsignedLong\" xmlns:a=\"http://www.w3.org/2001/XMLSchema\">18446744073709551615</anyType><anyType i:type=\"a:unsignedShort\" xmlns:a=\"http://www.w3.org/2001/XMLSchema\">65535</anyType><anyType i:type=\"a:anyURI\" xmlns:a=\"http://www.w3.org/2001/XMLSchema\">http://foo/</anyType></TypeWithPrimitiveKnownTypes>");
+        Assert.True(Enumerable.SequenceEqual(list, actual));
+
+        list.Clear();
+        list.Add(new byte[] { 1, 2 });
+        actual = DataContractSerializerHelper.SerializeAndDeserialize(list, "<TypeWithPrimitiveKnownTypes xmlns=\"http://schemas.datacontract.org/2004/07/\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><anyType i:type=\"a:base64Binary\" xmlns:a=\"http://www.w3.org/2001/XMLSchema\">AQI=</anyType></TypeWithPrimitiveKnownTypes>");
+        Assert.NotNull(actual);
+        Assert.Single(actual);
+        Assert.True(actual[0] is byte[]);
+        Assert.True(((byte[])list[0]).SequenceEqual(((byte[])actual[0])));
+
+        list.Clear();
+        list.Add(new object());
+        actual = DataContractSerializerHelper.SerializeAndDeserialize(list, "<TypeWithPrimitiveKnownTypes xmlns=\"http://schemas.datacontract.org/2004/07/\" xmlns:i=\"http://www.w3.org/2001/XMLSchema-instance\"><anyType/></TypeWithPrimitiveKnownTypes>");
+        Assert.NotNull(actual);
+    }
+
+    [ActiveIssue(33317, TestPlatforms.OSX)]
+    [Fact]
+    public static void DCS_DeeplyLinkedData()
+    {
+        TypeWithLinkedProperty head = new TypeWithLinkedProperty();
+        TypeWithLinkedProperty cur = head;
+        for (int i = 0; i < 513; i++)
         {
-            dcs = serializerFactory();
+            cur.Child = new TypeWithLinkedProperty();
+            cur = cur.Child;
         }
-        else
-        {
-            dcs = (settings != null) ? new DataContractSerializer(typeof(T), settings) : new DataContractSerializer(typeof(T));
-        }
+        cur.Children = new List<TypeWithLinkedProperty> { new TypeWithLinkedProperty() };
+        TypeWithLinkedProperty actual = DataContractSerializerHelper.SerializeAndDeserialize(head, baseline: null, skipStringCompare: true);
+        Assert.NotNull(actual);
+    }
 
-        using (MemoryStream ms = new MemoryStream())
-        {
-            dcs.WriteObject(ms, value);
-            ms.Position = 0;
+    [Fact]
+    public static void DCS_DifferentCollectionsOfSameTypeAsKnownTypes()
+    {
+        Assert.Throws<InvalidOperationException>(() => {
+            (new DataContractSerializer(typeof(TypeWithKnownTypesOfCollectionsWithConflictingXmlName))).WriteObject(new MemoryStream(), new TypeWithKnownTypesOfCollectionsWithConflictingXmlName());
+        });
+    }
 
-            string actualOutput = new StreamReader(ms).ReadToEnd();
+    [Fact]
+    public static void DCS_ReadObject_XmlDictionaryReaderMaxStringContentLengthExceedsQuota()
+    {
+        DataContractSerializer dcs = new DataContractSerializer(typeof(TypeA));
+        int maxStringContentLength = 1024;
+        var type = new TypeA { Name = "BOOM!".PadLeft(maxStringContentLength + 1, ' ') };
+        MemoryStream ms = new MemoryStream();
+        dcs.WriteObject(ms, type);
+        ms.Position = 0;
+        XmlDictionaryReader reader = XmlDictionaryReader.CreateTextReader(ms, new System.Xml.XmlDictionaryReaderQuotas() { MaxStringContentLength = maxStringContentLength });
 
-            if (!skipStringCompare)
-            {
-                Utils.CompareResult result = Utils.Compare(baseline, actualOutput);
-                Assert.True(result.Equal, string.Format("{1}{0}Test failed for input: {2}{0}Expected: {3}{0}Actual: {4}",
-                    Environment.NewLine, result.ErrorMessage, value, baseline, actualOutput));
-            }
-
-            ms.Position = 0;
-            T deserialized = (T)dcs.ReadObject(ms);
-
-            return deserialized;
-        }
+        Assert.Throws<System.Runtime.Serialization.SerializationException>(() => { dcs.ReadObject(reader); });
     }
 
     private static T DeserializeString<T>(string stringToDeserialize, bool shouldReportDeserializationExceptions = true, DataContractSerializerSettings settings = null, Func<DataContractSerializer> serializerFactory = null)
@@ -4054,13 +4132,13 @@ public static partial class DataContractSerializerTests
         };
 
         var value = new SerializationTestTypes.ObjectContainer(o);
-        var actual = SerializeAndDeserialize(value, baseline, setting, skipStringCompare: skipStringCompare);
+        var actual = DataContractSerializerHelper.SerializeAndDeserialize(value, baseline, setting, skipStringCompare: skipStringCompare);
         SerializationTestTypes.ComparisonHelper.CompareRecursively(value, actual);
     }
 
     private static void TestObjectWithDifferentPayload<T>(T value, string netcorePayload, string desktopPayload, DataContractSerializerSettings settings = null)
     {
-        var roundtripObject = SerializeAndDeserialize(value, string.Empty, settings, skipStringCompare: true);
+        var roundtripObject = DataContractSerializerHelper.SerializeAndDeserialize(value, string.Empty, settings, skipStringCompare: true);
         Assert.NotNull(roundtripObject);
         SerializationTestTypes.ComparisonHelper.CompareRecursively(value, roundtripObject);
 

@@ -9,9 +9,10 @@ namespace System.Drawing.Printing
     /// <summary>
     /// Represents the exception that is thrown when trying to access a printer using invalid printer settings.
     /// </summary>
+    [Serializable]
     public partial class InvalidPrinterException : SystemException
     {
-        private PrinterSettings _settings;
+        private readonly PrinterSettings _settings;
 
         /// <summary>
         /// Initializes a new instance of the <see cref='InvalidPrinterException'/> class.
@@ -26,7 +27,7 @@ namespace System.Drawing.Printing
         {
             if (settings.IsDefaultPrinter)
             {
-                return SR.Format(SR.InvalidPrinterException_NoDefaultPrinter);
+                return SR.InvalidPrinterException_NoDefaultPrinter;
             }
             else
             {
@@ -36,10 +37,9 @@ namespace System.Drawing.Printing
                 }
                 catch (SecurityException)
                 {
-                    return SR.Format(SR.InvalidPrinterException_InvalidPrinter, SR.Format(SR.CantTellPrinterName));
+                    return SR.Format(SR.InvalidPrinterException_InvalidPrinter, SR.CantTellPrinterName);
                 }
             }
         }
     }
 }
-

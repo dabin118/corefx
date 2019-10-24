@@ -8,7 +8,7 @@ namespace System.DirectoryServices
     {
         internal readonly byte[] _context;
 
-        public DirectoryVirtualListViewContext() : this(new byte[0])
+        public DirectoryVirtualListViewContext() : this(null)
         {
         }
 
@@ -16,7 +16,7 @@ namespace System.DirectoryServices
         {
             if (context == null)
             {
-                _context = new byte[0];
+                _context = Array.Empty<byte>();
             }
             else
             {
@@ -28,7 +28,7 @@ namespace System.DirectoryServices
             }
         }
 
-    	public DirectoryVirtualListViewContext Copy()
+        public DirectoryVirtualListViewContext Copy()
         {
             return new DirectoryVirtualListViewContext(_context);
         }

@@ -1,4 +1,4 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
@@ -26,8 +26,8 @@ namespace Stress.Data.SqlClient
 
         /// <summary>
         /// Connection string for SqlDependency.Start()/Stop()
-        /// 
-        /// The connection string used for SqlDependency.Start() must always be exactly the same every time 
+        ///
+        /// The connection string used for SqlDependency.Start() must always be exactly the same every time
         /// if you are connecting to the same database with the same user and same application domain, so
         /// don't randomise the connection string for calling SqlDependency.Start()
         /// </summary>
@@ -38,8 +38,8 @@ namespace Stress.Data.SqlClient
         /// This significantly increases the probability of hitting some bugs, such as:
         ///     vstfdevdiv 674236 (SqlConnection.Open() throws InvalidOperationException for absolutely valid connection request)
         ///     sqlbuvsts 328845 (InvalidOperationException: The requested operation cannot be completed because the connection has been broken.) (this is LSE QFE)
-        /// However, calling ClearAllPools all the time might also significantly decrease te probability of hitting some other bug,
-        /// so this thread will alternate between hammering on ClearAllPools for several minutes, and then doing nother for several minutes.
+        /// However, calling ClearAllPools all the time might also significantly decrease the probability of hitting some other bug,
+        /// so this thread will alternate between hammering on ClearAllPools for several minutes, and then doing nothing for several minutes.
         /// </summary>
         private static Thread s_clearAllPoolsThread;
 
@@ -196,7 +196,7 @@ namespace Stress.Data.SqlClient
         /// <param name="com"> The Sql Command to Execute</param>
         /// <param name="query">Indicates if data is being queried and where ExecuteQuery or Non-query to be used with the reader</param>
         /// <param name="xml">Indicates if the query should be executed as an Xml</param>
-        /// <param name="cancelled">Indicates if command was cancelled and is used to throw exception if a Command cancelation related exception is encountered</param>
+        /// <param name="cancelled">Indicates if command was cancelled and is used to throw exception if a Command cancellation related exception is encountered</param>
         /// <param name="cts">The Cancellation Token Source</param>
         private void SqlCommandEndExecute(Random rnd, IAsyncResult result, SqlCommand com, bool query, bool xml, bool cancelled, CancellationTokenSource cts = null)
         {
@@ -349,7 +349,7 @@ namespace Stress.Data.SqlClient
 
         /// <summary>
         /// SqlClient Async Polling Read Test
-        /// </summary>        
+        /// </summary>
         [StressTest("TestSqlAsyncPollingRead", Weight = 10)]
         public void TestSqlAsyncPollingRead()
         {
@@ -379,7 +379,7 @@ namespace Stress.Data.SqlClient
 
         /// <summary>
         /// SqlClient Async Event Write Test
-        /// </summary>        
+        /// </summary>
         [StressTest("TestSqlAsyncEventWrite", Weight = 10)]
         public void TestSqlAsyncEventWrite()
         {
@@ -390,7 +390,7 @@ namespace Stress.Data.SqlClient
 
         /// <summary>
         /// SqlClient Async Xml Non-blocking Read Test
-        /// </summary>        
+        /// </summary>
         [StressTest("TestSqlXmlAsyncNonBlockingRead", Weight = 10)]
         public void TestSqlXmlAsyncNonBlockingRead()
         {
@@ -400,7 +400,7 @@ namespace Stress.Data.SqlClient
 
         /// <summary>
         /// SqlClient Async Xml Polling Read Test
-        /// </summary>        
+        /// </summary>
         [StressTest("TestSqlXmlAsyncPollingRead", Weight = 10)]
         public void TestSqlXmlAsyncPollingRead()
         {
@@ -534,8 +534,8 @@ namespace Stress.Data.SqlClient
                 if (!OpenConnection(conn)) return;
                 DataStressFactory.TableMetadata table = Factory.GetRandomTable(rnd);
 
-                // MARS session cache is by default 10. 
-                // This is documented here: http://msdn.microsoft.com/en-us/library/h32h3abf.aspx
+                // MARS session cache is by default 10.
+                // This is documented here: https://docs.microsoft.com/en-us/dotnet/framework/data/adonet/sql/enabling-multiple-active-result-sets
                 // We want to stress test this by allowing 11 concurrent commands. Hence the max in rnd.Next below is 12.
                 MARSCommand[] cmds = new MARSCommand[rnd.Next(5, MaxCmds + 1)];
 

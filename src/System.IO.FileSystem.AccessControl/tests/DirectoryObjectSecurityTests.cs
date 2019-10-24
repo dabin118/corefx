@@ -1,5 +1,6 @@
-﻿// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information
 
 using System.DirectoryServices;
 using System.Security.Principal;
@@ -17,6 +18,30 @@ namespace System.Security.AccessControl
         private const int ReadAccessMask = 0x01;
         private const int WriteAccessMask = 0x02;
         private const int ReadAttributeAccessMask = 0x80;
+
+        [Fact]
+        public void SetCustomDescriptor_Success()
+        {
+            // We didn't allow setting the security descriptor in core due to assembly refactoring.
+            // GetAccessRules() would throw a null ref after setting the descriptor. We now expose
+            // the descriptor as a protected property (instead of internal).
+            // https://github.com/dotnet/corefx/issues/34151
+
+            var customObjectSecurity = new CustomDirectoryObjectSecurity();
+
+            // DACL:SDDL_PROTECTED SDDL_AUTO_INHERITED
+            //  (SDDL_ACCESS_ALLOWED;SDDL_OBJECT_INHERIT SDDL_CONTAINER_INHERIT;access mask;;;SDDL_BUILTIN_USERS)
+            customObjectSecurity.SetSecurityDescriptorSddlForm("D:PAI(A;OICI;0x1200a9;;;BU)");
+            var rules = customObjectSecurity.GetAccessRules(true, true, typeof(SecurityIdentifier));
+
+            Assert.Equal(1, rules.Count);
+            CustomAccessRule rule = (CustomAccessRule)rules[0];
+            // Should be users group
+            Assert.Equal("S-1-5-32-545", rule.IdentityReference.Value);
+            Assert.Equal(AccessControlType.Allow, rule.AccessControlType);
+            Assert.Equal(InheritanceFlags.ContainerInherit | InheritanceFlags.ObjectInherit, rule.InheritanceFlags);
+            Assert.Equal(0x1200a9, rule.AccessMaskValue);
+        }
 
         [Fact]
         public void ObjectInitialization_DefaultConstructor_Success()
@@ -43,6 +68,7 @@ namespace System.Security.AccessControl
         }
 
         [Fact]
+        [ActiveIssue(24903, TargetFrameworkMonikers.NetFramework)]
         public void GetAccessRules_InvalidTargetType()
         {
             var activeDirectorySecurity = new ActiveDirectorySecurity();
@@ -92,7 +118,6 @@ namespace System.Security.AccessControl
             Assert.NotNull(ruleCollection);
         }
 
-
         [Fact]
         public void RemoveAuditRuleAll_InvalidObjectAuditRule()
         {
@@ -105,18 +130,16 @@ namespace System.Security.AccessControl
         {
             var descriptor = new CommonSecurityDescriptor(true, true, string.Empty);
             var customObjectSecurity = new CustomDirectoryObjectSecurity(descriptor);
-
             var objectTypeGuid = Guid.NewGuid();
-            var identityReference = new NTAccount(@"NT AUTHORITY\SYSTEM");
 
             var customAuditRuleReadWrite = new CustomAuditRule
                 (
-                    identityReference, ReadWriteAccessMask, true, InheritanceFlags.None,
+                    Helpers.s_LocalSystemNTAccount, ReadWriteAccessMask, true, InheritanceFlags.None,
                     PropagationFlags.None, objectTypeGuid, Guid.NewGuid(), AuditFlags.Success
                 );
             var customAuditRuleSynchronize = new CustomAuditRule
                 (
-                    new NTAccount(@"NT AUTHORITY\SYSTEM"), SynchronizeAccessMask, true, InheritanceFlags.None,
+                    Helpers.s_LocalSystemNTAccount, SynchronizeAccessMask, true, InheritanceFlags.None,
                     PropagationFlags.None, objectTypeGuid, Guid.NewGuid(), AuditFlags.Success
                 );
 
@@ -146,9 +169,8 @@ namespace System.Security.AccessControl
             var customObjectSecurity = new CustomDirectoryObjectSecurity(descriptor);
 
             var objectTypeGuid = Guid.NewGuid();
-            var identityReference = new NTAccount(@"NT AUTHORITY\SYSTEM");
             var customAuditRuleReadWrite = new CustomAuditRule(
-                identityReference, ReadWriteAccessMask, true, InheritanceFlags.None,
+                Helpers.s_LocalSystemNTAccount, ReadWriteAccessMask, true, InheritanceFlags.None,
                 PropagationFlags.None, objectTypeGuid, Guid.NewGuid(), AuditFlags.Success
                 );
 
@@ -160,7 +182,7 @@ namespace System.Security.AccessControl
                .GetAuditRules(true, true, typeof(System.Security.Principal.NTAccount));
 
             List<CustomAuditRule> existingRules = ruleCollection.Cast<CustomAuditRule>().ToList();
-            Assert.False(existingRules.Contains(customAuditRuleReadWrite));
+            Assert.DoesNotContain(customAuditRuleReadWrite, existingRules);
         }
 
 
@@ -169,28 +191,23 @@ namespace System.Security.AccessControl
         {
             var descriptor = new CommonSecurityDescriptor(true, true, string.Empty);
             var customObjectSecurity = new CustomDirectoryObjectSecurity(descriptor);
-
             var objectTypeGuid = Guid.NewGuid();
-            var identityReference = new NTAccount(@"NT AUTHORITY\SYSTEM");
+
             var customAuditRuleReadWrite = new CustomAuditRule(
-                identityReference, ReadWriteAccessMask, true, InheritanceFlags.None,
+                Helpers.s_LocalSystemNTAccount, ReadWriteAccessMask, true, InheritanceFlags.None,
                 PropagationFlags.None, objectTypeGuid, Guid.NewGuid(), AuditFlags.Success
                 );
 
             var customAuditRuleWrite = new CustomAuditRule(
-                identityReference, WriteAccessMask, true, InheritanceFlags.None,
+                Helpers.s_LocalSystemNTAccount, WriteAccessMask, true, InheritanceFlags.None,
                 PropagationFlags.None, objectTypeGuid, Guid.NewGuid(), AuditFlags.Success
                 );
 
             customObjectSecurity.AddAuditRule(customAuditRuleReadWrite);
+            Assert.Contains(customAuditRuleReadWrite, customObjectSecurity.GetAuditRules(true, true, typeof(System.Security.Principal.NTAccount)).Cast<CustomAuditRule>());
+
             customObjectSecurity.RemoveAuditRuleSpecific(customAuditRuleWrite);
-
-            AuthorizationRuleCollection ruleCollection =
-                customObjectSecurity
-               .GetAuditRules(true, true, typeof(System.Security.Principal.NTAccount));
-
-            List<CustomAuditRule> existingRules = ruleCollection.Cast<CustomAuditRule>().ToList();
-            Assert.True(existingRules.Contains(customAuditRuleReadWrite));
+            Assert.Contains(customAuditRuleReadWrite, customObjectSecurity.GetAuditRules(true, true, typeof(System.Security.Principal.NTAccount)).Cast<CustomAuditRule>());
         }
 
         [Fact]
@@ -205,16 +222,15 @@ namespace System.Security.AccessControl
         {
             var descriptor = new CommonSecurityDescriptor(true, true, string.Empty);
             var customObjectSecurity = new CustomDirectoryObjectSecurity(descriptor);
-
-            var identity = new NTAccount(@"NT AUTHORITY\SYSTEM");
             var objectType = Guid.NewGuid();
+
             var customAuditRuleWrite = new CustomAuditRule(
-                identity, WriteAccessMask, true, InheritanceFlags.None,
+                Helpers.s_LocalSystemNTAccount, WriteAccessMask, true, InheritanceFlags.None,
                 PropagationFlags.None, objectType, Guid.NewGuid(), AuditFlags.Success
                 );
 
             var customAuditRuleReadWrite = new CustomAuditRule(
-                identity, ReadWriteAccessMask, true, InheritanceFlags.None,
+                Helpers.s_LocalSystemNTAccount, ReadWriteAccessMask, true, InheritanceFlags.None,
                 PropagationFlags.None, objectType, Guid.NewGuid(), AuditFlags.Success
                 );
             customObjectSecurity.AddAuditRule(customAuditRuleReadWrite);
@@ -227,13 +243,11 @@ namespace System.Security.AccessControl
             Assert.NotNull(ruleCollection);
             List<CustomAuditRule> existingRules = ruleCollection.Cast<CustomAuditRule>().ToList();
             Assert.True(existingRules.Count > 0);
-            Assert.True(
-                existingRules.Any(
-                    x => x.AccessMaskValue == ReadAccessMask &&
-                    x.AuditFlags == AuditFlags.Success &&
-                    x.IdentityReference == identity
-                    )
-                );
+            Assert.Contains(existingRules, x =>
+                x.AccessMaskValue == ReadAccessMask &&
+                x.AuditFlags == AuditFlags.Success &&
+                x.IdentityReference == Helpers.s_LocalSystemNTAccount
+            );
         }
 
         [Fact]
@@ -248,29 +262,24 @@ namespace System.Security.AccessControl
         {
             var descriptor = new CommonSecurityDescriptor(true, true, string.Empty);
             var customObjectSecurity = new CustomDirectoryObjectSecurity(descriptor);
-
             var objectTypeGuid = Guid.NewGuid();
-            var identityReference = new NTAccount(@"NT AUTHORITY\SYSTEM");
+
             var customAuditRuleReadWrite = new CustomAuditRule(
-                identityReference, ReadWriteAccessMask, true, InheritanceFlags.None,
+                Helpers.s_LocalSystemNTAccount, ReadWriteAccessMask, true, InheritanceFlags.None,
                 PropagationFlags.None, objectTypeGuid, Guid.NewGuid(), AuditFlags.Success
                 );
 
             var customAuditRuleRead = new CustomAuditRule(
-                new NTAccount(@"NT AUTHORITY\SYSTEM"), ReadAccessMask, true, InheritanceFlags.None,
+                new SecurityIdentifier(WellKnownSidType.LocalSystemSid, null).Translate(typeof(NTAccount)), ReadAccessMask, true, InheritanceFlags.None,
                 PropagationFlags.None, objectTypeGuid, Guid.NewGuid(), AuditFlags.Success
                 );
 
             customObjectSecurity.AddAuditRule(customAuditRuleReadWrite);
             customObjectSecurity.SetAuditRule(customAuditRuleRead);
 
-            AuthorizationRuleCollection ruleCollection =
-              customObjectSecurity
-             .GetAuditRules(true, true, typeof(System.Security.Principal.NTAccount));
-
-            List<CustomAuditRule> existingRules = ruleCollection.Cast<CustomAuditRule>().ToList();
-            Assert.False(existingRules.Contains(customAuditRuleReadWrite));
-            Assert.True(existingRules.Contains(customAuditRuleRead));
+            var existingRules = customObjectSecurity.GetAuditRules(true, true, typeof(System.Security.Principal.NTAccount)).Cast<CustomAuditRule>().ToList();
+            Assert.DoesNotContain(customAuditRuleReadWrite, existingRules);
+            Assert.Contains(customAuditRuleRead, existingRules);
         }
 
         [Fact]
@@ -287,26 +296,24 @@ namespace System.Security.AccessControl
             var customObjectSecurity = new CustomDirectoryObjectSecurity(descriptor);
 
             var customAuditRuleRead = new CustomAuditRule(
-                new NTAccount(@"NT AUTHORITY\Network Service"), ReadAccessMask, true, InheritanceFlags.None,
+                new SecurityIdentifier(WellKnownSidType.NetworkServiceSid, null).Translate(typeof(NTAccount)), ReadAccessMask, true, InheritanceFlags.None,
                 PropagationFlags.None, Guid.NewGuid(), Guid.NewGuid(), AuditFlags.Success
                 );
 
             var customAuditRuleReadAttribute = new CustomAuditRule(
-                new NTAccount(@"NT AUTHORITY\SYSTEM"), ReadAttributeAccessMask, true, InheritanceFlags.None,
+                new SecurityIdentifier(WellKnownSidType.LocalSystemSid, null).Translate(typeof(NTAccount)), ReadAttributeAccessMask, true, InheritanceFlags.None,
                 PropagationFlags.None, Guid.NewGuid(), Guid.NewGuid(), AuditFlags.Success
                 );
 
             customObjectSecurity.AddAuditRule(customAuditRuleRead);
             customObjectSecurity.AddAuditRule(customAuditRuleReadAttribute);
-            AuthorizationRuleCollection ruleCollection =
-                customObjectSecurity
-               .GetAuditRules(true, true, typeof(System.Security.Principal.NTAccount));
+            AuthorizationRuleCollection ruleCollection = customObjectSecurity.GetAuditRules(true, true, typeof(System.Security.Principal.NTAccount));
 
             Assert.NotNull(ruleCollection);
             List<CustomAuditRule> addedRules = ruleCollection.Cast<CustomAuditRule>().ToList();
 
-            Assert.True(addedRules.Contains(customAuditRuleRead));
-            Assert.True(addedRules.Contains(customAuditRuleReadAttribute));
+            Assert.Contains(customAuditRuleRead, addedRules);
+            Assert.Contains(customAuditRuleReadAttribute, addedRules);
         }
 
         [Fact]
@@ -321,37 +328,31 @@ namespace System.Security.AccessControl
         {
             var descriptor = new CommonSecurityDescriptor(true, true, string.Empty);
             var customObjectSecurity = new CustomDirectoryObjectSecurity(descriptor);
-
             var objectTypeGuid = Guid.NewGuid();
-            var identityReference = new NTAccount(@"NT AUTHORITY\SYSTEM");
 
             var customAccessRuleReadWrite = new CustomAccessRule(
-                identityReference, ReadWriteAccessMask, true, InheritanceFlags.None,
+                Helpers.s_LocalSystemNTAccount, ReadWriteAccessMask, true, InheritanceFlags.None,
                 PropagationFlags.None, objectTypeGuid, Guid.NewGuid(), AccessControlType.Allow
                 );
 
             var customAccessRuleWrite = new CustomAccessRule(
-                identityReference, WriteAccessMask, true, InheritanceFlags.None,
+                Helpers.s_LocalSystemNTAccount, WriteAccessMask, true, InheritanceFlags.None,
                 PropagationFlags.None, objectTypeGuid, Guid.NewGuid(), AccessControlType.Allow
                 );
 
             customObjectSecurity.AddAccessRule(customAccessRuleReadWrite);
             bool result = customObjectSecurity.RemoveAccessRule(customAccessRuleWrite);
 
-            Assert.Equal(true, result);
-            AuthorizationRuleCollection ruleCollection =
-                customObjectSecurity
-               .GetAccessRules(true, true, typeof(System.Security.Principal.NTAccount));
+            Assert.True(result);
+            AuthorizationRuleCollection ruleCollection = customObjectSecurity.GetAccessRules(true, true, typeof(System.Security.Principal.NTAccount));
 
             Assert.NotNull(ruleCollection);
-            List<CustomAccessRule> existingRules = ruleCollection.Cast<CustomAccessRule>().ToList();
 
-            Assert.True(
-                existingRules.Any(
-                    x => x.IdentityReference == identityReference &&
-                    x.AccessControlType == customAccessRuleReadWrite.AccessControlType &&
-                    x.AccessMaskValue == ReadAccessMask
-                    ));
+            Assert.Contains(ruleCollection.Cast<CustomAccessRule>(), x =>
+                x.IdentityReference == Helpers.s_LocalSystemNTAccount &&
+                x.AccessControlType == customAccessRuleReadWrite.AccessControlType &&
+                x.AccessMaskValue == ReadAccessMask
+            );
         }
 
         [Fact]
@@ -361,34 +362,29 @@ namespace System.Security.AccessControl
             var customObjectSecurity = new CustomDirectoryObjectSecurity(descriptor);
 
             int readDataAndAttribute = ReadAccessMask | ReadAttributeAccessMask;
-            var identityReference = new NTAccount(@"NT AUTHORITY\SYSTEM");
             var objectTypeGuid = Guid.NewGuid();
+
             var customAccessRuleReadDataAndAttribute = new CustomAccessRule(
-                identityReference, readDataAndAttribute, true, InheritanceFlags.None,
+                Helpers.s_LocalSystemNTAccount, readDataAndAttribute, true, InheritanceFlags.None,
                 PropagationFlags.None, objectTypeGuid, Guid.NewGuid(), AccessControlType.Deny
                 );
 
             var customAccessRuleRead = new CustomAccessRule(
-                identityReference, ReadAccessMask, true, InheritanceFlags.None,
+                Helpers.s_LocalSystemNTAccount, ReadAccessMask, true, InheritanceFlags.None,
                 PropagationFlags.None, objectTypeGuid, Guid.NewGuid(), AccessControlType.Deny
                 );
 
             customObjectSecurity.AddAccessRule(customAccessRuleReadDataAndAttribute);
             customObjectSecurity.RemoveAccessRule(customAccessRuleRead);
 
-            AuthorizationRuleCollection ruleCollection =
-                customObjectSecurity
-               .GetAccessRules(true, true, typeof(System.Security.Principal.NTAccount));
-
+            AuthorizationRuleCollection ruleCollection = customObjectSecurity.GetAccessRules(true, true, typeof(System.Security.Principal.NTAccount));
             Assert.NotNull(ruleCollection);
-            List<CustomAccessRule> existingRules = ruleCollection.Cast<CustomAccessRule>().ToList();
 
-            Assert.True(
-                 existingRules.Any(
-                        x => x.IdentityReference == identityReference &&
-                        x.AccessControlType == AccessControlType.Deny &&
-                        x.AccessMaskValue == ReadAttributeAccessMask
-                    ));
+            Assert.Contains(ruleCollection.Cast<CustomAccessRule>(), x =>
+                x.IdentityReference == Helpers.s_LocalSystemNTAccount &&
+                x.AccessControlType == AccessControlType.Deny &&
+                x.AccessMaskValue == ReadAttributeAccessMask
+            );
         }
 
         [Fact]
@@ -403,12 +399,10 @@ namespace System.Security.AccessControl
         {
             var descriptor = new CommonSecurityDescriptor(true, true, string.Empty);
             var customObjectSecurity = new CustomDirectoryObjectSecurity(descriptor);
-
             var objectTypeGuid = Guid.NewGuid();
-            var identityReference = new NTAccount(@"NT AUTHORITY\SYSTEM");
 
             var customAccessRuleReadWrite = new CustomAccessRule(
-                identityReference, ReadWriteAccessMask, true, InheritanceFlags.None,
+                Helpers.s_LocalSystemNTAccount, ReadWriteAccessMask, true, InheritanceFlags.None,
                 PropagationFlags.None, objectTypeGuid, Guid.NewGuid(), AccessControlType.Allow
                 );
 
@@ -420,7 +414,7 @@ namespace System.Security.AccessControl
                .GetAccessRules(true, true, typeof(System.Security.Principal.NTAccount));
 
             List<CustomAccessRule> existingRules = ruleCollection.Cast<CustomAccessRule>().ToList();
-            Assert.False(existingRules.Contains(customAccessRuleReadWrite));
+            Assert.DoesNotContain(customAccessRuleReadWrite, existingRules);
         }
 
         [Fact]
@@ -428,29 +422,22 @@ namespace System.Security.AccessControl
         {
             var descriptor = new CommonSecurityDescriptor(true, true, string.Empty);
             var customObjectSecurity = new CustomDirectoryObjectSecurity(descriptor);
-
             var objectTypeGuid = Guid.NewGuid();
-            var identityReference = new NTAccount(@"NT AUTHORITY\SYSTEM");
 
             var customAccessRuleReadWrite = new CustomAccessRule(
-                identityReference, ReadWriteAccessMask, true, InheritanceFlags.None,
+                Helpers.s_LocalSystemNTAccount, ReadWriteAccessMask, true, InheritanceFlags.None,
                 PropagationFlags.None, objectTypeGuid, Guid.NewGuid(), AccessControlType.Deny
                 );
 
             var customAccessRuleRead = new CustomAccessRule(
-                new NTAccount(@"NT AUTHORITY\SYSTEM"), ReadAccessMask, true, InheritanceFlags.None,
+                new SecurityIdentifier(WellKnownSidType.LocalSystemSid, null).Translate(typeof(NTAccount)), ReadAccessMask, true, InheritanceFlags.None,
                 PropagationFlags.None, objectTypeGuid, Guid.NewGuid(), AccessControlType.Deny
                 );
 
             customObjectSecurity.AddAccessRule(customAccessRuleReadWrite);
             customObjectSecurity.RemoveAccessRuleSpecific(customAccessRuleRead);
 
-            AuthorizationRuleCollection ruleCollection =
-                customObjectSecurity
-               .GetAccessRules(true, true, typeof(System.Security.Principal.NTAccount));
-
-            List<CustomAccessRule> existingRules = ruleCollection.Cast<CustomAccessRule>().ToList();
-            Assert.True(existingRules.Contains(customAccessRuleReadWrite));
+            Assert.Contains(customAccessRuleReadWrite, customObjectSecurity.GetAccessRules(true, true, typeof(System.Security.Principal.NTAccount)).Cast<CustomAccessRule>());
         }
 
         [Fact]
@@ -465,16 +452,15 @@ namespace System.Security.AccessControl
         {
             var descriptor = new CommonSecurityDescriptor(true, true, string.Empty);
             var customObjectSecurity = new CustomDirectoryObjectSecurity(descriptor);
-
             var objectTypeGuid = Guid.NewGuid();
-            var identityReference = new NTAccount(@"NT AUTHORITY\SYSTEM");
+
             var customAccessRuleReadWrite = new CustomAccessRule(
-                identityReference, ReadWriteAccessMask, true, InheritanceFlags.None,
+                Helpers.s_LocalSystemNTAccount, ReadWriteAccessMask, true, InheritanceFlags.None,
                 PropagationFlags.None, objectTypeGuid, Guid.NewGuid(), AccessControlType.Allow
                 );
 
             var customAccessRuleSynchronize = new CustomAccessRule(
-                identityReference, SynchronizeAccessMask, true, InheritanceFlags.None,
+                Helpers.s_LocalSystemNTAccount, SynchronizeAccessMask, true, InheritanceFlags.None,
                 PropagationFlags.None, objectTypeGuid, Guid.NewGuid(), AccessControlType.Allow
                 );
 
@@ -488,8 +474,24 @@ namespace System.Security.AccessControl
 
             List<CustomAccessRule> existingRules = ruleCollection.Cast<CustomAccessRule>().ToList();
 
-            Assert.False(existingRules.Contains(customAccessRuleReadWrite));
-            Assert.False(existingRules.Contains(customAccessRuleSynchronize));
+            Assert.DoesNotContain(customAccessRuleReadWrite, existingRules);
+            Assert.DoesNotContain(customAccessRuleSynchronize, existingRules);
+        }
+
+        [Fact]
+        public void RemoveAccessRuleAll_AccessControlType_Deny_ThrowException()
+        {
+            var descriptor = new CommonSecurityDescriptor(true, true, string.Empty);
+            var customObjectSecurity = new CustomDirectoryObjectSecurity(descriptor);
+            var objectTypeGuid = Guid.NewGuid();
+
+            var customAccessRuleReadWrite = new CustomAccessRule(
+                Helpers.s_LocalSystemNTAccount, ReadWriteAccessMask, true, InheritanceFlags.ObjectInherit,
+                PropagationFlags.InheritOnly, objectTypeGuid, Guid.NewGuid(), AccessControlType.Deny
+                );
+
+            customObjectSecurity.AddAccessRule(customAccessRuleReadWrite);
+            AssertExtensions.Throws<InvalidOperationException, SystemException>(() => customObjectSecurity.RemoveAccessRuleAll(customAccessRuleReadWrite));
         }
 
         [Fact]
@@ -497,16 +499,15 @@ namespace System.Security.AccessControl
         {
             var descriptor = new CommonSecurityDescriptor(true, true, string.Empty);
             var customObjectSecurity = new CustomDirectoryObjectSecurity(descriptor);
-
             var objectTypeGuid = Guid.NewGuid();
-            var identityReference = new NTAccount(@"NT AUTHORITY\SYSTEM");
+
             var customAccessRuleReadWrite = new CustomAccessRule(
-                identityReference, ReadWriteAccessMask, true, InheritanceFlags.None,
+                Helpers.s_LocalSystemNTAccount, ReadWriteAccessMask, true, InheritanceFlags.None,
                 PropagationFlags.None, objectTypeGuid, Guid.NewGuid(), AccessControlType.Deny
                 );
 
             var customAccessRuleSynchronize = new CustomAccessRule(
-                identityReference, SynchronizeAccessMask, true, InheritanceFlags.None,
+                Helpers.s_LocalSystemNTAccount, SynchronizeAccessMask, true, InheritanceFlags.None,
                 PropagationFlags.None, objectTypeGuid, Guid.NewGuid(), AccessControlType.Deny
                 );
 
@@ -519,8 +520,8 @@ namespace System.Security.AccessControl
                .GetAccessRules(true, true, typeof(System.Security.Principal.NTAccount));
 
             List<CustomAccessRule> existingRules = ruleCollection.Cast<CustomAccessRule>().ToList();
-            Assert.False(existingRules.Contains(customAccessRuleReadWrite));
-            Assert.False(existingRules.Contains(customAccessRuleSynchronize));
+            Assert.DoesNotContain(customAccessRuleReadWrite, existingRules);
+            Assert.DoesNotContain(customAccessRuleSynchronize, existingRules);
         }
 
 
@@ -536,36 +537,36 @@ namespace System.Security.AccessControl
         {
             var descriptor = new CommonSecurityDescriptor(true, true, string.Empty);
             var customObjectSecurity = new CustomDirectoryObjectSecurity(descriptor);
-
             var objectTypeGuid = Guid.NewGuid();
-            var identityReference = new NTAccount(@"NT AUTHORITY\SYSTEM");
+
             var customAccessRuleReadWrite = new CustomAccessRule(
-                identityReference, ReadWriteAccessMask, true, InheritanceFlags.None,
+                Helpers.s_LocalSystemNTAccount, ReadWriteAccessMask, true, InheritanceFlags.None,
                 PropagationFlags.None, objectTypeGuid, Guid.NewGuid(), AccessControlType.Deny
                 );
 
             var customAccessRuleNetworkService = new CustomAccessRule(
-                new NTAccount(@"NT AUTHORITY\NetworkService"), SynchronizeAccessMask, true, InheritanceFlags.None,
+                Helpers.s_NetworkServiceNTAccount, SynchronizeAccessMask, true, InheritanceFlags.None,
                 PropagationFlags.None, objectTypeGuid, Guid.NewGuid(), AccessControlType.Allow
                 );
 
             var customAccessRuleRead = new CustomAccessRule(
-                new NTAccount(@"NT AUTHORITY\SYSTEM"), ReadAccessMask, true, InheritanceFlags.None,
+                Helpers.s_LocalSystemNTAccount, ReadAccessMask, true, InheritanceFlags.None,
                 PropagationFlags.None, objectTypeGuid, Guid.NewGuid(), AccessControlType.Allow
                 );
 
             customObjectSecurity.AddAccessRule(customAccessRuleReadWrite);
+            Assert.Contains(customAccessRuleReadWrite, customObjectSecurity.GetAccessRules(true, true, typeof(System.Security.Principal.NTAccount)).Cast<CustomAccessRule>());
+
             customObjectSecurity.AddAccessRule(customAccessRuleNetworkService);
+            List<CustomAccessRule> existingRules = customObjectSecurity.GetAccessRules(true, true, typeof(System.Security.Principal.NTAccount)).Cast<CustomAccessRule>().ToList();
+            Assert.Contains(customAccessRuleReadWrite, existingRules);
+            Assert.Contains(customAccessRuleNetworkService, existingRules);
+
             customObjectSecurity.ResetAccessRule(customAccessRuleRead);
-
-            AuthorizationRuleCollection ruleCollection =
-              customObjectSecurity
-             .GetAccessRules(true, true, typeof(System.Security.Principal.NTAccount));
-
-            List<CustomAccessRule> existingRules = ruleCollection.Cast<CustomAccessRule>().ToList();
-            Assert.False(existingRules.Contains(customAccessRuleReadWrite));
-            Assert.False(existingRules.Contains(customAccessRuleNetworkService));
-            Assert.True(existingRules.Contains(customAccessRuleRead));
+            existingRules = customObjectSecurity.GetAccessRules(true, true, typeof(System.Security.Principal.NTAccount)).Cast<CustomAccessRule>().ToList();
+            Assert.DoesNotContain(customAccessRuleReadWrite, existingRules);
+            Assert.Contains(customAccessRuleNetworkService, existingRules);
+            Assert.Contains(customAccessRuleRead, existingRules);
         }
 
         [Fact]
@@ -573,36 +574,36 @@ namespace System.Security.AccessControl
         {
             var descriptor = new CommonSecurityDescriptor(true, true, string.Empty);
             var customObjectSecurity = new CustomDirectoryObjectSecurity(descriptor);
-
             var objectTypeGuid = Guid.NewGuid();
-            var identityReference = new NTAccount(@"NT AUTHORITY\SYSTEM");
+
             var customAccessRuleReadWrite = new CustomAccessRule(
-                identityReference, ReadWriteAccessMask, true, InheritanceFlags.None,
+                Helpers.s_LocalSystemNTAccount, ReadWriteAccessMask, true, InheritanceFlags.None,
                 PropagationFlags.None, objectTypeGuid, Guid.NewGuid(), AccessControlType.Deny
                 );
 
             var customAccessRuleNetworkService = new CustomAccessRule(
-                new NTAccount(@"NT AUTHORITY\NetworkService"), SynchronizeAccessMask, true, InheritanceFlags.None,
+                Helpers.s_NetworkServiceNTAccount, SynchronizeAccessMask, true, InheritanceFlags.None,
                 PropagationFlags.None, objectTypeGuid, Guid.NewGuid(), AccessControlType.Allow
                 );
 
             var customAccessRuleWrite = new CustomAccessRule(
-                new NTAccount(@"NT AUTHORITY\SYSTEM"), WriteAccessMask, true, InheritanceFlags.None,
+                Helpers.s_LocalSystemNTAccount, WriteAccessMask, true, InheritanceFlags.None,
                 PropagationFlags.None, objectTypeGuid, Guid.NewGuid(), AccessControlType.Deny
                 );
 
             customObjectSecurity.AddAccessRule(customAccessRuleReadWrite);
+            Assert.Contains(customAccessRuleReadWrite, customObjectSecurity.GetAccessRules(true, true, typeof(System.Security.Principal.NTAccount)).Cast<CustomAccessRule>());
+
             customObjectSecurity.AddAccessRule(customAccessRuleNetworkService);
+            List<CustomAccessRule> existingRules = customObjectSecurity.GetAccessRules(true, true, typeof(System.Security.Principal.NTAccount)).Cast<CustomAccessRule>().ToList();
+            Assert.Contains(customAccessRuleReadWrite, existingRules);
+            Assert.Contains(customAccessRuleNetworkService, existingRules);
+
             customObjectSecurity.ResetAccessRule(customAccessRuleWrite);
-
-            AuthorizationRuleCollection ruleCollection =
-              customObjectSecurity
-             .GetAccessRules(true, true, typeof(System.Security.Principal.NTAccount));
-
-            List<CustomAccessRule> existingRules = ruleCollection.Cast<CustomAccessRule>().ToList();
-            Assert.False(existingRules.Contains(customAccessRuleReadWrite));
-            Assert.False(existingRules.Contains(customAccessRuleNetworkService));
-            Assert.True(existingRules.Contains(customAccessRuleWrite));
+            existingRules = customObjectSecurity.GetAccessRules(true, true, typeof(System.Security.Principal.NTAccount)).Cast<CustomAccessRule>().ToList();
+            Assert.DoesNotContain(customAccessRuleReadWrite, existingRules);
+            Assert.Contains(customAccessRuleNetworkService, existingRules);
+            Assert.Contains(customAccessRuleWrite, existingRules);
         }
 
         [Fact]
@@ -617,29 +618,25 @@ namespace System.Security.AccessControl
         {
             var descriptor = new CommonSecurityDescriptor(true, true, string.Empty);
             var customObjectSecurity = new CustomDirectoryObjectSecurity(descriptor);
-
             var objectTypeGuid = Guid.NewGuid();
-            var identityReference = new NTAccount(@"NT AUTHORITY\SYSTEM");
+
             var customAccessRuleReadWrite = new CustomAccessRule(
-                identityReference, ReadWriteAccessMask, true, InheritanceFlags.None,
+                Helpers.s_LocalSystemNTAccount, ReadWriteAccessMask, true, InheritanceFlags.None,
                 PropagationFlags.None, objectTypeGuid, Guid.NewGuid(), AccessControlType.Allow
                 );
 
             var customAccessRuleRead = new CustomAccessRule(
-                new NTAccount(@"NT AUTHORITY\SYSTEM"), ReadAccessMask, true, InheritanceFlags.None,
+                new SecurityIdentifier(WellKnownSidType.LocalSystemSid, null).Translate(typeof(NTAccount)), ReadAccessMask, true, InheritanceFlags.None,
                 PropagationFlags.None, objectTypeGuid, Guid.NewGuid(), AccessControlType.Allow
                 );
 
             customObjectSecurity.AddAccessRule(customAccessRuleReadWrite);
             customObjectSecurity.SetAccessRule(customAccessRuleRead);
 
-            AuthorizationRuleCollection ruleCollection =
-              customObjectSecurity
-             .GetAccessRules(true, true, typeof(System.Security.Principal.NTAccount));
+            List<CustomAccessRule> existingRules = customObjectSecurity.GetAccessRules(true, true, typeof(System.Security.Principal.NTAccount)).Cast<CustomAccessRule>().ToList();
 
-            List<CustomAccessRule> existingRules = ruleCollection.Cast<CustomAccessRule>().ToList();
-            Assert.False(existingRules.Contains(customAccessRuleReadWrite));
-            Assert.True(existingRules.Contains(customAccessRuleRead));
+            Assert.DoesNotContain(customAccessRuleReadWrite, existingRules);
+            Assert.Contains(customAccessRuleRead, existingRules);
         }
 
         [Fact]
@@ -647,30 +644,25 @@ namespace System.Security.AccessControl
         {
             var descriptor = new CommonSecurityDescriptor(true, true, string.Empty);
             var customObjectSecurity = new CustomDirectoryObjectSecurity(descriptor);
-
             var objectTypeGuid = Guid.NewGuid();
-            var identityReference = new NTAccount(@"NT AUTHORITY\SYSTEM");
+
             var customAccessRuleReadWrite = new CustomAccessRule(
-                identityReference, ReadWriteAccessMask, true, InheritanceFlags.None,
+                Helpers.s_LocalSystemNTAccount, ReadWriteAccessMask, true, InheritanceFlags.None,
                 PropagationFlags.None, objectTypeGuid, Guid.NewGuid(), AccessControlType.Deny
                 );
 
             var customAccessRuleRead = new CustomAccessRule(
-                new NTAccount(@"NT AUTHORITY\SYSTEM"), ReadAccessMask, true, InheritanceFlags.None,
+                new SecurityIdentifier(WellKnownSidType.LocalSystemSid, null).Translate(typeof(NTAccount)), ReadAccessMask, true, InheritanceFlags.None,
                 PropagationFlags.None, objectTypeGuid, Guid.NewGuid(), AccessControlType.Deny
                 );
 
             customObjectSecurity.AddAccessRule(customAccessRuleReadWrite);
+            Assert.Contains(customAccessRuleReadWrite, customObjectSecurity.GetAccessRules(true, true, typeof(System.Security.Principal.NTAccount)).Cast<CustomAccessRule>());
+
             customObjectSecurity.SetAccessRule(customAccessRuleRead);
-
-            AuthorizationRuleCollection ruleCollection =
-              customObjectSecurity
-             .GetAccessRules(true, true, typeof(System.Security.Principal.NTAccount));
-
-            List<CustomAccessRule> existingRules = ruleCollection.Cast<CustomAccessRule>().ToList();
-
-            Assert.False(existingRules.Contains(customAccessRuleReadWrite));
-            Assert.True(existingRules.Contains(customAccessRuleRead));
+            var existingRules = customObjectSecurity.GetAccessRules(true, true, typeof(System.Security.Principal.NTAccount)).Cast<CustomAccessRule>().ToList();
+            Assert.DoesNotContain(customAccessRuleReadWrite, existingRules);
+            Assert.Contains(customAccessRuleRead, existingRules);
         }
 
         [Fact]
@@ -687,26 +679,23 @@ namespace System.Security.AccessControl
             var customObjectSecurity = new CustomDirectoryObjectSecurity(descriptor);
 
             var customAccessRuleAllow = new CustomAccessRule(
-                new NTAccount(@"NT AUTHORITY\Network Service"), ReadAccessMask, true, InheritanceFlags.None,
+                Helpers.s_NetworkServiceNTAccount, ReadAccessMask, true, InheritanceFlags.None,
                 PropagationFlags.None, Guid.NewGuid(), Guid.NewGuid(), AccessControlType.Allow
                 );
 
             var customAccessRuleDeny = new CustomAccessRule(
-                new NTAccount(@"NT AUTHORITY\SYSTEM"), ReadAccessMask, true, InheritanceFlags.None,
+                Helpers.s_LocalSystemNTAccount, ReadAccessMask, true, InheritanceFlags.None,
                 PropagationFlags.None, Guid.NewGuid(), Guid.NewGuid(), AccessControlType.Deny
                 );
 
             customObjectSecurity.AddAccessRule(customAccessRuleAllow);
             customObjectSecurity.AddAccessRule(customAccessRuleDeny);
-            AuthorizationRuleCollection ruleCollection =
-                customObjectSecurity
-               .GetAccessRules(true, true, typeof(System.Security.Principal.NTAccount));
-
+            AuthorizationRuleCollection ruleCollection = customObjectSecurity.GetAccessRules(true, true, typeof(System.Security.Principal.NTAccount));
             Assert.NotNull(ruleCollection);
             List<CustomAccessRule> addedRules = ruleCollection.Cast<CustomAccessRule>().ToList();
 
-            Assert.True(addedRules.Contains(customAccessRuleAllow));
-            Assert.True(addedRules.Contains(customAccessRuleDeny));
+            Assert.Contains(customAccessRuleAllow, addedRules);
+            Assert.Contains(customAccessRuleDeny, addedRules);
         }
 
         private class CustomDirectoryObjectSecurity : DirectoryObjectSecurity
@@ -832,11 +821,11 @@ namespace System.Security.AccessControl
 
             public override bool Equals(object value)
             {
-                if (Object.ReferenceEquals(null, value))
+                if (object.ReferenceEquals(null, value))
                 {
                     return false;
                 }
-                if (Object.ReferenceEquals(this, value))
+                if (object.ReferenceEquals(this, value))
                 {
                     return true;
                 }
@@ -889,11 +878,11 @@ namespace System.Security.AccessControl
 
             public override bool Equals(object value)
             {
-                if (Object.ReferenceEquals(null, value))
+                if (object.ReferenceEquals(null, value))
                 {
                     return false;
                 }
-                if (Object.ReferenceEquals(this, value))
+                if (object.ReferenceEquals(this, value))
                 {
                     return true;
                 }

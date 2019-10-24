@@ -12,11 +12,11 @@ namespace System.Text
     /// allocate/copy the chars into a new string.  This comes at the expense of an extra
     /// reference field + two Int32s per key in the size of the dictionary's Entry array.
     /// </summary>
-    internal struct StringOrCharArray : IEquatable<StringOrCharArray>
+    internal readonly struct StringOrCharArray : IEquatable<StringOrCharArray>
     {
-        public readonly string String;
+        public readonly string? String;
 
-        public readonly char[] CharArray;
+        public readonly char[]? CharArray;
         public readonly int CharArrayOffset;
         public readonly int CharArrayCount;
 
@@ -56,7 +56,7 @@ namespace System.Text
             }
         }
 
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
             return
                 obj is StringOrCharArray &&
@@ -75,6 +75,7 @@ namespace System.Text
                 {
                     return StringComparer.Ordinal.Equals(this.String, other.String);
                 }
+                Debug.Assert(other.CharArray != null);
 
                 // String vs CharArray
                 if (this.String.Length != other.CharArrayCount)
@@ -88,6 +89,7 @@ namespace System.Text
 
                 return true;
             }
+            Debug.Assert(CharArray != null);
 
             // CharArray vs CharArray
             if (other.CharArray != null)
@@ -103,6 +105,7 @@ namespace System.Text
 
                 return true;
             }
+            Debug.Assert(other.String != null);
 
             // CharArray vs String
             if (this.CharArrayCount != other.String.Length)
@@ -139,7 +142,7 @@ namespace System.Text
 
         private static unsafe int GetHashCode(char* s, int count)
         {
-            // This hash code is a simplified version of some of the code in String, 
+            // This hash code is a simplified version of some of the code in String,
             // when not using randomized hash codes.  We don't use string's GetHashCode
             // because we need to be able to use the exact same algorithms on a char[].
             // As such, this should not be used anywhere there are concerns around

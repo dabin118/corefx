@@ -27,7 +27,6 @@ namespace System.DirectoryServices.AccountManagement
 
         object IEnumerator.Current
         {
-            [System.Security.SecurityCritical]
             get
             {
                 return Current;
@@ -44,7 +43,6 @@ namespace System.DirectoryServices.AccountManagement
             return _inner.MoveNext();
         }
 
-        [System.Security.SecurityCritical]
         bool IEnumerator.MoveNext()
         {
             return MoveNext();
@@ -56,7 +54,6 @@ namespace System.DirectoryServices.AccountManagement
             _inner.Reset();
         }
 
-        [System.Security.SecurityCritical]
         void IEnumerator.Reset()
         {
             Reset();
@@ -81,7 +78,6 @@ namespace System.DirectoryServices.AccountManagement
         // Private implementation
         //
 
-        private TrackedCollectionEnumerator<T> _inner;
+        private readonly TrackedCollectionEnumerator<T> _inner;
     }
 }
-

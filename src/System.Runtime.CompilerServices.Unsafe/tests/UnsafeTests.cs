@@ -129,29 +129,22 @@ namespace System.Runtime.CompilerServices
             Assert.Equal(10, value);
         }
 
-        [Theory]
-        [MemberData(nameof(SizeOfData))]
-        public static unsafe void SizeOf<T>(int expected, T valueUnused)
+        [Fact]
+        public static unsafe void SizeOf()
         {
-            // valueUnused is only present to enable Xunit to call the correct generic overload.
-            Assert.Equal(expected, Unsafe.SizeOf<T>());
-        }
-
-        public static IEnumerable<object[]> SizeOfData()
-        {
-            yield return new object[] { 1, new sbyte() };
-            yield return new object[] { 1, new byte() };
-            yield return new object[] { 2, new short() };
-            yield return new object[] { 2, new ushort() };
-            yield return new object[] { 4, new int() };
-            yield return new object[] { 4, new uint() };
-            yield return new object[] { 8, new long() };
-            yield return new object[] { 8, new ulong() };
-            yield return new object[] { 4, new float() };
-            yield return new object[] { 8, new double() };
-            yield return new object[] { 4, new Byte4() };
-            yield return new object[] { 8, new Byte4Short2() };
-            yield return new object[] { 512, new Byte512() };
+            Assert.Equal(1, Unsafe.SizeOf<sbyte>());
+            Assert.Equal(1, Unsafe.SizeOf<byte>());
+            Assert.Equal(2, Unsafe.SizeOf<short>());
+            Assert.Equal(2, Unsafe.SizeOf<ushort>());
+            Assert.Equal(4, Unsafe.SizeOf<int>());
+            Assert.Equal(4, Unsafe.SizeOf<uint>());
+            Assert.Equal(8, Unsafe.SizeOf<long>());
+            Assert.Equal(8, Unsafe.SizeOf<ulong>());
+            Assert.Equal(4, Unsafe.SizeOf<float>());
+            Assert.Equal(8, Unsafe.SizeOf<double>());
+            Assert.Equal(4, Unsafe.SizeOf<Byte4>());
+            Assert.Equal(8, Unsafe.SizeOf<Byte4Short2>());
+            Assert.Equal(512, Unsafe.SizeOf<Byte512>());
         }
 
         [Theory]
@@ -382,8 +375,8 @@ namespace System.Runtime.CompilerServices
         public static void DangerousAs()
         {
             // Verify that As does not perform type checks
-            object o = new Object();
-            Assert.IsType(typeof(Object), Unsafe.As<string>(o));
+            object o = new object();
+            Assert.IsType<object>(Unsafe.As<string>(o));
         }
 
         [Fact]
@@ -402,7 +395,7 @@ namespace System.Runtime.CompilerServices
             Assert.Equal(new IntPtr(6), Unsafe.ByteOffset(ref a[0], ref a[6]));
             Assert.Equal(new IntPtr(7), Unsafe.ByteOffset(ref a[0], ref a[7]));
         }
-        
+
         [Fact]
         public static void ByteOffsetStackByte4()
         {
@@ -429,6 +422,18 @@ namespace System.Runtime.CompilerServices
                 r = 0x0EF00EF0;
                 Assert.Equal(0xFE, b[0] | b[1] | b[2] | b[3]);
             }
+        }
+
+        [Fact]
+        public static void InAsRef()
+        {
+            int[] a = new int[] { 0x123, 0x234, 0x345, 0x456 };
+
+            ref int r = ref Unsafe.AsRef<int>(a[0]);
+            Assert.Equal(0x123, r);
+
+            r = 0x42;
+            Assert.Equal(0x42, a[0]);
         }
 
         [Fact]
@@ -529,7 +534,7 @@ namespace System.Runtime.CompilerServices
             ref string r3 = ref Unsafe.Subtract(ref r2, 3);
             Assert.Equal("abc", r3);
         }
-        
+
         [Fact]
         public static unsafe void VoidPointerSubtract()
         {
@@ -594,6 +599,44 @@ namespace System.Runtime.CompilerServices
 
             Assert.True(Unsafe.AreSame(ref a[0], ref a[0]));
             Assert.False(Unsafe.AreSame(ref a[0], ref a[1]));
+        }
+
+        [Fact]
+        public static unsafe void RefIsAddressGreaterThan()
+        {
+            int[] a = new int[2];
+
+            Assert.False(Unsafe.IsAddressGreaterThan(ref a[0], ref a[0]));
+            Assert.False(Unsafe.IsAddressGreaterThan(ref a[0], ref a[1]));
+            Assert.True(Unsafe.IsAddressGreaterThan(ref a[1], ref a[0]));
+            Assert.False(Unsafe.IsAddressGreaterThan(ref a[1], ref a[1]));
+
+            // The following tests ensure that we're using unsigned comparison logic
+
+            Assert.False(Unsafe.IsAddressGreaterThan(ref Unsafe.AsRef<byte>((void*)(1)), ref Unsafe.AsRef<byte>((void*)(-1))));
+            Assert.True(Unsafe.IsAddressGreaterThan(ref Unsafe.AsRef<byte>((void*)(-1)), ref Unsafe.AsRef<byte>((void*)(1))));
+            Assert.True(Unsafe.IsAddressGreaterThan(ref Unsafe.AsRef<byte>((void*)(int.MinValue)), ref Unsafe.AsRef<byte>((void*)(int.MaxValue))));
+            Assert.False(Unsafe.IsAddressGreaterThan(ref Unsafe.AsRef<byte>((void*)(int.MaxValue)), ref Unsafe.AsRef<byte>((void*)(int.MinValue))));
+            Assert.False(Unsafe.IsAddressGreaterThan(ref Unsafe.AsRef<byte>(null), ref Unsafe.AsRef<byte>(null)));
+        }
+
+        [Fact]
+        public static unsafe void RefIsAddressLessThan()
+        {
+            int[] a = new int[2];
+
+            Assert.False(Unsafe.IsAddressLessThan(ref a[0], ref a[0]));
+            Assert.True(Unsafe.IsAddressLessThan(ref a[0], ref a[1]));
+            Assert.False(Unsafe.IsAddressLessThan(ref a[1], ref a[0]));
+            Assert.False(Unsafe.IsAddressLessThan(ref a[1], ref a[1]));
+
+            // The following tests ensure that we're using unsigned comparison logic
+
+            Assert.True(Unsafe.IsAddressLessThan(ref Unsafe.AsRef<byte>((void*)(1)), ref Unsafe.AsRef<byte>((void*)(-1))));
+            Assert.False(Unsafe.IsAddressLessThan(ref Unsafe.AsRef<byte>((void*)(-1)), ref Unsafe.AsRef<byte>((void*)(1))));
+            Assert.False(Unsafe.IsAddressLessThan(ref Unsafe.AsRef<byte>((void*)(int.MinValue)), ref Unsafe.AsRef<byte>((void*)(int.MaxValue))));
+            Assert.True(Unsafe.IsAddressLessThan(ref Unsafe.AsRef<byte>((void*)(int.MaxValue)), ref Unsafe.AsRef<byte>((void*)(int.MinValue))));
+            Assert.False(Unsafe.IsAddressLessThan(ref Unsafe.AsRef<byte>(null), ref Unsafe.AsRef<byte>(null)));
         }
 
         [Fact]
@@ -743,6 +786,152 @@ namespace System.Runtime.CompilerServices
             Assert.Equal(123456789, actual.Int32);
             Assert.Equal(3.42, actual.Double);
         }
+
+        [Fact]
+        public static void Unbox_Int32()
+        {
+            object box = 42;
+
+            Assert.True(Unsafe.AreSame(ref Unsafe.Unbox<int>(box), ref Unsafe.Unbox<int>(box)));
+
+            Assert.Equal(42, (int)box);
+            Assert.Equal(42, Unsafe.Unbox<int>(box));
+
+            ref int value = ref Unsafe.Unbox<int>(box);
+            value = 84;
+            Assert.Equal(84, (int)box);
+            Assert.Equal(84, Unsafe.Unbox<int>(box));
+
+            Assert.Throws<InvalidCastException>(() => Unsafe.Unbox<Byte4>(box));
+        }
+
+        [Fact]
+        public static void Unbox_CustomValueType()
+        {
+            object box = new Int32Double();
+
+            Assert.Equal(0, ((Int32Double)box).Double);
+            Assert.Equal(0, ((Int32Double)box).Int32);
+
+            ref Int32Double value = ref Unsafe.Unbox<Int32Double>(box);
+            value.Double = 42;
+            value.Int32 = 84;
+
+            Assert.Equal(42, ((Int32Double)box).Double);
+            Assert.Equal(84, ((Int32Double)box).Int32);
+
+            Assert.Throws<InvalidCastException>(() => Unsafe.Unbox<bool>(box));
+        }
+
+        [Fact]
+        public static void SkipInit()
+        {
+            // Validate that calling with primitive types works.
+
+            Unsafe.SkipInit(out sbyte sbyteValue);
+            Unsafe.SkipInit(out byte byteValue);
+            Unsafe.SkipInit(out short shortValue);
+            Unsafe.SkipInit(out ushort ushortValue);
+            Unsafe.SkipInit(out int intValue);
+            Unsafe.SkipInit(out uint uintValue);
+            Unsafe.SkipInit(out long longValue);
+            Unsafe.SkipInit(out ulong ulongValue);
+            Unsafe.SkipInit(out float floatValue);
+            Unsafe.SkipInit(out double doubleValue);
+
+            // Validate that calling on user-defined unmanaged structs works.
+            
+            Unsafe.SkipInit(out Byte4 byte4Value);
+            Unsafe.SkipInit(out Byte4Short2 byte4Short2Value);
+            Unsafe.SkipInit(out Byte512 byte512Value);
+            Unsafe.SkipInit(out Int32Double int32DoubleValue);
+
+            // Validates that calling on a struct works and the reference type is still zeroed.
+
+            Unsafe.SkipInit(out StringInt32 stringInt32Value);
+            Assert.Null(stringInt32Value.String);
+
+            // Validates that calling on a reference type works and it is zeroed.
+
+            Unsafe.SkipInit(out string stringValue);
+            Assert.Null(stringValue);
+        }
+
+        [Fact]
+        public static void SkipInit_PreservesPrevious()
+        {
+            // Validate that calling on already initialized types preserves the previous value.
+
+            sbyte sbyteValue = 1;
+            Unsafe.SkipInit(out sbyteValue);
+            Assert.Equal<sbyte>(1, sbyteValue);
+
+            byte byteValue = 2;
+            Unsafe.SkipInit(out byteValue);
+            Assert.Equal<byte>(2, byteValue);
+
+            short shortValue = 3;
+            Unsafe.SkipInit(out shortValue);
+            Assert.Equal<short>(3, shortValue);
+
+            ushort ushortValue = 4;
+            Unsafe.SkipInit(out ushortValue);
+            Assert.Equal<ushort>(4, ushortValue);
+
+            int intValue = 5;
+            Unsafe.SkipInit(out intValue);
+            Assert.Equal<int>(5, intValue);
+
+            uint uintValue = 6;
+            Unsafe.SkipInit(out uintValue);
+            Assert.Equal<uint>(6, uintValue);
+
+            long longValue = 7;
+            Unsafe.SkipInit(out longValue);
+            Assert.Equal<long>(7, longValue);
+
+            ulong ulongValue = 8;
+            Unsafe.SkipInit(out ulongValue);
+            Assert.Equal<ulong>(8, ulongValue);
+
+            float floatValue = 9;
+            Unsafe.SkipInit(out floatValue);
+            Assert.Equal<float>(9, floatValue);
+
+            double doubleValue = 10;
+            Unsafe.SkipInit(out doubleValue);
+            Assert.Equal<double>(10, doubleValue);
+
+            Byte4 byte4Value = new Byte4 { B0 = 11, B1 = 12, B2 = 13, B3 = 14 };
+            Unsafe.SkipInit(out byte4Value);
+            Assert.Equal<byte>(11, byte4Value.B0);
+            Assert.Equal<byte>(12, byte4Value.B1);
+            Assert.Equal<byte>(13, byte4Value.B2);
+            Assert.Equal<byte>(14, byte4Value.B3);
+
+            Byte4Short2 byte4Short2Value = new Byte4Short2 { B0 = 15, B1 = 16, B2 = 17, B3 = 18, S4 = 19, S6 = 20 };
+            Unsafe.SkipInit(out byte4Short2Value);
+            Assert.Equal<byte>(15, byte4Short2Value.B0);
+            Assert.Equal<byte>(16, byte4Short2Value.B1);
+            Assert.Equal<byte>(17, byte4Short2Value.B2);
+            Assert.Equal<byte>(18, byte4Short2Value.B3);
+            Assert.Equal<short>(19, byte4Short2Value.S4);
+            Assert.Equal<short>(20, byte4Short2Value.S6);
+
+            Int32Double int32DoubleValue = new Int32Double { Int32 = 21, Double = 22 };
+            Unsafe.SkipInit(out int32DoubleValue);
+            Assert.Equal<int>(21, int32DoubleValue.Int32);
+            Assert.Equal<double>(22, int32DoubleValue.Double);
+
+            StringInt32 stringInt32Value = new StringInt32 { String = "23", Int32 = 24 };
+            Unsafe.SkipInit(out stringInt32Value);
+            Assert.Equal("23", stringInt32Value.String);
+            Assert.Equal<int>(24, stringInt32Value.Int32);
+
+            string stringValue = "25";
+            Unsafe.SkipInit(out stringValue);
+            Assert.Equal("25", stringValue);
+        }
     }
 
     [StructLayout(LayoutKind.Explicit)]
@@ -780,9 +969,12 @@ namespace System.Runtime.CompilerServices
         public fixed byte Bytes[512];
     }
 
+    [StructLayout(LayoutKind.Explicit, Size=16)]
     public unsafe struct Int32Double
     {
+        [FieldOffset(0)]
         public int Int32;
+        [FieldOffset(8)]
         public double Double;
 
         public static unsafe byte[] Unaligned(int i, double d)
@@ -809,5 +1001,11 @@ namespace System.Runtime.CompilerServices
 
             return aligned;
         }
+    }
+
+    public struct StringInt32
+    {
+        public string String;
+        public int Int32;
     }
 }

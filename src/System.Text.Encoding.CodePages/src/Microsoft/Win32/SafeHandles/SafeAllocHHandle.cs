@@ -8,7 +8,6 @@ using System.Security;
 
 namespace Microsoft.Win32.SafeHandles
 {
-    [SecurityCritical]
     internal sealed class SafeAllocHHandle : SafeBuffer
     {
         private SafeAllocHHandle() : base(true) { }
@@ -23,8 +22,7 @@ namespace Microsoft.Win32.SafeHandles
             get { return new SafeAllocHHandle(IntPtr.Zero); }
         }
 
-        [System.Security.SecurityCritical]
-        override protected bool ReleaseHandle()
+        protected override bool ReleaseHandle()
         {
             if (handle != IntPtr.Zero)
             {

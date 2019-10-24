@@ -2,9 +2,9 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+#nullable enable
 using System.Diagnostics;
 using System.Globalization;
-using System.Reflection;
 
 namespace System.Drawing
 {
@@ -55,7 +55,7 @@ namespace System.Drawing
                 }
             }
 
-            // Nope.  Parse the RGBA from the text.
+            // Nope. Parse the RGBA from the text.
             //
             string[] tokens = text.Split(sep);
             int[] values = new int[tokens.Length];
@@ -71,25 +71,19 @@ namespace System.Drawing
             // 3 -- RGB
             // 4 -- ARGB
             //
-            switch (values.Length)
+            return values.Length switch
             {
-                case 1:
-                    return PossibleKnownColor(Color.FromArgb(values[0]));
-
-                case 3:
-                    return PossibleKnownColor(Color.FromArgb(values[0], values[1], values[2]));
-
-                case 4:
-                    return PossibleKnownColor(Color.FromArgb(values[0], values[1], values[2], values[3]));
-            }
-
-            throw new ArgumentException(SR.Format(SR.InvalidColor, text));
+                1 => PossibleKnownColor(Color.FromArgb(values[0])),
+                3 => PossibleKnownColor(Color.FromArgb(values[0], values[1], values[2])),
+                4 => PossibleKnownColor(Color.FromArgb(values[0], values[1], values[2], values[3])),
+                _ => throw new ArgumentException(SR.Format(SR.InvalidColor, text)),
+            };
         }
 
         private static Color PossibleKnownColor(Color color)
         {
             // Now check to see if this color matches one of our known colors.
-            // If it does, then substitute it.  We can only do this for "Colors"
+            // If it does, then substitute it. We can only do this for "Colors"
             // because system colors morph with user settings.
             //
             int targetARGB = color.ToArgb();
@@ -122,13 +116,13 @@ namespace System.Drawing
                 else
                 {
                     Debug.Assert(culture != null);
-                    NumberFormatInfo formatInfo = (NumberFormatInfo)culture.GetFormat(typeof(NumberFormatInfo));
+                    var formatInfo = (NumberFormatInfo?)culture.GetFormat(typeof(NumberFormatInfo));
                     return IntFromString(text, formatInfo);
                 }
             }
             catch (Exception e)
             {
-                throw new Exception(SR.Format(SR.ConvertInvalidPrimitive, text, typeof(int).Name), e);
+                throw new ArgumentException(SR.Format(SR.ConvertInvalidPrimitive, text, typeof(int).Name), e);
             }
         }
 
@@ -137,9 +131,9 @@ namespace System.Drawing
             return Convert.ToInt32(value, radix);
         }
 
-        private static int IntFromString(string value, NumberFormatInfo formatInfo)
+        private static int IntFromString(string value, NumberFormatInfo? formatInfo)
         {
-            return Int32.Parse(value, NumberStyles.Integer, formatInfo);
+            return int.Parse(value, NumberStyles.Integer, formatInfo);
         }
     }
 }

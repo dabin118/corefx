@@ -33,7 +33,7 @@ namespace System.Security.Cryptography
                     throw new ArgumentException(SR.Cryptography_ArgECDsaRequiresECDsaKey, nameof(value));
                 _core.SetKey(value);
 
-                // LegalKeySizes stores the values for either the current named curve or for the three 
+                // LegalKeySizes stores the values for either the current named curve or for the three
                 // curves that use size instead of name
                 ForceSetKeySize(value.KeySize);
             }
@@ -47,7 +47,7 @@ namespace System.Security.Cryptography
             if (curve.IsNamed)
             {
                 if (string.IsNullOrEmpty(curve.Oid.FriendlyName))
-                    throw new PlatformNotSupportedException(string.Format(SR.Cryptography_InvalidCurveOid, curve.Oid.Value));
+                    throw new PlatformNotSupportedException(SR.Format(SR.Cryptography_InvalidCurveOid, curve.Oid.Value));
 
                 // Map curve name to algorithm to support pre-Win10 curves
                 CngAlgorithm alg = CngKey.EcdsaCurveNameToAlgorithm(curve.Oid.FriendlyName);
@@ -56,7 +56,8 @@ namespace System.Security.Cryptography
                     CngKey key = _core.GetOrGenerateKey(curve);
                     ForceSetKeySize(key.KeySize);
                 }
-                else {
+                else
+                {
                     int keySize = 0;
                     // Get the proper KeySize from algorithm name
                     if (alg == CngAlgorithm.ECDsaP256)
@@ -67,10 +68,10 @@ namespace System.Security.Cryptography
                         keySize = 521;
                     else
                     {
-                        Debug.Fail(string.Format("Unknown algorithm {0}", alg.ToString()));
+                        Debug.Fail($"Unknown algorithm {alg}");
                         throw new ArgumentException(SR.Cryptography_InvalidKeySize);
                     }
-                    CngKey key = _core.GetOrGenerateKey(keySize, alg);
+                    _core.GetOrGenerateKey(keySize, alg);
                     ForceSetKeySize(keySize);
                 }
             }
@@ -81,7 +82,7 @@ namespace System.Security.Cryptography
             }
             else
             {
-                throw new PlatformNotSupportedException(string.Format(SR.Cryptography_CurveNotSupported, curve.CurveType.ToString()));
+                throw new PlatformNotSupportedException(SR.Format(SR.Cryptography_CurveNotSupported, curve.CurveType.ToString()));
             }
         }
 

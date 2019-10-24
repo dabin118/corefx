@@ -8,6 +8,8 @@ using System.Runtime.Serialization;
 namespace System.Net.Sockets
 {
     /// <summary>Provides socket exceptions to the application.</summary>
+    [Serializable]
+    [System.Runtime.CompilerServices.TypeForwardedFrom("System, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089")]
     public partial class SocketException : Win32Exception
     {
         /// <summary>The SocketError or Int32 specified when constructing the exception.</summary>
@@ -18,10 +20,10 @@ namespace System.Net.Sockets
         public SocketException(int errorCode) : this((SocketError)errorCode)
         {
             // NOTE: SocketException(SocketError) isn't exposed publicly.  As a result, code with a SocketError calls
-            // this ctor, e.g. 
+            // this ctor, e.g.
             //     SocketError error = ...;
             //     throw new SocketException((int)error);
-            // That means we need to assume the errorCode is a SocketError value, rather than a platform-specific error code. 
+            // That means we need to assume the errorCode is a SocketError value, rather than a platform-specific error code.
             // Hence, no translation on the supplied code.  This does mean on Unix there's a difference between:
             //     new SocketException(); // will treat the last error as a native error code and translate it appropriately
             // and:
@@ -43,7 +45,7 @@ namespace System.Net.Sockets
         protected SocketException(SerializationInfo serializationInfo, StreamingContext streamingContext)
             : base(serializationInfo, streamingContext)
         {
-            throw new PlatformNotSupportedException();
+            if (NetEventSource.IsEnabled) NetEventSource.Info(this, $"{NativeErrorCode}:{Message}");
         }
 
         public override int ErrorCode => base.NativeErrorCode;

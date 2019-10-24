@@ -9,7 +9,7 @@ using System.Reflection.Metadata.Ecma335;
 
 namespace System.Reflection.Metadata
 {
-    public struct DocumentHandleCollection : IReadOnlyCollection<DocumentHandle>
+    public readonly struct DocumentHandleCollection : IReadOnlyCollection<DocumentHandle>
     {
         private readonly MetadataReader _reader;
 
@@ -108,7 +108,7 @@ namespace System.Reflection.Metadata
         }
     }
 
-    public struct MethodDebugInformationHandleCollection : IReadOnlyCollection<MethodDebugInformationHandle>
+    public readonly struct MethodDebugInformationHandleCollection : IReadOnlyCollection<MethodDebugInformationHandle>
     {
         private readonly MetadataReader _reader;
 
@@ -207,7 +207,7 @@ namespace System.Reflection.Metadata
         }
     }
 
-    public struct LocalScopeHandleCollection : IReadOnlyCollection<LocalScopeHandle>
+    public readonly struct LocalScopeHandleCollection : IReadOnlyCollection<LocalScopeHandle>
     {
         private readonly MetadataReader _reader;
 
@@ -378,8 +378,8 @@ namespace System.Reflection.Metadata
 
                     int nextEndOffset = _reader.LocalScopeTable.GetEndOffset(nextRowId);
 
-                    // If the end of the next scope is lesser than or equal the current end 
-                    // then it's nested into the current scope and thus not a child of 
+                    // If the end of the next scope is lesser than or equal the current end
+                    // then it's nested into the current scope and thus not a child of
                     // the current scope parent.
                     if (nextEndOffset > currentEndOffset)
                     {
@@ -415,7 +415,7 @@ namespace System.Reflection.Metadata
         }
     }
 
-    public struct LocalVariableHandleCollection : IReadOnlyCollection<LocalVariableHandle>
+    public readonly struct LocalVariableHandleCollection : IReadOnlyCollection<LocalVariableHandle>
     {
         private readonly MetadataReader _reader;
 
@@ -521,7 +521,7 @@ namespace System.Reflection.Metadata
         }
     }
 
-    public struct LocalConstantHandleCollection : IReadOnlyCollection<LocalConstantHandle>
+    public readonly struct LocalConstantHandleCollection : IReadOnlyCollection<LocalConstantHandle>
     {
         private readonly MetadataReader _reader;
 
@@ -627,7 +627,7 @@ namespace System.Reflection.Metadata
         }
     }
 
-    public struct ImportScopeCollection : IReadOnlyCollection<ImportScopeHandle>
+    public readonly struct ImportScopeCollection : IReadOnlyCollection<ImportScopeHandle>
     {
         private readonly MetadataReader _reader;
 
@@ -726,7 +726,7 @@ namespace System.Reflection.Metadata
         }
     }
 
-    public struct CustomDebugInformationHandleCollection : IReadOnlyCollection<CustomDebugInformationHandle>
+    public readonly struct CustomDebugInformationHandleCollection : IReadOnlyCollection<CustomDebugInformationHandle>
     {
         private readonly MetadataReader _reader;
 

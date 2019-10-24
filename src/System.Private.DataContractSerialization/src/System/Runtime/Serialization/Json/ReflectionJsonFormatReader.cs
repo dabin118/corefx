@@ -1,4 +1,4 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
@@ -59,7 +59,7 @@ namespace System.Runtime.Serialization.Json
             context.IncrementItemCount(memberCount);
 
             DataMember[] members = new DataMember[memberCount];
-            int reflectedMemberCount = ReflectionGetMembers(classContract, members);
+            ReflectionGetMembers(classContract, members);
 
             int memberIndex = -1;
 
@@ -136,7 +136,6 @@ namespace System.Runtime.Serialization.Json
             Type valueType = keyValueTypes[1];
 
             int keyTypeNullableDepth = 0;
-            Type keyTypeOriginal = keyType;
             while (keyType.IsGenericType && keyType.GetGenericTypeDefinition() == Globals.TypeOfNullable)
             {
                 keyTypeNullableDepth++;
@@ -194,51 +193,23 @@ namespace System.Runtime.Serialization.Json
                 else if (keyParseMode == KeyParseMode.UsingCustomParse)
                 {
                     TypeCode typeCode = Type.GetTypeCode(keyDataContract.UnderlyingType);
-                    switch (typeCode)
+                    pairKey = typeCode switch
                     {
-                        case TypeCode.Boolean:
-                            pairKey = Boolean.Parse(keyString);
-                            break;
-                        case TypeCode.Int16:
-                            pairKey = Int16.Parse(keyString);
-                            break;
-                        case TypeCode.Int32:
-                            pairKey = Int32.Parse(keyString);
-                            break;
-                        case TypeCode.Int64:
-                            pairKey = Int64.Parse(keyString);
-                            break;
-                        case TypeCode.Char:
-                            pairKey = Char.Parse(keyString);
-                            break;
-                        case TypeCode.Byte:
-                            pairKey = Byte.Parse(keyString);
-                            break;
-                        case TypeCode.SByte:
-                            pairKey = SByte.Parse(keyString);
-                            break;
-                        case TypeCode.Double:
-                            pairKey = Double.Parse(keyString);
-                            break;
-                        case TypeCode.Decimal:
-                            pairKey = Decimal.Parse(keyString);
-                            break;
-                        case TypeCode.Single:
-                            pairKey = Single.Parse(keyString);
-                            break;
-                        case TypeCode.UInt16:
-                            pairKey = UInt16.Parse(keyString);
-                            break;
-                        case TypeCode.UInt32:
-                            pairKey = UInt32.Parse(keyString);
-                            break;
-                        case TypeCode.UInt64:
-                            pairKey = UInt64.Parse(keyString);
-                            break;
-                        default:
-                            pairKey = keyDataContract.ParseMethod.Invoke(null, new object[] { keyString });
-                            break;
-                    }
+                        TypeCode.Boolean => bool.Parse(keyString),
+                        TypeCode.Int16 => short.Parse(keyString),
+                        TypeCode.Int32 => int.Parse(keyString),
+                        TypeCode.Int64 => long.Parse(keyString),
+                        TypeCode.Char => char.Parse(keyString),
+                        TypeCode.Byte => byte.Parse(keyString),
+                        TypeCode.SByte => sbyte.Parse(keyString),
+                        TypeCode.Double => double.Parse(keyString),
+                        TypeCode.Decimal => decimal.Parse(keyString),
+                        TypeCode.Single => float.Parse(keyString),
+                        TypeCode.UInt16 => ushort.Parse(keyString),
+                        TypeCode.UInt32 => uint.Parse(keyString),
+                        TypeCode.UInt64 => ulong.Parse(keyString),
+                        _ => keyDataContract.ParseMethod.Invoke(null, new object[] { keyString }),
+                    };
                 }
                 else
                 {

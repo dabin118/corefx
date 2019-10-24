@@ -112,23 +112,14 @@ namespace System.Reflection.PortableExecutable
             return builder.ToImmutable();
         }
 
-        protected override BlobBuilder SerializeSection(string name, SectionLocation location)
-        {
-            switch (name)
+        protected override BlobBuilder SerializeSection(string name, SectionLocation location) =>
+            name switch
             {
-                case TextSectionName:
-                    return SerializeTextSection(location);
-
-                case ResourceSectionName:
-                    return SerializeResourceSection(location);
-
-                case RelocationSectionName:
-                    return SerializeRelocationSection(location);
-
-                default:
-                    throw new ArgumentException(SR.Format(SR.UnknownSectionName, name), nameof(name));
-            }
-        }
+                TextSectionName => SerializeTextSection(location),
+                ResourceSectionName => SerializeResourceSection(location),
+                RelocationSectionName => SerializeRelocationSection(location),
+                _ => throw new ArgumentException(SR.Format(SR.UnknownSectionName, name), nameof(name)),
+            };
 
         private BlobBuilder SerializeTextSection(SectionLocation location)
         {
@@ -190,7 +181,7 @@ namespace System.Reflection.PortableExecutable
             _peDirectoriesBuilder.ImportAddressTable = textSection.GetImportAddressTableDirectoryEntry(location.RelativeVirtualAddress);
             _peDirectoriesBuilder.ImportTable = textSection.GetImportTableDirectoryEntry(location.RelativeVirtualAddress);
             _peDirectoriesBuilder.CorHeaderTable = textSection.GetCorHeaderDirectoryEntry(location.RelativeVirtualAddress);
-            
+
             return sectionBuilder;
         }
 
@@ -221,7 +212,7 @@ namespace System.Reflection.PortableExecutable
             builder.WriteUInt32((((uint)entryPointAddress + 2) / 0x1000) * 0x1000);
             builder.WriteUInt32((machine == Machine.IA64) ? 14u : 12u);
             uint offsetWithinPage = ((uint)entryPointAddress + 2) % 0x1000;
-            uint relocType = (machine == Machine.Amd64 || machine == Machine.IA64) ? 10u : 3u;
+            uint relocType = (machine == Machine.Amd64 || machine == Machine.IA64 || machine == Machine.Arm64) ? 10u : 3u;
             ushort s = (ushort)((relocType << 12) | offsetWithinPage);
             builder.WriteUInt16(s);
             if (machine == Machine.IA64)

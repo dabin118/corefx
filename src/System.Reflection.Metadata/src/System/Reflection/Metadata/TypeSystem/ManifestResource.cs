@@ -6,7 +6,7 @@ using System.Diagnostics;
 
 namespace System.Reflection.Metadata
 {
-    public struct ManifestResource
+    public readonly struct ManifestResource
     {
         private readonly MetadataReader _reader;
 
@@ -65,8 +65,8 @@ namespace System.Reflection.Metadata
         /// </summary>
         /// <remarks>
         /// Corresponds to Implementation field of ManifestResource table in ECMA-335 Standard.
-        /// 
-        /// If nil then <see cref="Offset"/> is an offset in the PE image that contains the metadata, 
+        ///
+        /// If nil then <see cref="Offset"/> is an offset in the PE image that contains the metadata,
         /// starting from the Resource entry in the CLI header.
         /// </remarks>
         public EntityHandle Implementation

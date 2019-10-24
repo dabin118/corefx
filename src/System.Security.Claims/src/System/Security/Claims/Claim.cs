@@ -3,7 +3,6 @@
 // See the LICENSE file in the project root for more information.
 
 using System.Collections.Generic;
-using System.Diagnostics.Contracts;
 using System.IO;
 
 namespace System.Security.Claims
@@ -149,8 +148,8 @@ namespace System.Security.Claims
         /// <param name="value">The claim value.</param>
         /// <exception cref="ArgumentNullException"><paramref name="type"/> or <paramref name="value"/> is null.</exception>
         /// <remarks>
-        /// <see cref="Claim.Issuer"/> is set to <see cref="ClaimsIdentity.DefaultIssuer"/>,        
-        /// <see cref="Claim.ValueType"/> is set to <see cref="ClaimValueTypes.String"/>, 
+        /// <see cref="Claim.Issuer"/> is set to <see cref="ClaimsIdentity.DefaultIssuer"/>,
+        /// <see cref="Claim.ValueType"/> is set to <see cref="ClaimValueTypes.String"/>,
         /// <see cref="Claim.OriginalIssuer"/> is set to <see cref="ClaimsIdentity.DefaultIssuer"/>, and
         /// <see cref="Claim.Subject"/> is set to null.
         /// </remarks>
@@ -175,7 +174,7 @@ namespace System.Security.Claims
         /// and <see cref="Claim.Subject"/> is set to null.
         /// </remarks>
         /// <seealso cref="ClaimsIdentity"/>
-        /// <seealso cref="ClaimTypes"/>        
+        /// <seealso cref="ClaimTypes"/>
         /// <seealso cref="ClaimValueTypes"/>
         public Claim(string type, string value, string valueType)
             : this(type, value, valueType, ClaimsIdentity.DefaultIssuer, ClaimsIdentity.DefaultIssuer, (ClaimsIdentity)null)
@@ -251,7 +250,7 @@ namespace System.Security.Claims
         /// <param name="originalIssuer">The original issuer of this claim. If this parameter is empty or null, then originalIssuer == issuer.</param>
         /// <param name="subject">The subject that this claim describes.</param>
         /// <param name="propertyKey">This allows adding a property when adding a Claim.</param>
-        /// <param name="propertyValue">The value associcated with the property.</param>
+        /// <param name="propertyValue">The value associated with the property.</param>
         internal Claim(string type, string value, string valueType, string issuer, string originalIssuer, ClaimsIdentity subject, string propertyKey, string propertyValue)
         {
             if (type == null)
@@ -263,8 +262,6 @@ namespace System.Security.Claims
             {
                 throw new ArgumentNullException(nameof(value));
             }
-
-            Contract.EndContractBlock();
 
             _type = type;
             _value = value;
@@ -343,7 +340,7 @@ namespace System.Security.Claims
         /// Gets the original issuer of the <see cref="Claim"/>.
         /// </summary>
         /// <remarks>
-        /// When the <see cref="OriginalIssuer"/> differs from the <see cref="Issuer"/>, it means 
+        /// When the <see cref="OriginalIssuer"/> differs from the <see cref="Issuer"/>, it means
         /// that the claim was issued by the <see cref="OriginalIssuer"/> and was re-issued
         /// by the <see cref="Issuer"/>.
         /// </remarks>
@@ -352,7 +349,7 @@ namespace System.Security.Claims
             get { return _originalIssuer; }
         }
 
-        /// <summary>        
+        /// <summary>
         /// Gets the collection of Properties associated with the <see cref="Claim"/>.
         /// </summary>
         public IDictionary<string, string> Properties

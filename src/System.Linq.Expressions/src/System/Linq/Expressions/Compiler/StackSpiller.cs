@@ -57,7 +57,7 @@ namespace System.Linq.Expressions.Compiler
         /// <summary>
         /// Result of a rewrite operation. Always contains an action and a node.
         /// </summary>
-        private struct Result
+        private readonly struct Result
         {
             internal readonly RewriteAction Action;
             internal readonly Expression Node;
@@ -294,19 +294,14 @@ namespace System.Linq.Expressions.Compiler
         {
             var node = (BinaryExpression)expr;
 
-            switch (node.Left.NodeType)
+            return node.Left.NodeType switch
             {
-                case ExpressionType.Index:
-                    return RewriteIndexAssignment(node, stack);
-                case ExpressionType.MemberAccess:
-                    return RewriteMemberAssignment(node, stack);
-                case ExpressionType.Parameter:
-                    return RewriteVariableAssignment(node, stack);
-                case ExpressionType.Extension:
-                    return RewriteExtensionAssignment(node, stack);
-                default:
-                    throw Error.InvalidLvalue(node.Left.NodeType);
-            }
+                ExpressionType.Index => RewriteIndexAssignment(node, stack),
+                ExpressionType.MemberAccess => RewriteMemberAssignment(node, stack),
+                ExpressionType.Parameter => RewriteVariableAssignment(node, stack),
+                ExpressionType.Extension => RewriteExtensionAssignment(node, stack),
+                _ => throw Error.InvalidLvalue(node.Left.NodeType),
+            };
         }
 
         private Result RewriteExtensionAssignment(BinaryExpression node, Stack stack)
@@ -314,7 +309,7 @@ namespace System.Linq.Expressions.Compiler
             node = new AssignBinaryExpression(node.Left.ReduceExtensions(), node.Right);
 
             Result result = RewriteAssignBinaryExpression(node, stack);
-            
+
             // it's at least Copy because we reduced the node
             return new Result(result.Action | RewriteAction.Copy, result.Node);
         }
@@ -674,7 +669,6 @@ namespace System.Linq.Expressions.Compiler
                     bool isRefNew = IsRefInstance(node.NewExpression);
 
                     var comma = new ArrayBuilder<Expression>(count + 2 + (isRefNew ? 1 : 0));
-                    
                     ParameterExpression tempNew = MakeTemp(rewrittenNew.Type);
                     comma.UncheckedAdd(new AssignBinaryExpression(tempNew, rewrittenNew));
 

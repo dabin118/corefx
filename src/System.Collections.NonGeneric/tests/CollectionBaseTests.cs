@@ -40,7 +40,13 @@ namespace System.Collections.Tests
         public static void CtorCapacity_Invalid()
         {
             AssertExtensions.Throws<ArgumentOutOfRangeException>("capacity", () => new MyCollection(-1)); // Capacity < 0
+        }
+
+        [ConditionalFact(typeof(PlatformDetection), nameof(PlatformDetection.IsNotIntMaxValueArrayIndexSupported))]
+        public static void Capacity_Excessive ()
+        {
             Assert.Throws<OutOfMemoryException>(() => new MyCollection(int.MaxValue)); // Capacity is too large
+            Assert.Throws<OutOfMemoryException>(() => CreateCollection (100).Capacity = int.MaxValue); // Capacity is very large
         }
 
         private static Foo CreateValue(int i) => new Foo(i, i.ToString());
@@ -69,7 +75,7 @@ namespace System.Collections.Tests
             for (int i = 0; i < collBase.Count; i++)
             {
                 Foo value = CreateValue(i);
-                Assert.Equal(value, collBase[i]);               
+                Assert.Equal(value, collBase[i]);
             }
         }
 
@@ -293,8 +299,8 @@ namespace System.Collections.Tests
             // SyncRoot should be the reference to the underlying collection, not to MyCollection
             var collBase = new MyCollection();
             object syncRoot = collBase.SyncRoot;
-            Assert.NotEqual(syncRoot, collBase);
-            Assert.Equal(collBase.SyncRoot, collBase.SyncRoot);
+            Assert.NotNull(syncRoot);
+            Assert.Same(collBase.SyncRoot, collBase.SyncRoot);
         }
 
         [Fact]
@@ -330,7 +336,6 @@ namespace System.Collections.Tests
         {
             var collBase = new MyCollection(new string[10]);
             AssertExtensions.Throws<ArgumentOutOfRangeException>("value", () => collBase.Capacity = -1); // Capacity < 0
-            Assert.Throws<OutOfMemoryException>(() => collBase.Capacity = int.MaxValue); // Capacity is very large
 
             AssertExtensions.Throws<ArgumentOutOfRangeException>("value", () => collBase.Capacity = collBase.Count - 1); // Capacity < list.Count
         }
@@ -816,7 +821,7 @@ namespace System.Collections.Tests
                 IntValue = intValue;
                 StringValue = stringValue;
             }
-            
+
             public int IntValue { get; set; }
             public string StringValue { get; set; }
 

@@ -3,7 +3,9 @@
 // See the LICENSE file in the project root for more information.
 
 using System;
+using System.Collections.Generic;
 using System.Reflection;
+using System.Text;
 
 namespace OLEDB.Test.ModuleCore
 {
@@ -33,16 +35,16 @@ namespace OLEDB.Test.ModuleCore
         public CVariation(CTestCase testcase, string desc, string function)
             : base(function, desc)
         {
-            //Note: The parent automatically gets setup on AddVariation so we don't 
-            //really need to pass in the test case, left here for backward compatibility 
+            //Note: The parent automatically gets setup on AddVariation so we don't
+            //really need to pass in the test case, left here for backward compatibility
             //of inherited drivers.
         }
 
         public CVariation(CTestCase testcase, string desc, TestFunc function)
             : base(null, desc)
         {
-            //Note: The parent automatically gets setup on AddVariation so we don't 
-            //really need to pass in the test case, left here for backward compatibility 
+            //Note: The parent automatically gets setup on AddVariation so we don't
+            //really need to pass in the test case, left here for backward compatibility
             //of inherited drivers.
             _pfunc = function;
         }
@@ -75,7 +77,20 @@ namespace OLEDB.Test.ModuleCore
                 int ret = _pfunc();
                 return (tagVARIATION_STATUS)ret;
             }
+
             throw new Exception("test method is null in CVariation");
+        }
+
+        public override IEnumerable<XunitTestCase> TestCases()
+        {
+            var sb = new StringBuilder();
+
+            if (!string.IsNullOrWhiteSpace(Name))
+                sb.Append(Name);
+
+            sb.Append(Desc);
+
+            yield return new XunitTestCase(sb.ToString(), Execute);
         }
     }
 }

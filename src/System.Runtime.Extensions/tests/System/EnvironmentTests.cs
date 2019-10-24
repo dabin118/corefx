@@ -7,15 +7,17 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.DotNet.RemoteExecutor;
+using Microsoft.DotNet.XUnitExtensions;
 using Xunit;
-using Xunit.NetCore.Extensions;
 
 namespace System.Tests
 {
-    public class EnvironmentTests : RemoteExecutorTestBase
+    public class EnvironmentTests : FileCleanupTestBase
     {
         [Fact]
         public void CurrentDirectory_Null_Path_Throws_ArgumentNullException()
@@ -38,7 +40,7 @@ namespace System.Tests
         [Fact]
         public void CurrentDirectory_SetToValidOtherDirectory()
         {
-            RemoteInvoke(() =>
+            RemoteExecutor.Invoke(() =>
             {
                 Environment.CurrentDirectory = TestDirectory;
                 Assert.Equal(Directory.GetCurrentDirectory(), Environment.CurrentDirectory);
@@ -50,8 +52,6 @@ namespace System.Tests
                     // path that followed the symlink.
                     Assert.Equal(TestDirectory, Directory.GetCurrentDirectory());
                 }
-
-                return SuccessExitCode;
             }).Dispose();
         }
 
@@ -132,6 +132,28 @@ namespace System.Tests
             Assert.Contains(RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "Windows" : "Unix", versionString);
         }
 
+        // On Unix, we must parse the version from uname -r
+        [Theory]
+        [PlatformSpecific(TestPlatforms.AnyUnix)]
+        [InlineData("2.6.19-1.2895.fc6", 2, 6, 19, 1)]
+        [InlineData("xxx1yyy2zzz3aaa4bbb", 1, 2, 3, 4)]
+        [InlineData("2147483647.2147483647.2147483647.2147483647", int.MaxValue, int.MaxValue, int.MaxValue, int.MaxValue)]
+        [InlineData("0.0.0.0", 0, 0, 0, 0)]
+        [InlineData("-1.-1.-1.-1", 1, 1, 1, 1)]
+        [InlineData("nelknet 4.15.0-10000000000-generic", 4, 15, 0, int.MaxValue)] // integer overflow
+        [InlineData("nelknet 4.15.0-24201807041620-generic", 4, 15, 0, int.MaxValue)] // integer overflow
+        [InlineData("", 0, 0, 0, 0)]
+        [InlineData("1abc", 1, 0, 0, 0)]
+        public void OSVersion_ParseVersion(string input, int major, int minor, int build, int revision)
+        {
+            var getOSMethod = typeof(Environment).GetMethod("GetOperatingSystem", BindingFlags.Static | BindingFlags.NonPublic);
+
+            var expected = new Version(major, minor, build, revision);
+            var actual = ((OperatingSystem)getOSMethod.Invoke(null, new object[] { input })).Version;
+
+            Assert.Equal(expected, actual);
+        }
+
         [Fact]
         public void SystemPageSize_Valid()
         {
@@ -149,60 +171,103 @@ namespace System.Tests
         }
 
         [Fact]
-        public void UserName_Valid()
+        public void Version_Valid()
         {
-            Assert.False(string.IsNullOrWhiteSpace(Environment.UserName));
+            Assert.True(Environment.Version >= new Version(3, 0));
         }
 
         [Fact]
-        public void UserDomainName_Valid()
-        {
-            Assert.False(string.IsNullOrWhiteSpace(Environment.UserDomainName));
-        }
-
-        [Fact]
-        [PlatformSpecific(TestPlatforms.AnyUnix)]  // Tests OS-specific environment
-        public void UserDomainName_Unix_MatchesMachineName()
-        {
-            Assert.Equal(Environment.MachineName, Environment.UserDomainName);
-        }
-
-        [Fact]
-        public void Version_MatchesFixedVersion()
-        {
-            Assert.Equal(new Version(4, 0, 30319, 42000), Environment.Version);
-        }
-
-        [Fact]
-        [SkipOnTargetFramework(TargetFrameworkMonikers.Uap)] // Throws InvalidOperationException in Uap as NtQuerySystemInformation Pinvoke is not available
         public void WorkingSet_Valid()
         {
             Assert.True(Environment.WorkingSet > 0, "Expected positive WorkingSet value");
         }
 
-        [Fact]
-        [SkipOnTargetFramework(~TargetFrameworkMonikers.Uap)]
-        public void WorkingSet_Valid_Uap()
-        {
-            Assert.Throws<PlatformNotSupportedException>(() => Environment.WorkingSet);
-        }
-
         [Trait(XunitConstants.Category, XunitConstants.IgnoreForCI)] // fail fast crashes the process
         [OuterLoop]
         [Fact]
-        [ActiveIssue("https://github.com/dotnet/corefx/issues/21404", TargetFrameworkMonikers.Uap)]
         public void FailFast_ExpectFailureExitCode()
         {
-            using (Process p = RemoteInvoke(() => { Environment.FailFast("message"); return SuccessExitCode; }).Process)
+            using (RemoteInvokeHandle handle = RemoteExecutor.Invoke(() => Environment.FailFast("message")))
             {
+                Process p = handle.Process;
+                handle.Process = null;
                 p.WaitForExit();
-                Assert.NotEqual(SuccessExitCode, p.ExitCode);
+                Assert.NotEqual(RemoteExecutor.SuccessExitCode, p.ExitCode);
             }
 
-            using (Process p = RemoteInvoke(() => { Environment.FailFast("message", new Exception("uh oh")); return SuccessExitCode; }).Process)
+            using (RemoteInvokeHandle handle = RemoteExecutor.Invoke(() => Environment.FailFast("message", new Exception("uh oh"))))
             {
+                Process p = handle.Process;
+                handle.Process = null;
                 p.WaitForExit();
-                Assert.NotEqual(SuccessExitCode, p.ExitCode);
+                Assert.NotEqual(RemoteExecutor.SuccessExitCode, p.ExitCode);
+            }
+        }
+
+        [Trait(XunitConstants.Category, XunitConstants.IgnoreForCI)] // fail fast crashes the process
+        [Fact]
+        public void FailFast_ExceptionStackTrace_ArgumentException()
+        {
+            var psi = new ProcessStartInfo();
+            psi.RedirectStandardError = true;
+            psi.RedirectStandardOutput = true;
+
+            using (RemoteInvokeHandle handle = RemoteExecutor.Invoke(
+                () => Environment.FailFast("message", new ArgumentException("bad arg")),
+                new RemoteInvokeOptions { StartInfo = psi }))
+            {
+                Process p = handle.Process;
+                handle.Process = null;
+                p.WaitForExit();
+                string consoleOutput = p.StandardError.ReadToEnd();
+                Assert.Contains("ArgumentException:", consoleOutput);
+                Assert.Contains("bad arg", consoleOutput);
+            }
+        }
+
+        [Trait(XunitConstants.Category, XunitConstants.IgnoreForCI)] // fail fast crashes the process
+        [Fact]
+        public void FailFast_ExceptionStackTrace_StackOverflowException()
+        {
+            // Test using another type of exception
+            var psi = new ProcessStartInfo();
+            psi.RedirectStandardError = true;
+            psi.RedirectStandardOutput = true;
+
+            using (RemoteInvokeHandle handle = RemoteExecutor.Invoke(
+                () => Environment.FailFast("message", new StackOverflowException("SO exception")),
+                new RemoteInvokeOptions { StartInfo = psi }))
+            {
+                Process p = handle.Process;
+                handle.Process = null;
+                p.WaitForExit();
+                string consoleOutput = p.StandardError.ReadToEnd();
+                Assert.Contains("StackOverflowException", consoleOutput);
+                Assert.Contains("SO exception", consoleOutput);
+            }
+        }
+
+        [Trait(XunitConstants.Category, XunitConstants.IgnoreForCI)] // fail fast crashes the process
+        [Fact]
+        public void FailFast_ExceptionStackTrace_InnerException()
+        {
+            // Test if inner exception details are also logged
+            var psi = new ProcessStartInfo();
+            psi.RedirectStandardError = true;
+            psi.RedirectStandardOutput = true;
+
+            using (RemoteInvokeHandle handle = RemoteExecutor.Invoke(
+                () => Environment.FailFast("message", new ArgumentException("first exception", new NullReferenceException("inner exception"))),
+                new RemoteInvokeOptions { StartInfo = psi }))
+            {
+                Process p = handle.Process;
+                handle.Process = null;
+                p.WaitForExit();
+                string consoleOutput = p.StandardError.ReadToEnd();
+                Assert.Contains("first exception", consoleOutput);
+                Assert.Contains("inner exception", consoleOutput);
+                Assert.Contains("ArgumentException", consoleOutput);
+                Assert.Contains("NullReferenceException", consoleOutput);
             }
         }
 
@@ -213,6 +278,27 @@ namespace System.Tests
             Assert.Equal(Environment.GetEnvironmentVariable("HOME"), Environment.GetFolderPath(Environment.SpecialFolder.Personal));
             Assert.Equal(Environment.GetEnvironmentVariable("HOME"), Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments));
             Assert.Equal(Environment.GetEnvironmentVariable("HOME"), Environment.GetFolderPath(Environment.SpecialFolder.UserProfile));
+        }
+
+        [Theory]
+        [OuterLoop]
+        [PlatformSpecific(TestPlatforms.AnyUnix)]  // Tests OS-specific environment
+        [InlineData(Environment.SpecialFolder.ApplicationData)]
+        [InlineData(Environment.SpecialFolder.Desktop)]
+        [InlineData(Environment.SpecialFolder.DesktopDirectory)]
+        [InlineData(Environment.SpecialFolder.Fonts)]
+        [InlineData(Environment.SpecialFolder.MyMusic)]
+        [InlineData(Environment.SpecialFolder.MyPictures)]
+        [InlineData(Environment.SpecialFolder.MyVideos)]
+        [InlineData(Environment.SpecialFolder.Templates)]
+        public void GetFolderPath_Unix_SpecialFolderDoesNotExist_CreatesSuccessfully(Environment.SpecialFolder folder)
+        {
+            string path = Environment.GetFolderPath(folder, Environment.SpecialFolderOption.DoNotVerify);
+            if (Directory.Exists(path))
+                return;
+            path = Environment.GetFolderPath(folder, Environment.SpecialFolderOption.Create);
+            Assert.True(Directory.Exists(path));
+            Directory.Delete(path);
         }
 
         [Fact]
@@ -235,8 +321,7 @@ namespace System.Tests
         [Theory]
         [PlatformSpecific(TestPlatforms.AnyUnix)]  // Tests OS-specific environment
         [InlineData(Environment.SpecialFolder.UserProfile, Environment.SpecialFolderOption.None)]
-        [InlineData(Environment.SpecialFolder.Personal, Environment.SpecialFolderOption.None)]
-        [InlineData(Environment.SpecialFolder.MyDocuments, Environment.SpecialFolderOption.None)]
+        [InlineData(Environment.SpecialFolder.MyDocuments, Environment.SpecialFolderOption.None)] // MyDocuments == Personal
         [InlineData(Environment.SpecialFolder.CommonApplicationData, Environment.SpecialFolderOption.None)]
         [InlineData(Environment.SpecialFolder.CommonTemplates, Environment.SpecialFolderOption.DoNotVerify)]
         [InlineData(Environment.SpecialFolder.ApplicationData, Environment.SpecialFolderOption.DoNotVerify)]
@@ -274,9 +359,8 @@ namespace System.Tests
             }
         }
 
-        // Requires recent RS3 builds
-        [ConditionalTheory(typeof(PlatformDetection), nameof(PlatformDetection.IsWindows10Version16251OrGreater))]
-        [SkipOnTargetFramework(~(TargetFrameworkMonikers.Uap | TargetFrameworkMonikers.UapAot))]
+        // Requires recent RS3 builds and needs to run inside AppContainer
+        [ConditionalTheory(typeof(PlatformDetection), nameof(PlatformDetection.IsWindows10Version1709OrGreater), nameof(PlatformDetection.IsInAppContainer))]
         [InlineData(Environment.SpecialFolder.LocalApplicationData)]
         [InlineData(Environment.SpecialFolder.Cookies)]
         [InlineData(Environment.SpecialFolder.History)]
@@ -284,16 +368,15 @@ namespace System.Tests
         [InlineData(Environment.SpecialFolder.System)]
         [InlineData(Environment.SpecialFolder.SystemX86)]
         [InlineData(Environment.SpecialFolder.Windows)]
-        public void GetFolderPath_UapExistAndAccessible(Environment.SpecialFolder folder)
+        public void GetFolderPath_UWP_ExistAndAccessible(Environment.SpecialFolder folder)
         {
             string knownFolder = Environment.GetFolderPath(folder);
             Assert.NotEmpty(knownFolder);
             AssertDirectoryExists(knownFolder);
         }
 
-        // Requires recent RS3 builds
-        [ConditionalTheory(typeof(PlatformDetection), nameof(PlatformDetection.IsWindows10Version16251OrGreater))]
-        [SkipOnTargetFramework(~(TargetFrameworkMonikers.Uap | TargetFrameworkMonikers.UapAot))]
+        // Requires recent RS3 builds and needs to run inside AppContainer
+        [ConditionalTheory(typeof(PlatformDetection), nameof(PlatformDetection.IsWindows10Version1709OrGreater), nameof(PlatformDetection.IsInAppContainer))]
         [InlineData(Environment.SpecialFolder.ApplicationData)]
         [InlineData(Environment.SpecialFolder.MyMusic)]
         [InlineData(Environment.SpecialFolder.MyPictures)]
@@ -312,7 +395,7 @@ namespace System.Tests
         [InlineData(Environment.SpecialFolder.CommonApplicationData)]
         [InlineData(Environment.SpecialFolder.Desktop)]
         [InlineData(Environment.SpecialFolder.Favorites)]
-        public void GetFolderPath_UapNotEmpty(Environment.SpecialFolder folder)
+        public void GetFolderPath_UWP_NotEmpty(Environment.SpecialFolder folder)
         {
             // The majority of the paths here cannot be accessed from an appcontainer
             string knownFolder = Environment.GetFolderPath(folder);
@@ -354,13 +437,13 @@ namespace System.Tests
         [InlineData(Environment.SpecialFolder.StartMenu)]
         [InlineData(Environment.SpecialFolder.Startup)]
         [InlineData(Environment.SpecialFolder.System)]
-        [InlineData(Environment.SpecialFolder.Templates)]
+        //[InlineData(Environment.SpecialFolder.Templates)]
         [InlineData(Environment.SpecialFolder.DesktopDirectory)]
         [InlineData(Environment.SpecialFolder.Personal)]
         [InlineData(Environment.SpecialFolder.ProgramFiles)]
         [InlineData(Environment.SpecialFolder.CommonProgramFiles)]
         [InlineData(Environment.SpecialFolder.AdminTools)]
-        [InlineData(Environment.SpecialFolder.CDBurning)]
+        //[InlineData(Environment.SpecialFolder.CDBurning)]  // Not available on Server Core
         [InlineData(Environment.SpecialFolder.CommonAdminTools)]
         [InlineData(Environment.SpecialFolder.CommonDocuments)]
         [InlineData(Environment.SpecialFolder.CommonMusic)]
@@ -373,7 +456,7 @@ namespace System.Tests
         [InlineData(Environment.SpecialFolder.CommonTemplates)]
         [InlineData(Environment.SpecialFolder.CommonVideos)]
         [InlineData(Environment.SpecialFolder.Fonts)]
-        [InlineData(Environment.SpecialFolder.NetworkShortcuts)]
+        //[InlineData(Environment.SpecialFolder.NetworkShortcuts)]
         // [InlineData(Environment.SpecialFolder.PrinterShortcuts)]
         [InlineData(Environment.SpecialFolder.UserProfile)]
         [InlineData(Environment.SpecialFolder.CommonProgramFilesX86)]
@@ -383,7 +466,6 @@ namespace System.Tests
         [InlineData(Environment.SpecialFolder.SystemX86)]
         [InlineData(Environment.SpecialFolder.Windows)]
         [PlatformSpecific(TestPlatforms.Windows)]  // Tests OS-specific environment
-        [SkipOnTargetFramework(TargetFrameworkMonikers.Uap | TargetFrameworkMonikers.UapAot)] // Don't run on UAP
         public unsafe void GetFolderPath_Windows(Environment.SpecialFolder folder)
         {
             string knownFolder = Environment.GetFolderPath(folder);

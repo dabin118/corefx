@@ -1,9 +1,9 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
 using System.Collections.Generic;
-using System.IO;
+using System.Collections.Immutable;
 using System.Reflection.Metadata;
 
 namespace System.Reflection.PortableExecutable
@@ -23,11 +23,11 @@ namespace System.Reflection.PortableExecutable
 
         public DebugDirectoryBuilder()
         {
-            _entries = new List<Entry>(2);
+            _entries = new List<Entry>(3);
             _dataBuilder = new BlobBuilder();
         }
 
-        internal void AddEntry(DebugDirectoryEntryType type, uint version, uint stamp, int dataSize = 0)
+        internal void AddEntry(DebugDirectoryEntryType type, uint version, uint stamp, int dataSize)
         {
             _entries.Add(new Entry()
             {
@@ -36,6 +36,38 @@ namespace System.Reflection.PortableExecutable
                 Type = type,
                 DataSize = dataSize,
             });
+        }
+
+        /// <summary>
+        /// Adds an entry.
+        /// </summary>
+        /// <param name="type">Entry type.</param>
+        /// <param name="version">Entry version.</param>
+        /// <param name="stamp">Entry stamp.</param>
+        public void AddEntry(DebugDirectoryEntryType type, uint version, uint stamp)
+            => AddEntry(type, version, stamp, dataSize: 0);
+
+        /// <summary>
+        /// Adds an entry.
+        /// </summary>
+        /// <typeparam name="TData">Type of data passed to <paramref name="dataSerializer"/>.</typeparam>
+        /// <param name="type">Entry type.</param>
+        /// <param name="version">Entry version.</param>
+        /// <param name="stamp">Entry stamp.</param>
+        /// <param name="data">Data passed to <paramref name="dataSerializer"/>.</param>
+        /// <param name="dataSerializer">Serializes data to a <see cref="BlobBuilder"/>.</param>
+        public void AddEntry<TData>(DebugDirectoryEntryType type, uint version, uint stamp, TData data, Action<BlobBuilder, TData> dataSerializer)
+        {
+            if (dataSerializer == null)
+            {
+                Throw.ArgumentNull(nameof(dataSerializer));
+            }
+
+            int start = _dataBuilder.Count;
+            dataSerializer(_dataBuilder, data);
+            int dataSize = _dataBuilder.Count - start;
+
+            AddEntry(type, version, stamp, dataSize);
         }
 
         /// <summary>
@@ -94,21 +126,19 @@ namespace System.Reflection.PortableExecutable
             }
 
             int dataSize = WriteCodeViewData(_dataBuilder, pdbPath, pdbContentId.Guid, age);
-            
+
             AddEntry(
                 type: DebugDirectoryEntryType.CodeView,
                 version: (portablePdbVersion == 0) ? 0 : PortablePdbVersions.DebugDirectoryEntryVersion(portablePdbVersion),
                 stamp: pdbContentId.Stamp,
-                dataSize: dataSize);
+                dataSize);
         }
 
         /// <summary>
         /// Adds Reproducible entry.
         /// </summary>
         public void AddReproducibleEntry()
-        {
-            AddEntry(type: DebugDirectoryEntryType.Reproducible, version: 0, stamp: 0);
-        }
+            => AddEntry(type: DebugDirectoryEntryType.Reproducible, version: 0, stamp: 0);
 
         private static int WriteCodeViewData(BlobBuilder builder, string pdbPath, Guid pdbGuid, int age)
         {
@@ -126,15 +156,66 @@ namespace System.Reflection.PortableExecutable
             builder.WriteInt32(age);
 
             // UTF-8 encoded zero-terminated path to PDB
-            int pathStart = builder.Count;
             builder.WriteUTF8(pdbPath, allowUnpairedSurrogates: true);
             builder.WriteByte(0);
 
             return builder.Count - start;
         }
 
+        /// <summary>
+        /// Adds PDB checksum entry.
+        /// </summary>
+        /// <param name="algorithmName">Hash algorithm name (e.g. "SHA256").</param>
+        /// <param name="checksum">Checksum.</param>
+        /// <exception cref="ArgumentNullException"><paramref name="algorithmName"/> or <paramref name="checksum"/> is null.</exception>
+        /// <exception cref="ArgumentException"><paramref name="algorithmName"/> or <paramref name="checksum"/> is empty.</exception>
+        public void AddPdbChecksumEntry(string algorithmName, ImmutableArray<byte> checksum)
+        {
+            if (algorithmName == null)
+            {
+                Throw.ArgumentNull(nameof(algorithmName));
+            }
+
+            if (algorithmName.Length == 0)
+            {
+                Throw.ArgumentEmptyString(nameof(algorithmName));
+            }
+
+            if (checksum.IsDefault)
+            {
+                Throw.ArgumentNull(nameof(checksum));
+            }
+
+            if (checksum.Length == 0)
+            {
+                Throw.ArgumentEmptyArray(nameof(checksum));
+            }
+
+            int dataSize = WritePdbChecksumData(_dataBuilder, algorithmName, checksum);
+
+            AddEntry(
+                type: DebugDirectoryEntryType.PdbChecksum,
+                version: 0x00000001,
+                stamp: 0x00000000,
+                dataSize);
+        }
+
+        private static int WritePdbChecksumData(BlobBuilder builder, string algorithmName, ImmutableArray<byte> checksum)
+        {
+            int start = builder.Count;
+
+            // NUL-terminated algorithm name:
+            builder.WriteUTF8(algorithmName, allowUnpairedSurrogates: true);
+            builder.WriteByte(0);
+
+            // checksum:
+            builder.WriteBytes(checksum);
+
+            return builder.Count - start;
+        }
+
         internal int TableSize => DebugDirectoryEntry.Size * _entries.Count;
-        internal int Size => TableSize + _dataBuilder?.Count ?? 0; 
+        internal int Size => TableSize + _dataBuilder?.Count ?? 0;
 
         /// <summary>
         /// Serialize the Debug Table and Data.

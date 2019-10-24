@@ -27,8 +27,10 @@ namespace Legacy.Support
         private readonly bool _shouldWait;
         private readonly AutoResetEvent _eventHandlerWait = new AutoResetEvent(false);
         private readonly object _lock = new object();
+        private bool _successfulWait;
 
         public int NumEventsHandled { get; private set; }
+        public bool SuccessfulWait => !_shouldWait || _successfulWait;
 
         /// <summary>
         /// If you set this filter, then it must return 'true' to record an event
@@ -78,7 +80,7 @@ namespace Legacy.Support
 
             if (_shouldWait)
             {
-                Assert.True(_eventHandlerWait.WaitOne(10000));
+                _successfulWait = _eventHandlerWait.WaitOne(10000);
             }
         }
 
@@ -127,9 +129,9 @@ namespace Legacy.Support
             }
         }
 
-        // Since we can not guarantee the order or the exact time that the event handler is called 
-        // We will look for an event that was fired that matches the type and that bytesToRead 
-        // is greater then the parameter    
+        // Since we can not guarantee the order or the exact time that the event handler is called
+        // We will look for an event that was fired that matches the type and that bytesToRead
+        // is greater then the parameter
         public void Validate(T eventType, int bytesToRead)
         {
             lock (_lock)
@@ -144,7 +146,7 @@ namespace Legacy.Support
                     }
                 }
             }
-            Assert.True(false, $"Failed to validate event type {eventType}");
+            Assert.True(false, $"Failed to validate event type {eventType}. Received: {string.Join(", ", _eventTypes)}");
         }
 
         public int NumberOfOccurrencesOfType(T eventType)

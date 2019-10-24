@@ -25,15 +25,12 @@ namespace System.Runtime.Versioning
         private const ResourceScope ResTypeMask = ResourceScope.Machine | ResourceScope.Process | ResourceScope.AppDomain | ResourceScope.Library;
         private const ResourceScope VisibilityMask = ResourceScope.Private | ResourceScope.Assembly;
 
-        public static string MakeVersionSafeName(String name, ResourceScope from, ResourceScope to)
+        public static string MakeVersionSafeName(string? name, ResourceScope from, ResourceScope to)
         {
-            return MakeVersionSafeName(name, from, to, null);
+            return MakeVersionSafeName(name, from, to, type: null);
         }
 
-        [System.Security.SecuritySafeCritical]  // auto-generated
-        [ResourceExposure(ResourceScope.None)]
-        [ResourceConsumption(ResourceScope.Process, ResourceScope.Process)]
-        public static string MakeVersionSafeName(String name, ResourceScope from, ResourceScope to, Type type)
+        public static string MakeVersionSafeName(string? name, ResourceScope from, ResourceScope to, Type? type)
         {
             ResourceScope fromResType = from & ResTypeMask;
             ResourceScope toResType = to & ResTypeMask;
@@ -63,7 +60,8 @@ namespace System.Runtime.Versioning
                 safeName.Append('r');
                 safeName.Append(clrID);
             }
-            if ((requires & SxSRequirements.AppDomainID) != 0) {
+            if ((requires & SxSRequirements.AppDomainID) != 0)
+            {
                 safeName.Append(separator);
                 safeName.Append("ad");
                 safeName.Append(AppDomain.CurrentDomain.Id);
@@ -71,20 +69,20 @@ namespace System.Runtime.Versioning
             if ((requires & SxSRequirements.TypeName) != 0)
             {
                 safeName.Append(separator);
-                safeName.Append(type.Name);
+                safeName.Append(type!.Name);
             }
             if ((requires & SxSRequirements.AssemblyName) != 0)
             {
                 safeName.Append(separator);
-                safeName.Append(type.Assembly.FullName);
+                safeName.Append(type!.Assembly.FullName);
             }
             return safeName.ToString();
         }
 
         private static string GetCLRInstanceString()
         {
-            // We are going to hardcode the value here to 3 (a random number) so that we don't have to 
-            // actually call GetRuntimeId() which is an ecall method and cannot be 
+            // We are going to hardcode the value here to 3 (a random number) so that we don't have to
+            // actually call GetRuntimeId() which is an ecall method and cannot be
             // directly called from outside of the corelib.
             // In CoreCLR, GetRuntimeId() gets the TLS index for the thread and adds 3 to that number.
             int id = 3;

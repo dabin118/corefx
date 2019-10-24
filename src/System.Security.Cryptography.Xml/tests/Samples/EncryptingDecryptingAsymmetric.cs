@@ -71,17 +71,23 @@ namespace System.Security.Cryptography.Xml.Tests
             }
         }
 
-        public static void Decrypt(XmlDocument doc, RSA rsaKey, string keyName)
+        private static void Decrypt(XmlDocument doc, RSA rsaKey, string keyName)
         {
             var encrypted = new EncryptedXml(doc);
             encrypted.AddKeyNameMapping(keyName, rsaKey);
             encrypted.DecryptDocument();
         }
 
-        [Theory]
-        [InlineData(true)] // OAEP is recommended
-        [InlineData(false)]
-        public void AsymmetricEncryptionRoundtrip(bool useOAEP)
+        [Fact]
+        public void AsymmetricEncryptionRoundtripUseOAEP() =>
+            AsymmetricEncryptionRoundtrip(useOAEP: true); // OAEP is recommended
+
+        [ActiveIssue(40759, TestPlatforms.Windows)]
+        [Fact]
+        public void AsymmetricEncryptionRoundtrip() =>
+            AsymmetricEncryptionRoundtrip(useOAEP: false);
+
+        private void AsymmetricEncryptionRoundtrip(bool useOAEP)
         {
             const string testString = "some text node";
             const string exampleXmlRootElement = "example";

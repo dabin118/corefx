@@ -8,15 +8,13 @@ using System.Runtime.InteropServices;
 
 namespace Microsoft.Win32.SafeHandles
 {
-    [SecurityCritical]
     internal sealed class SafeEvpCipherCtxHandle : SafeHandle
     {
-        private SafeEvpCipherCtxHandle() : 
+        private SafeEvpCipherCtxHandle() :
             base(IntPtr.Zero, ownsHandle: true)
         {
         }
 
-        [SecurityCritical]
         protected override bool ReleaseHandle()
         {
             Interop.Crypto.EvpCipherDestroy(handle);
@@ -26,7 +24,6 @@ namespace Microsoft.Win32.SafeHandles
 
         public override bool IsInvalid
         {
-            [SecurityCritical]
             get { return handle == IntPtr.Zero; }
         }
     }

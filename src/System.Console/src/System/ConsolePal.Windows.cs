@@ -2,53 +2,54 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using System.IO;
 using System.Diagnostics;
-using System.Diagnostics.Contracts;
+using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
-using System.Threading;
 
 namespace System
 {
     // Provides Windows-based support for System.Console.
     internal static class ConsolePal
     {
-        private const int DefaultConsoleBufferSize = 256; // default size of buffer used in stream readers/writers
+        private static IntPtr InvalidHandleValue => new IntPtr(-1);
 
-        private static IntPtr s_InvalidHandleValue = new IntPtr(-1);
-
-        public static Stream OpenStandardInput()
+        private static bool IsWindows7()
         {
-            return GetStandardFile(Interop.Kernel32.HandleTypes.STD_INPUT_HANDLE, FileAccess.Read);
+            // Version lies for all apps from the OS kick in starting with Windows 8 (6.2). They can
+            // also be added via appcompat (by the OS or the users) so this can only be used as a hint.
+            Version version = Environment.OSVersion.Version;
+            return version.Major == 6 && version.Minor == 1;
         }
 
-        public static Stream OpenStandardOutput()
-        {
-            return GetStandardFile(Interop.Kernel32.HandleTypes.STD_OUTPUT_HANDLE, FileAccess.Write);
-        }
+        public static Stream OpenStandardInput() =>
+            GetStandardFile(
+                Interop.Kernel32.HandleTypes.STD_INPUT_HANDLE,
+                FileAccess.Read,
+                useFileAPIs: Console.InputEncoding.CodePage != Encoding.Unicode.CodePage || Console.IsInputRedirected);
 
-        public static Stream OpenStandardError()
-        {
-            return GetStandardFile(Interop.Kernel32.HandleTypes.STD_ERROR_HANDLE, FileAccess.Write);
-        }
+        public static Stream OpenStandardOutput() =>
+            GetStandardFile(
+                Interop.Kernel32.HandleTypes.STD_OUTPUT_HANDLE,
+                FileAccess.Write,
+                useFileAPIs: Console.OutputEncoding.CodePage != Encoding.Unicode.CodePage || Console.IsOutputRedirected);
 
-        private static IntPtr InputHandle
-        {
-            get { return Interop.Kernel32.GetStdHandle(Interop.Kernel32.HandleTypes.STD_INPUT_HANDLE); }
-        }
+        public static Stream OpenStandardError() =>
+            GetStandardFile(
+                Interop.Kernel32.HandleTypes.STD_ERROR_HANDLE,
+                FileAccess.Write,
+                useFileAPIs: Console.OutputEncoding.CodePage != Encoding.Unicode.CodePage || Console.IsErrorRedirected);
 
-        private static IntPtr OutputHandle
-        {
-            get { return Interop.Kernel32.GetStdHandle(Interop.Kernel32.HandleTypes.STD_OUTPUT_HANDLE); }
-        }
+        private static IntPtr InputHandle =>
+            Interop.Kernel32.GetStdHandle(Interop.Kernel32.HandleTypes.STD_INPUT_HANDLE);
 
-        private static IntPtr ErrorHandle
-        {
-            get { return Interop.Kernel32.GetStdHandle(Interop.Kernel32.HandleTypes.STD_ERROR_HANDLE); }
-        }
+        private static IntPtr OutputHandle =>
+            Interop.Kernel32.GetStdHandle(Interop.Kernel32.HandleTypes.STD_OUTPUT_HANDLE);
 
-        private static Stream GetStandardFile(int handleType, FileAccess access)
+        private static IntPtr ErrorHandle =>
+            Interop.Kernel32.GetStdHandle(Interop.Kernel32.HandleTypes.STD_ERROR_HANDLE);
+
+        private static Stream GetStandardFile(int handleType, FileAccess access, bool useFileAPIs)
         {
             IntPtr handle = Interop.Kernel32.GetStdHandle(handleType);
 
@@ -56,30 +57,31 @@ namespace System
             // stderr, & stdin could independently be set to INVALID_HANDLE_VALUE.
             // Additionally they might use 0 as an invalid handle.  We also need to
             // ensure that if the handle is meant to be writable it actually is.
-            if (handle == IntPtr.Zero || handle == s_InvalidHandleValue ||
+            if (handle == IntPtr.Zero ||
+                handle == InvalidHandleValue ||
                 (access != FileAccess.Read && !ConsoleHandleIsWritable(handle)))
             {
                 return Stream.Null;
             }
 
-            return new WindowsConsoleStream(handle, access, GetUseFileAPIs(handleType));
+            return new WindowsConsoleStream(handle, access, useFileAPIs);
         }
 
         // Checks whether stdout or stderr are writable.  Do NOT pass
-        // stdin here! The console handles are set to values like 3, 7, 
+        // stdin here! The console handles are set to values like 3, 7,
         // and 11 OR if you've been created via CreateProcess, possibly -1
         // or 0.  -1 is definitely invalid, while 0 is probably invalid.
         // Also note each handle can independently be invalid or good.
-        // For Windows apps, the console handles are set to values like 3, 7, 
+        // For Windows apps, the console handles are set to values like 3, 7,
         // and 11 but are invalid handles - you may not write to them.  However,
         // you can still spawn a Windows app via CreateProcess and read stdout
         // and stderr. So, we always need to check each handle independently for validity
         // by trying to write or read to it, unless it is -1.
         private static unsafe bool ConsoleHandleIsWritable(IntPtr outErrHandle)
         {
-            // Windows apps may have non-null valid looking handle values for 
-            // stdin, stdout and stderr, but they may not be readable or 
-            // writable.  Verify this by calling WriteFile in the 
+            // Windows apps may have non-null valid looking handle values for
+            // stdin, stdout and stderr, but they may not be readable or
+            // writable.  Verify this by calling WriteFile in the
             // appropriate modes. This must handle console-less Windows apps.
             int bytesWritten;
             byte junkByte = 0x41;
@@ -112,26 +114,6 @@ namespace System
             {
                 if (!Interop.Kernel32.SetConsoleOutputCP(enc.CodePage))
                     throw Win32Marshal.GetExceptionForWin32Error(Marshal.GetLastWin32Error());
-            }
-        }
-
-        private static bool GetUseFileAPIs(int handleType)
-        {
-            switch (handleType)
-            {
-                case Interop.Kernel32.HandleTypes.STD_INPUT_HANDLE:
-                    return Console.InputEncoding.CodePage != Encoding.Unicode.CodePage || Console.IsInputRedirected;
-
-                case Interop.Kernel32.HandleTypes.STD_OUTPUT_HANDLE:
-                    return Console.OutputEncoding.CodePage != Encoding.Unicode.CodePage || Console.IsOutputRedirected;
-
-                case Interop.Kernel32.HandleTypes.STD_ERROR_HANDLE:
-                    return Console.OutputEncoding.CodePage != Encoding.Unicode.CodePage || Console.IsErrorRedirected;
-
-                default:
-                    // This can never happen.
-                    Debug.Assert(false, "Unexpected handleType value (" + handleType + ")");
-                    return true;
             }
         }
 
@@ -173,26 +155,26 @@ namespace System
                     stream: inputStream,
                     encoding: new ConsoleEncoding(Console.InputEncoding),
                     detectEncodingFromByteOrderMarks: false,
-                    bufferSize: DefaultConsoleBufferSize,
+                    bufferSize: Console.ReadBufferSize,
                     leaveOpen: true));
         }
 
         // Use this for blocking in Console.ReadKey, which needs to protect itself in case multiple threads call it simultaneously.
         // Use a ReadKey-specific lock though, to allow other fields to be initialized on this type.
-        private static readonly Object s_readKeySyncObject = new object();
+        private static readonly object s_readKeySyncObject = new object();
 
         // ReadLine & Read can't use this because they need to use ReadFile
         // to be able to handle redirected input.  We have to accept that
         // we will lose repeated keystrokes when someone switches from
-        // calling ReadKey to calling Read or ReadLine.  Those methods should 
+        // calling ReadKey to calling Read or ReadLine.  Those methods should
         // ideally flush this cache as well.
         private static Interop.InputRecord _cachedInputRecord;
 
-        // Skip non key events. Generally we want to surface only KeyDown event 
+        // Skip non key events. Generally we want to surface only KeyDown event
         // and suppress KeyUp event from the same Key press but there are cases
-        // where the assumption of KeyDown-KeyUp pairing for a given key press 
+        // where the assumption of KeyDown-KeyUp pairing for a given key press
         // is invalid. For example in IME Unicode keyboard input, we often see
-        // only KeyUp until the key is released.  
+        // only KeyUp until the key is released.
         private static bool IsKeyDownEvent(Interop.InputRecord ir)
         {
             return (ir.eventType == Interop.KEY_EVENT && ir.keyEvent.keyDown != Interop.BOOL.FALSE);
@@ -201,7 +183,7 @@ namespace System
         private static bool IsModKey(Interop.InputRecord ir)
         {
             // We should also skip over Shift, Control, and Alt, as well as caps lock.
-            // Apparently we don't need to check for 0xA0 through 0xA5, which are keys like 
+            // Apparently we don't need to check for 0xA0 through 0xA5, which are keys like
             // Left Control & Right Control. See the ConsoleKey enum for these values.
             short keyCode = ir.keyEvent.virtualKeyCode;
             return ((keyCode >= 0x10 && keyCode <= 0x12)
@@ -222,11 +204,11 @@ namespace System
             EnhancedKey = 0x0100
         }
 
-        // For tracking Alt+NumPad unicode key sequence. When you press Alt key down 
+        // For tracking Alt+NumPad unicode key sequence. When you press Alt key down
         // and press a numpad unicode decimal sequence and then release Alt key, the
-        // desired effect is to translate the sequence into one Unicode KeyPress. 
+        // desired effect is to translate the sequence into one Unicode KeyPress.
         // We need to keep track of the Alt+NumPad sequence and surface the final
-        // unicode char alone when the Alt key is released. 
+        // unicode char alone when the Alt key is released.
         private static bool IsAltKeyDown(Interop.InputRecord ir)
         {
             return (((ControlKeyState)ir.keyEvent.controlKeyState)
@@ -345,8 +327,8 @@ namespace System
                         r = Interop.Kernel32.ReadConsoleInput(InputHandle, out ir, 1, out numEventsRead);
                         if (!r || numEventsRead == 0)
                         {
-                            // This will fail when stdin is redirected from a file or pipe. 
-                            // We could theoretically call Console.Read here, but I 
+                            // This will fail when stdin is redirected from a file or pipe.
+                            // We could theoretically call Console.Read here, but I
                             // think we might do some things incorrectly then.
                             throw new InvalidOperationException(SR.InvalidOperation_ConsoleReadKeyOnFile);
                         }
@@ -354,9 +336,9 @@ namespace System
                         short keyCode = ir.keyEvent.virtualKeyCode;
 
                         // First check for non-keyboard events & discard them. Generally we tap into only KeyDown events and ignore the KeyUp events
-                        // but it is possible that we are dealing with a Alt+NumPad unicode key sequence, the final unicode char is revealed only when 
-                        // the Alt key is released (i.e when the sequence is complete). To avoid noise, when the Alt key is down, we should eat up 
-                        // any intermediate key strokes (from NumPad) that collectively forms the Unicode character.  
+                        // but it is possible that we are dealing with a Alt+NumPad unicode key sequence, the final unicode char is revealed only when
+                        // the Alt key is released (i.e when the sequence is complete). To avoid noise, when the Alt key is down, we should eat up
+                        // any intermediate key strokes (from NumPad) that collectively forms the Unicode character.
 
                         if (!IsKeyDownEvent(ir))
                         {
@@ -367,10 +349,10 @@ namespace System
 
                         char ch = (char)ir.keyEvent.uChar;
 
-                        // In a Alt+NumPad unicode sequence, when the alt key is released uChar will represent the final unicode character, we need to 
-                        // surface this. VirtualKeyCode for this event will be Alt from the Alt-Up key event. This is probably not the right code, 
-                        // especially when we don't expose ConsoleKey.Alt, so this will end up being the hex value (0x12). VK_PACKET comes very 
-                        // close to being useful and something that we could look into using for this purpose... 
+                        // In a Alt+NumPad unicode sequence, when the alt key is released uChar will represent the final unicode character, we need to
+                        // surface this. VirtualKeyCode for this event will be Alt from the Alt-Up key event. This is probably not the right code,
+                        // especially when we don't expose ConsoleKey.Alt, so this will end up being the hex value (0x12). VK_PACKET comes very
+                        // close to being useful and something that we could look into using for this purpose...
 
                         if (ch == 0)
                         {
@@ -416,7 +398,7 @@ namespace System
             get
             {
                 IntPtr handle = InputHandle;
-                if (handle == s_InvalidHandleValue)
+                if (handle == InvalidHandleValue)
                     throw new IOException(SR.IO_NoConsole);
 
                 int mode = 0;
@@ -428,7 +410,7 @@ namespace System
             set
             {
                 IntPtr handle = InputHandle;
-                if (handle == s_InvalidHandleValue)
+                if (handle == InvalidHandleValue)
                     throw new IOException(SR.IO_NoConsole);
 
                 int mode = 0;
@@ -550,7 +532,6 @@ namespace System
                 // Value should be a percentage from [1, 100].
                 if (value < 1 || value > 100)
                     throw new ArgumentOutOfRangeException(nameof(value), value, SR.ArgumentOutOfRange_CursorSize);
-                Contract.EndContractBlock();
 
                 Interop.Kernel32.CONSOLE_CURSOR_INFO cci;
                 if (!Interop.Kernel32.GetConsoleCursorInfo(OutputHandle, out cci))
@@ -602,31 +583,61 @@ namespace System
             }
         }
 
-        // Although msdn states that the max allowed limit is 65K,
-        // desktop limits this to 24500 as buffer sizes greater than it
-        // throw.
-        private const int MaxConsoleTitleLength = 24500;
-
-        public static string Title
+        public static unsafe string Title
         {
             get
             {
-                string title = null;
-                int titleLength = -1;
-                int r = Interop.Kernel32.GetConsoleTitle(out title, out titleLength);
+                Span<char> initialBuffer = stackalloc char[256];
+                ValueStringBuilder builder = new ValueStringBuilder(initialBuffer);
 
-                if (0 != r)
+                while (true)
                 {
-                    throw Win32Marshal.GetExceptionForWin32Error(r, string.Empty);
+                    uint result = Interop.Errors.ERROR_SUCCESS;
+
+                    fixed (char* c = &builder.GetPinnableReference())
+                    {
+                        result = Interop.Kernel32.GetConsoleTitleW(c, (uint)builder.Capacity);
+                    }
+
+                    // The documentation asserts that the console's title is stored in a shared 64KB buffer.
+                    // The magic number that used to exist here (24500) is likely related to that.
+                    // A full UNICODE_STRING is 32K chars...
+                    Debug.Assert(result <= short.MaxValue, "shouldn't be possible to grow beyond UNICODE_STRING size");
+
+                    if (result == 0)
+                    {
+                        int error = Marshal.GetLastWin32Error();
+                        switch (error)
+                        {
+                            case Interop.Errors.ERROR_INSUFFICIENT_BUFFER:
+                                // Typically this API truncates but there was a bug in RS2 so we'll make an attempt to handle
+                                builder.EnsureCapacity(builder.Capacity * 2);
+                                continue;
+                            case Interop.Errors.ERROR_SUCCESS:
+                                // The title is empty.
+                                break;
+                            default:
+                                throw Win32Marshal.GetExceptionForWin32Error(error, string.Empty);
+                        }
+                    }
+                    else if (result >= builder.Capacity - 1 || (IsWindows7() && result >= builder.Capacity / sizeof(char) - 1))
+                    {
+                        // Our buffer was full. As this API truncates we need to increase our size and reattempt.
+                        // Note that Windows 7 copies count of bytes into the output buffer but returns count of chars
+                        // and as such our buffer is only "half" its actual size.
+                        //
+                        // (If we're Windows 10 with a version lie to 7 this will be inefficient so we'll want to remove
+                        //  this workaround when we no longer support Windows 7)
+                        builder.EnsureCapacity(builder.Capacity * 2);
+                        continue;
+                    }
+
+                    builder.Length = (int)result;
+                    break;
                 }
 
-                if (titleLength > MaxConsoleTitleLength)
-                    throw new InvalidOperationException(SR.ArgumentOutOfRange_ConsoleTitleTooLong);
-
-                Debug.Assert(title.Length == titleLength);
-                return title;
+                return builder.ToString();
             }
-
             set
             {
                 if (!Interop.Kernel32.SetConsoleTitle(value))
@@ -634,25 +645,23 @@ namespace System
             }
         }
 
-        private const int BeepFrequencyInHz = 800;
-        private const int BeepDurationInMs = 200;
-
         public static void Beep()
         {
+            const int BeepFrequencyInHz = 800;
+            const int BeepDurationInMs = 200;
             Interop.Kernel32.Beep(BeepFrequencyInHz, BeepDurationInMs);
         }
 
-        private const int MinBeepFrequency = 37;
-        private const int MaxBeepFrequency = 32767;
-
         public static void Beep(int frequency, int duration)
         {
+            const int MinBeepFrequency = 37;
+            const int MaxBeepFrequency = 32767;
+
             if (frequency < MinBeepFrequency || frequency > MaxBeepFrequency)
                 throw new ArgumentOutOfRangeException(nameof(frequency), frequency, SR.Format(SR.ArgumentOutOfRange_BeepFrequency, MinBeepFrequency, MaxBeepFrequency));
             if (duration <= 0)
                 throw new ArgumentOutOfRangeException(nameof(duration), duration, SR.ArgumentOutOfRange_NeedPosNum);
 
-            Contract.EndContractBlock();
             Interop.Kernel32.Beep(frequency, duration);
         }
 
@@ -665,7 +674,6 @@ namespace System
                 throw new ArgumentException(SR.Arg_InvalidConsoleColor, nameof(sourceForeColor));
             if (sourceBackColor < ConsoleColor.Black || sourceBackColor > ConsoleColor.White)
                 throw new ArgumentException(SR.Arg_InvalidConsoleColor, nameof(sourceBackColor));
-            Contract.EndContractBlock();
 
             Interop.Kernel32.CONSOLE_SCREEN_BUFFER_INFO csbi = GetBufferInfo();
             Interop.Kernel32.COORD bufferSize = csbi.dwSize;
@@ -750,7 +758,7 @@ namespace System
             int conSize;
 
             IntPtr hConsole = OutputHandle;
-            if (hConsole == s_InvalidHandleValue)
+            if (hConsole == InvalidHandleValue)
                 throw new IOException(SR.IO_NoConsole);
 
             // get the number of character cells in the current buffer
@@ -851,7 +859,7 @@ namespace System
         {
             get
             {
-                // Note this varies based on current screen resolution and 
+                // Note this varies based on current screen resolution and
                 // current console font.  Do not cache this value.
                 Interop.Kernel32.COORD bounds = Interop.Kernel32.GetLargestConsoleWindowSize(OutputHandle);
                 return bounds.X;
@@ -862,7 +870,7 @@ namespace System
         {
             get
             {
-                // Note this varies based on current screen resolution and 
+                // Note this varies based on current screen resolution and
                 // current console font.  Do not cache this value.
                 Interop.Kernel32.COORD bounds = Interop.Kernel32.GetLargestConsoleWindowSize(OutputHandle);
                 return bounds.Y;
@@ -967,14 +975,14 @@ namespace System
             if (csbi.dwSize.X < csbi.srWindow.Left + width)
             {
                 if (csbi.srWindow.Left >= short.MaxValue - width)
-                    throw new ArgumentOutOfRangeException(nameof(width), SR.ArgumentOutOfRange_ConsoleWindowBufferSize);
+                    throw new ArgumentOutOfRangeException(nameof(width), SR.Format(SR.ArgumentOutOfRange_ConsoleWindowBufferSize, short.MaxValue - width));
                 size.X = (short)(csbi.srWindow.Left + width);
                 resizeBuffer = true;
             }
             if (csbi.dwSize.Y < csbi.srWindow.Top + height)
             {
                 if (csbi.srWindow.Top >= short.MaxValue - height)
-                    throw new ArgumentOutOfRangeException(nameof(height), SR.ArgumentOutOfRange_ConsoleWindowBufferSize);
+                    throw new ArgumentOutOfRangeException(nameof(height), SR.Format(SR.ArgumentOutOfRange_ConsoleWindowBufferSize, short.MaxValue - height));
                 size.Y = (short)(csbi.srWindow.Top + height);
                 resizeBuffer = true;
             }
@@ -1000,7 +1008,7 @@ namespace System
                 }
 
                 // Try to give a better error message here
-               Interop.Kernel32.COORD bounds = Interop.Kernel32.GetLargestConsoleWindowSize(OutputHandle);
+                Interop.Kernel32.COORD bounds = Interop.Kernel32.GetLargestConsoleWindowSize(OutputHandle);
                 if (width > bounds.X)
                     throw new ArgumentOutOfRangeException(nameof(width), width, SR.Format(SR.ArgumentOutOfRange_ConsoleWindowSize_Size, bounds.X));
                 if (height > bounds.Y)
@@ -1015,7 +1023,6 @@ namespace System
         {
             if ((((int)color) & ~0xf) != 0)
                 throw new ArgumentException(SR.Arg_InvalidConsoleColor);
-            Contract.EndContractBlock();
 
             Interop.Kernel32.Color c = (Interop.Kernel32.Color)color;
 
@@ -1049,7 +1056,7 @@ namespace System
             succeeded = false;
 
             IntPtr outputHandle = OutputHandle;
-            if (outputHandle == s_InvalidHandleValue)
+            if (outputHandle == InvalidHandleValue)
             {
                 if (throwOnNoConsole)
                 {
@@ -1058,7 +1065,7 @@ namespace System
                 return new Interop.Kernel32.CONSOLE_SCREEN_BUFFER_INFO();
             }
 
-            // Note that if stdout is redirected to a file, the console handle may be a file.  
+            // Note that if stdout is redirected to a file, the console handle may be a file.
             // First try stdout; if this fails, try stderr and then stdin.
             Interop.Kernel32.CONSOLE_SCREEN_BUFFER_INFO csbi;
             if (!Interop.Kernel32.GetConsoleScreenBufferInfo(outputHandle, out csbi) &&
@@ -1086,8 +1093,8 @@ namespace System
         private sealed class WindowsConsoleStream : ConsoleStream
         {
             // We know that if we are using console APIs rather than file APIs, then the encoding
-            // is Encoding.Unicode implying 2 bytes per character:                
-            const int BytesPerWChar = 2;
+            // is Encoding.Unicode implying 2 bytes per character:
+            private const int BytesPerWChar = 2;
 
             private readonly bool _isPipe; // When reading from pipes, we need to properly handle EOF cases.
             private IntPtr _handle;
@@ -1096,7 +1103,7 @@ namespace System
             internal WindowsConsoleStream(IntPtr handle, FileAccess access, bool useFileAPIs)
                 : base(access)
             {
-                Debug.Assert(handle != IntPtr.Zero && handle != s_InvalidHandleValue, "ConsoleStream expects a valid handle!");
+                Debug.Assert(handle != IntPtr.Zero && handle != InvalidHandleValue, "ConsoleStream expects a valid handle!");
                 _handle = handle;
                 _isPipe = Interop.Kernel32.GetFileType(handle) == Interop.Kernel32.FileTypes.FILE_TYPE_PIPE;
                 _useFileAPIs = useFileAPIs;
@@ -1107,7 +1114,7 @@ namespace System
                 // We're probably better off not closing the OS handle here.  First,
                 // we allow a program to get multiple instances of ConsoleStreams
                 // around the same OS handle, so closing one handle would invalidate
-                // them all.  Additionally, we want a second AppDomain to be able to 
+                // them all.  Additionally, we want a second AppDomain to be able to
                 // write to stdout if a second AppDomain quits.
                 _handle = IntPtr.Zero;
                 base.Dispose(disposing);
@@ -1153,7 +1160,6 @@ namespace System
                 // to this stream simultaneously.
                 if (bytes.Length - offset < count)
                     throw new IndexOutOfRangeException(SR.IndexOutOfRange_IORaceCondition);
-                Contract.EndContractBlock();
 
                 // You can't use the fixed statement on an array of length 0.
                 if (bytes.Length == 0)
@@ -1207,14 +1213,15 @@ namespace System
                     {
                         int numBytesWritten;
                         writeSuccess = (0 != Interop.Kernel32.WriteFile(hFile, p + offset, count, out numBytesWritten, IntPtr.Zero));
-                        Debug.Assert(!writeSuccess || count == numBytesWritten);
+                        // In some cases we have seen numBytesWritten returned that is twice count;
+                        // so we aren't asserting the value of it. See corefx #24508
                     }
                     else
                     {
 
                         // If the code page could be Unicode, we should use ReadConsole instead, e.g.
                         // Note that WriteConsoleW has a max limit on num of chars to write (64K)
-                        // [http://msdn.microsoft.com/en-us/library/ms687401.aspx]
+                        // [https://docs.microsoft.com/en-us/windows/console/writeconsole]
                         // However, we do not need to worry about that because the StreamWriter in Console has
                         // a much shorter buffer size anyway.
                         int charsWritten;
@@ -1227,7 +1234,7 @@ namespace System
 
                 // For pipes that are closing or broken, just stop.
                 // (E.g. ERROR_NO_DATA ("pipe is being closed") is returned when we write to a console that is closing;
-                // ERROR_BROKEN_PIPE ("pipe was closed") is returned when stdin was closed, which is mot an error, but EOF.)
+                // ERROR_BROKEN_PIPE ("pipe was closed") is returned when stdin was closed, which is not an error, but EOF.)
                 int errorCode = Marshal.GetLastWin32Error();
                 if (errorCode == Interop.Errors.ERROR_NO_DATA || errorCode == Interop.Errors.ERROR_BROKEN_PIPE)
                     return Interop.Errors.ERROR_SUCCESS;
@@ -1238,7 +1245,7 @@ namespace System
         internal sealed class ControlCHandlerRegistrar
         {
             private bool _handlerRegistered;
-            private Interop.Kernel32.ConsoleCtrlHandlerRoutine _handler;
+            private readonly Interop.Kernel32.ConsoleCtrlHandlerRoutine _handler;
 
             internal ControlCHandlerRegistrar()
             {

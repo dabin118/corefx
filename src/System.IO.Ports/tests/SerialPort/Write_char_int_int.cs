@@ -17,16 +17,16 @@ namespace System.IO.Ports.Tests
         private const int LARGE_BUFFER_SIZE = 2048;
 
         //When we test Write and do not care about actually writing anything we must still
-        //create an cahr array to pass into the method the following is the size of the 
+        //create an cahr array to pass into the method the following is the size of the
         //char array used in this situation
         private const int DEFAULT_BUFFER_SIZE = 1;
         private const int DEFAULT_CHAR_OFFSET = 0;
         private const int DEFAULT_CHAR_COUNT = 1;
 
-        //The maximum buffer size when a exception occurs
+        //The maximum buffer size when an exception occurs
         private const int MAX_BUFFER_SIZE_FOR_EXCEPTION = 255;
 
-        //The maximum buffer size when a exception is not expected
+        //The maximum buffer size when an exception is not expected
         private const int MAX_BUFFER_SIZE = 8;
 
         //The default number of times the write method is called when verifying write

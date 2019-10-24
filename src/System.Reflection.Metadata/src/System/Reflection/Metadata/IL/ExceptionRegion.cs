@@ -4,7 +4,7 @@
 
 namespace System.Reflection.Metadata
 {
-    public struct ExceptionRegion
+    public readonly struct ExceptionRegion
     {
         private readonly ExceptionRegionKind _kind;
         private readonly int _tryOffset;
@@ -75,7 +75,7 @@ namespace System.Reflection.Metadata
         }
 
         /// <summary>
-        /// Returns a TypeRef, TypeDef, or TypeSpec handle if the region represents a catch, nil token otherwise. 
+        /// Returns a TypeRef, TypeDef, or TypeSpec handle if the region represents a catch, nil token otherwise.
         /// </summary>
         public EntityHandle CatchType
         {

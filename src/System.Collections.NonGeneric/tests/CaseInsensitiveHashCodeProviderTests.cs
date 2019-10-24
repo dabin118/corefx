@@ -3,13 +3,16 @@
 // See the LICENSE file in the project root for more information.
 
 using System.Globalization;
+using System.Diagnostics;
+using Microsoft.DotNet.RemoteExecutor;
 using Xunit;
+using System.Tests;
 
 #pragma warning disable 618 // obsolete types
 
 namespace System.Collections.Tests
 {
-    public static class CaseInsensitiveHashCodeProviderTests
+    public class CaseInsensitiveHashCodeProviderTests
     {
         [Theory]
         [InlineData("hello", "HELLO", true)]
@@ -19,7 +22,7 @@ namespace System.Collections.Tests
         [InlineData(5, 5, true)]
         [InlineData(10, 5, false)]
         [InlineData(5, 10, false)]
-        public static void Ctor_Empty_GetHashCodeCompare(object a, object b, bool expected)
+        public void Ctor_Empty_GetHashCodeCompare(object a, object b, bool expected)
         {
             var provider = new CaseInsensitiveHashCodeProvider();
             Assert.Equal(provider.GetHashCode(a), provider.GetHashCode(a));
@@ -35,7 +38,7 @@ namespace System.Collections.Tests
         [InlineData(5, 5, true)]
         [InlineData(10, 5, false)]
         [InlineData(5, 10, false)]
-        public static void Ctor_Empty_ChangeCurrentCulture_GetHashCodeCompare(object a, object b, bool expected)
+        public void Ctor_Empty_ChangeCurrentCulture_GetHashCodeCompare(object a, object b, bool expected)
         {
             var cultureNames = new string[]
             {
@@ -58,18 +61,12 @@ namespace System.Collections.Tests
                     continue;
                 }
 
-                CultureInfo origCulture = CultureInfo.CurrentCulture;
-                try
+                using (new ThreadCultureChange(newCulture))
                 {
-                    CultureInfo.CurrentCulture = newCulture;
                     var provider = new CaseInsensitiveHashCodeProvider();
                     Assert.Equal(provider.GetHashCode(a), provider.GetHashCode(a));
                     Assert.Equal(provider.GetHashCode(b), provider.GetHashCode(b));
                     Assert.Equal(expected, provider.GetHashCode(a) == provider.GetHashCode(b));
-                }
-                finally
-                {
-                    CultureInfo.CurrentCulture = origCulture;
                 }
             }
         }
@@ -82,7 +79,7 @@ namespace System.Collections.Tests
         [InlineData(5, 5, true)]
         [InlineData(10, 5, false)]
         [InlineData(5, 10, false)]
-        public static void Ctor_CultureInfo_ChangeCurrentCulture_GetHashCodeCompare(object a, object b, bool expected)
+        public void Ctor_CultureInfo_ChangeCurrentCulture_GetHashCodeCompare(object a, object b, bool expected)
         {
             var cultureNames = new string[]
             {
@@ -113,7 +110,7 @@ namespace System.Collections.Tests
         }
 
         [Fact]
-        public static void Ctor_CultureInfo_GetHashCodeCompare_TurkishI()
+        public void Ctor_CultureInfo_GetHashCodeCompare_TurkishI()
         {
             var cultureNames = new string[]
             {
@@ -139,7 +136,7 @@ namespace System.Collections.Tests
                 var provider = new CaseInsensitiveHashCodeProvider(culture);
 
                 // Turkish has lower-case and upper-case version of the dotted "i", so the upper case of "i" (U+0069) isn't "I" (U+0049)
-                // but rather "İ" (U+0130)
+                // but rather U+0130.
                 Assert.Equal(
                     culture.Name != "tr-TR",
                     provider.GetHashCode("file") == provider.GetHashCode("FILE"));
@@ -147,13 +144,13 @@ namespace System.Collections.Tests
         }
 
         [Fact]
-        public static void Ctor_CultureInfo_NullCulture_ThrowsArgumentNullException()
+        public void Ctor_CultureInfo_NullCulture_ThrowsArgumentNullException()
         {
             AssertExtensions.Throws<ArgumentNullException>("culture", () => new CaseInsensitiveHashCodeProvider(null));
         }
 
         [Fact]
-        public static void GetHashCode_NullObj_ThrowsArgumentNullException()
+        public void GetHashCode_NullObj_ThrowsArgumentNullException()
         {
             AssertExtensions.Throws<ArgumentNullException>("obj", () => new CaseInsensitiveHashCodeProvider().GetHashCode(null));
         }
@@ -166,7 +163,7 @@ namespace System.Collections.Tests
         [InlineData(5, 5, true)]
         [InlineData(10, 5, false)]
         [InlineData(5, 10, false)]
-        public static void Default_GetHashCodeCompare(object a, object b, bool expected)
+        public void Default_GetHashCodeCompare(object a, object b, bool expected)
         {
             Assert.Equal(expected,
                 CaseInsensitiveHashCodeProvider.Default.GetHashCode(a) == CaseInsensitiveHashCodeProvider.Default.GetHashCode(b));
@@ -175,23 +172,19 @@ namespace System.Collections.Tests
         }
 
         [Fact]
-        public static void Default_Compare_TurkishI()
+        public void Default_Compare_TurkishI()
         {
             // Turkish has lower-case and upper-case version of the dotted "i", so the upper case of "i" (U+0069) isn't "I" (U+0049)
-            // but rather "İ" (U+0130)
-            CultureInfo origCulture = CultureInfo.CurrentCulture;
-            try
+            // but rather U+0130.
+            using (new ThreadCultureChange("tr-TR"))
             {
-                CultureInfo.CurrentCulture = new CultureInfo("tr-TR");
                 Assert.False(CaseInsensitiveHashCodeProvider.Default.GetHashCode("file") == CaseInsensitiveHashCodeProvider.Default.GetHashCode("FILE"));
                 Assert.True(CaseInsensitiveHashCodeProvider.DefaultInvariant.GetHashCode("file") == CaseInsensitiveHashCodeProvider.DefaultInvariant.GetHashCode("FILE"));
-
-                CultureInfo.CurrentCulture = new CultureInfo("en-US");
-                Assert.True(CaseInsensitiveHashCodeProvider.Default.GetHashCode("file") == CaseInsensitiveHashCodeProvider.Default.GetHashCode("FILE"));
             }
-            finally
+
+            using (new ThreadCultureChange("en-US"))
             {
-                CultureInfo.CurrentCulture = origCulture;
+                Assert.True(CaseInsensitiveHashCodeProvider.Default.GetHashCode("file") == CaseInsensitiveHashCodeProvider.Default.GetHashCode("FILE"));
             }
         }
     }

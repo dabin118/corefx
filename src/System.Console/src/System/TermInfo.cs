@@ -4,6 +4,7 @@
 
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Text;
 using Microsoft.Win32.SafeHandles;
@@ -24,6 +25,7 @@ namespace System
         {
             Bell = 1,
             Clear = 5,
+            ClrEol = 6,
             CursorAddress = 10,
             CursorLeft = 14,
             CursorPositionReport = 294,
@@ -101,12 +103,16 @@ namespace System
             private readonly int _nameSectionNumBytes;
             /// <summary>The number of bytes in the Booleans section of the database.</summary>
             private readonly int _boolSectionNumBytes;
-            /// <summary>The number of shorts in the numbers section of the database.</summary>
-            private readonly int _numberSectionNumShorts;
+            /// <summary>The number of integers in the numbers section of the database.</summary>
+            private readonly int _numberSectionNumInts;
             /// <summary>The number of offsets in the strings section of the database.</summary>
             private readonly int _stringSectionNumOffsets;
             /// <summary>The number of bytes in the strings table of the database.</summary>
             private readonly int _stringTableNumBytes;
+            /// <summary>Whether or not to read the number section as 32-bit integers.</summary>
+            private readonly bool _readAs32Bit;
+            /// <summary>The size of the integers on the number section.</summary>
+            private readonly int _sizeOfInt;
 
             /// <summary>Extended / user-defined entries in the terminfo database.</summary>
             private readonly Dictionary<string, string> _extendedStrings;
@@ -119,20 +125,23 @@ namespace System
                 _term = term;
                 _data = data;
 
-                // See "man term" for the file format.
-                if (ReadInt16(data, 0) != 0x11A) // magic number octal 0432
-                {
-                    throw new InvalidOperationException(SR.IO_TermInfoInvalid);
-                }
+                const int MagicLegacyNumber = 0x11A; // magic number octal 0432 for legacy ncurses terminfo
+                const int Magic32BitNumber = 0x21E; // magic number octal 01036 for new ncruses terminfo
+                short magic = ReadInt16(data, 0);
+                _readAs32Bit =
+                    magic == MagicLegacyNumber ? false :
+                    magic == Magic32BitNumber ? true :
+                    throw new InvalidOperationException(SR.Format(SR.IO_TermInfoInvalidMagicNumber, string.Concat("O" + Convert.ToString(magic, 8)))); // magic number was not recognized. Printing the magic number in octal.
+                _sizeOfInt = (_readAs32Bit) ? 4 : 2;
 
                 _nameSectionNumBytes = ReadInt16(data, 2);
                 _boolSectionNumBytes = ReadInt16(data, 4);
-                _numberSectionNumShorts = ReadInt16(data, 6);
+                _numberSectionNumInts = ReadInt16(data, 6);
                 _stringSectionNumOffsets = ReadInt16(data, 8);
                 _stringTableNumBytes = ReadInt16(data, 10);
                 if (_nameSectionNumBytes < 0 ||
                     _boolSectionNumBytes < 0 ||
-                    _numberSectionNumShorts < 0 ||
+                    _numberSectionNumInts < 0 ||
                     _stringSectionNumOffsets < 0 ||
                     _stringTableNumBytes < 0)
                 {
@@ -147,7 +156,7 @@ namespace System
                 // (Note that the extended section also includes other Booleans and numbers, but we don't
                 // have any need for those now, so we don't parse them.)
                 int extendedBeginning = RoundUpToEven(StringsTableOffset + _stringTableNumBytes);
-                _extendedStrings = ParseExtendedStrings(data, extendedBeginning) ?? new Dictionary<string, string>();
+                _extendedStrings = ParseExtendedStrings(data, extendedBeginning, _readAs32Bit) ?? new Dictionary<string, string>();
             }
 
             /// <summary>The name of the associated terminfo, if any.</summary>
@@ -155,9 +164,9 @@ namespace System
 
             /// <summary>Read the database for the current terminal as specified by the "TERM" environment variable.</summary>
             /// <returns>The database, or null if it could not be found.</returns>
-            internal static Database ReadActiveDatabase()
+            internal static Database? ReadActiveDatabase()
             {
-                string term = Environment.GetEnvironmentVariable("TERM");
+                string? term = Environment.GetEnvironmentVariable("TERM");
                 return !string.IsNullOrEmpty(term) ? ReadDatabase(term) : null;
             }
 
@@ -169,25 +178,26 @@ namespace System
                     "/etc/terminfo",
                     "/lib/terminfo",
                     "/usr/share/terminfo",
+                    "/usr/share/misc/terminfo"
                 };
 
             /// <summary>Read the database for the specified terminal.</summary>
             /// <param name="term">The identifier for the terminal.</param>
             /// <returns>The database, or null if it could not be found.</returns>
-            private static Database ReadDatabase(string term)
+            private static Database? ReadDatabase(string term)
             {
                 // This follows the same search order as prescribed by ncurses.
-                Database db;
+                Database? db;
 
                 // First try a location specified in the TERMINFO environment variable.
-                string terminfo = Environment.GetEnvironmentVariable("TERMINFO");
+                string? terminfo = Environment.GetEnvironmentVariable("TERMINFO");
                 if (!string.IsNullOrWhiteSpace(terminfo) && (db = ReadDatabase(term, terminfo)) != null)
                 {
                     return db;
                 }
 
                 // Then try in the user's home directory.
-                string home = PersistedFiles.GetHomeDirectory();
+                string? home = PersistedFiles.GetHomeDirectory();
                 if (!string.IsNullOrWhiteSpace(home) && (db = ReadDatabase(term, home + "/.terminfo")) != null)
                 {
                     return db;
@@ -210,7 +220,7 @@ namespace System
             /// <param name="filePath">The path to the file to open.</param>
             /// <param name="fd">If successful, the opened file descriptor; otherwise, -1.</param>
             /// <returns>true if the file was successfully opened; otherwise, false.</returns>
-            private static bool TryOpen(string filePath, out SafeFileHandle fd)
+            private static bool TryOpen(string filePath, [NotNullWhen(true)] out SafeFileHandle? fd)
             {
                 fd = Interop.Sys.Open(filePath, Interop.Sys.OpenFlags.O_RDONLY | Interop.Sys.OpenFlags.O_CLOEXEC, 0);
                 if (fd.IsInvalid)
@@ -227,14 +237,14 @@ namespace System
             /// <param name="term">The identifier for the terminal.</param>
             /// <param name="directoryPath">The path to the directory containing terminfo database files.</param>
             /// <returns>The database, or null if it could not be found.</returns>
-            private static Database ReadDatabase(string term, string directoryPath)
+            private static Database? ReadDatabase(string? term, string? directoryPath)
             {
                 if (string.IsNullOrEmpty(term) || string.IsNullOrEmpty(directoryPath))
                 {
                     return null;
                 }
 
-                SafeFileHandle fd;
+                SafeFileHandle? fd;
                 if (!TryOpen(directoryPath + "/" + term[0].ToString() + "/" + term, out fd) &&          // /directory/termFirstLetter/term      (Linux)
                     !TryOpen(directoryPath + "/" + ((int)term[0]).ToString("X") + "/" + term, out fd))  // /directory/termFirstLetterAsHex/term (Mac)
                 {
@@ -278,7 +288,7 @@ namespace System
             /// The offset into data where the string offsets section begins.  We index into this section
             /// to find the location within the strings table where a string value exists.
             /// </summary>
-            private int StringOffsetsOffset { get { return NumbersOffset + (_numberSectionNumShorts * 2); } }
+            private int StringOffsetsOffset { get { return NumbersOffset + (_numberSectionNumInts * _sizeOfInt); } }
 
             /// <summary>The offset into data where the string table exists.</summary>
             private int StringsTableOffset { get { return StringOffsetsOffset + (_stringSectionNumOffsets * 2); } }
@@ -286,14 +296,14 @@ namespace System
             /// <summary>Gets a string from the strings section by the string's well-known index.</summary>
             /// <param name="stringTableIndex">The index of the string to find.</param>
             /// <returns>The string if it's in the database; otherwise, null.</returns>
-            public string GetString(WellKnownStrings stringTableIndex)
+            public string? GetString(WellKnownStrings stringTableIndex)
             {
                 int index = (int)stringTableIndex;
                 Debug.Assert(index >= 0);
 
                 if (index >= _stringSectionNumOffsets)
                 {
-                    // Some terminfo files may not contain enough entries to actually 
+                    // Some terminfo files may not contain enough entries to actually
                     // have the requested one.
                     return null;
                 }
@@ -312,11 +322,11 @@ namespace System
             /// <summary>Gets a string from the extended strings section.</summary>
             /// <param name="name">The name of the string as contained in the extended names section.</param>
             /// <returns>The string if it's in the database; otherwise, null.</returns>
-            public string GetExtendedString(string name)
+            public string? GetExtendedString(string name)
             {
                 Debug.Assert(name != null);
 
-                string value;
+                string? value;
                 return _extendedStrings.TryGetValue(name, out value) ?
                     value :
                     null;
@@ -330,14 +340,14 @@ namespace System
                 int index = (int)numberIndex;
                 Debug.Assert(index >= 0);
 
-                if (index >= _numberSectionNumShorts)
+                if (index >= _numberSectionNumInts)
                 {
                     // Some terminfo files may not contain enough entries to actually
                     // have the requested one.
                     return -1;
                 }
 
-                return ReadInt16(_data, NumbersOffset + (index * 2));
+                return ReadInt(_data, NumbersOffset + (index * _sizeOfInt), _readAs32Bit);
             }
 
             /// <summary>Parses the extended string information from the terminfo data.</summary>
@@ -346,9 +356,10 @@ namespace System
             /// defined as the earlier portions, and may not even exist, the parsing is more lenient about
             /// errors, returning an empty collection rather than throwing.
             /// </returns>
-            private static Dictionary<string, string> ParseExtendedStrings(byte[] data, int extendedBeginning)
+            private static Dictionary<string, string>? ParseExtendedStrings(byte[] data, int extendedBeginning, bool readAs32Bit)
             {
                 const int ExtendedHeaderSize = 10;
+                int sizeOfIntValuesInBytes = (readAs32Bit) ? 4 : 2;
                 if (extendedBeginning + ExtendedHeaderSize >= data.Length)
                 {
                     // Exit out as there's no extended information.
@@ -357,10 +368,10 @@ namespace System
 
                 // Read in extended counts, and exit out if we got any incorrect info
                 int extendedBoolCount = ReadInt16(data, extendedBeginning);
-                int extendedNumberCount = ReadInt16(data, extendedBeginning + 2);
-                int extendedStringCount = ReadInt16(data, extendedBeginning + 4);
-                int extendedStringNumOffsets = ReadInt16(data, extendedBeginning + 6);
-                int extendedStringTableByteSize = ReadInt16(data, extendedBeginning + 8);
+                int extendedNumberCount = ReadInt16(data, extendedBeginning + (2 * 1));
+                int extendedStringCount = ReadInt16(data, extendedBeginning + (2 * 2));
+                int extendedStringNumOffsets = ReadInt16(data, extendedBeginning + (2 * 3));
+                int extendedStringTableByteSize = ReadInt16(data, extendedBeginning + (2 * 4));
                 if (extendedBoolCount < 0 ||
                     extendedNumberCount < 0 ||
                     extendedStringCount < 0 ||
@@ -371,7 +382,7 @@ namespace System
                     return null;
                 }
 
-                // Skip over the extended bools.  We don't need them now and can add this in later 
+                // Skip over the extended bools.  We don't need them now and can add this in later
                 // if needed. Also skip over extended numbers, for the same reason.
 
                 // Get the location where the extended string offsets begin.  These point into
@@ -380,7 +391,7 @@ namespace System
                     extendedBeginning + // go past the normal data
                     ExtendedHeaderSize + // and past the extended header
                     RoundUpToEven(extendedBoolCount) + // and past all of the extended Booleans
-                    (extendedNumberCount * 2); // and past all of the extended numbers
+                    (extendedNumberCount * sizeOfIntValuesInBytes); // and past all of the extended numbers
 
                 // Get the location where the extended string table begins.  This area contains
                 // null-terminated strings.
@@ -447,6 +458,14 @@ namespace System
 
             private static int RoundUpToEven(int i) { return i % 2 == 1 ? i + 1 : i; }
 
+            /// <summary>Read a 16-bit or 32-bit value from the buffer starting at the specified position.</summary>
+            /// <param name="buffer">The buffer from which to read.</param>
+            /// <param name="pos">The position at which to read.</param>
+            /// <param name="readAs32Bit">Whether or not to read value as 32-bit. Will read as 16-bit if set to false.</param>
+            /// <returns>The value read.</returns>
+            private static int ReadInt(byte[] buffer, int pos, bool readAs32Bit) =>
+                readAs32Bit ? ReadInt32(buffer, pos) : ReadInt16(buffer, pos);
+
             /// <summary>Read a 16-bit value from the buffer starting at the specified position.</summary>
             /// <param name="buffer">The buffer from which to read.</param>
             /// <param name="pos">The position at which to read.</param>
@@ -456,6 +475,18 @@ namespace System
                 return unchecked((short)
                     ((((int)buffer[pos + 1]) << 8) |
                      ((int)buffer[pos] & 0xff)));
+            }
+
+            /// <summary>Read a 32-bit value from the buffer starting at the specified position.</summary>
+            /// <param name="buffer">The buffer from which to read.</param>
+            /// <param name="pos">The position at which to read.</param>
+            /// <returns>The 32-bit value read.</returns>
+            private static int ReadInt32(byte[] buffer, int pos)
+            {
+                return (int)((buffer[pos] & 0xff) |
+                             buffer[pos + 1] << 8 |
+                             buffer[pos + 2] << 16 |
+                             buffer[pos + 3] << 24);
             }
 
             /// <summary>Reads a string from the buffer starting at the specified position.</summary>
@@ -482,15 +513,15 @@ namespace System
         {
             /// <summary>A cached stack to use to avoid allocating a new stack object for every evaluation.</summary>
             [ThreadStatic]
-            private static Stack<FormatParam> t_cachedStack;
+            private static Stack<FormatParam>? t_cachedStack;
 
             /// <summary>A cached array of arguments to use to avoid allocating a new array object for every evaluation.</summary>
             [ThreadStatic]
-            private static FormatParam[] t_cachedOneElementArgsArray;
+            private static FormatParam[]? t_cachedOneElementArgsArray;
 
             /// <summary>A cached array of arguments to use to avoid allocating a new array object for every evaluation.</summary>
             [ThreadStatic]
-            private static FormatParam[] t_cachedTwoElementArgsArray;
+            private static FormatParam[]? t_cachedTwoElementArgsArray;
 
             /// <summary>Evaluates a terminfo formatting string, using the supplied argument.</summary>
             /// <param name="format">The format string.</param>
@@ -498,7 +529,7 @@ namespace System
             /// <returns>The formatted string.</returns>
             public static string Evaluate(string format, FormatParam arg)
             {
-                FormatParam[] args = t_cachedOneElementArgsArray;
+                FormatParam[]? args = t_cachedOneElementArgsArray;
                 if (args == null)
                 {
                     t_cachedOneElementArgsArray = args = new FormatParam[1];
@@ -516,7 +547,7 @@ namespace System
             /// <returns>The formatted string.</returns>
             public static string Evaluate(string format, FormatParam arg1, FormatParam arg2)
             {
-                FormatParam[] args = t_cachedTwoElementArgsArray;
+                FormatParam[]? args = t_cachedTwoElementArgsArray;
                 if (args == null)
                 {
                     t_cachedTwoElementArgsArray = args = new FormatParam[2];
@@ -544,7 +575,7 @@ namespace System
                 }
 
                 // Initialize the stack to use for processing.
-                Stack<FormatParam> stack = t_cachedStack;
+                Stack<FormatParam>? stack = t_cachedStack;
                 if (stack == null)
                 {
                     t_cachedStack = stack = new Stack<FormatParam>();
@@ -557,7 +588,7 @@ namespace System
                 // "dynamic" and "static" variables are much less often used (the "dynamic" and "static"
                 // terminology appears to just refer to two different collections rather than to any semantic
                 // meaning).  As such, we'll only initialize them if we really need them.
-                FormatParam[] dynamicVars = null, staticVars = null;
+                FormatParam[]? dynamicVars = null, staticVars = null;
 
                 int pos = 0;
                 return EvaluateInternal(format, ref pos, args, stack, ref dynamicVars, ref staticVars);
@@ -580,9 +611,9 @@ namespace System
             /// </returns>
             private static string EvaluateInternal(
                 string format, ref int pos, FormatParam[] args, Stack<FormatParam> stack,
-                ref FormatParam[] dynamicVars, ref FormatParam[] staticVars)
+                ref FormatParam[]? dynamicVars, ref FormatParam[]? staticVars)
             {
-                // Create a StringBuilder to store the output of this processing.  We use the format's length as an 
+                // Create a StringBuilder to store the output of this processing.  We use the format's length as an
                 // approximation of an upper-bound for how large the output will be, though with parameter processing,
                 // this is just an estimate, sometimes way over, sometimes under.
                 StringBuilder output = StringBuilderCache.Acquire(format.Length);
@@ -746,8 +777,8 @@ namespace System
                                 ~value);
                             break;
 
-                        // Some terminfo files appear to have a fairly liberal interpretation of %i. The spec states that %i increments the first two arguments, 
-                        // but some uses occur when there's only a single argument. To make sure we accommodate these files, we increment the values 
+                        // Some terminfo files appear to have a fairly liberal interpretation of %i. The spec states that %i increments the first two arguments,
+                        // but some uses occur when there's only a single argument. To make sure we accommodate these files, we increment the values
                         // of up to (but not requiring) two arguments.
                         case 'i':
                             if (args.Length > 0)
@@ -826,7 +857,7 @@ namespace System
             /// <summary>Converts an Int32 to a Boolean, with 0 meaning false and all non-zero values meaning true.</summary>
             /// <param name="i">The integer value to convert.</param>
             /// <returns>true if the integer was non-zero; otherwise, false.</returns>
-            private static bool AsBool(Int32 i) { return i != 0; }
+            private static bool AsBool(int i) { return i != 0; }
 
             /// <summary>Converts a Boolean to an Int32, with true meaning 1 and false meaning 0.</summary>
             /// <param name="b">The Boolean value to convert.</param>
@@ -839,10 +870,10 @@ namespace System
             /// <returns>The formatted string.</returns>
             private static unsafe string FormatPrintF(string format, object arg)
             {
-                Debug.Assert(arg is string || arg is Int32);
+                Debug.Assert(arg is string || arg is int);
 
                 // Determine how much space is needed to store the formatted string.
-                string stringArg = arg as string;
+                string? stringArg = arg as string;
                 int neededLength = stringArg != null ?
                     Interop.Sys.SNPrintF(null, 0, format, stringArg) :
                     Interop.Sys.SNPrintF(null, 0, format, (int)arg);
@@ -877,7 +908,7 @@ namespace System
             /// <param name="index">The index to use to index into the variables.</param>
             /// <returns>The variables collection.</returns>
             private static FormatParam[] GetDynamicOrStaticVariables(
-                char c, ref FormatParam[] dynamicVars, ref FormatParam[] staticVars, out int index)
+                char c, ref FormatParam[]? dynamicVars, ref FormatParam[]? staticVars, out int index)
             {
                 if (c >= 'A' && c <= 'Z')
                 {
@@ -894,28 +925,28 @@ namespace System
 
             /// <summary>
             /// Represents a parameter to a terminfo formatting string.
-            /// It is a discriminated union of either an integer or a string, 
+            /// It is a discriminated union of either an integer or a string,
             /// with characters represented as integers.
             /// </summary>
-            public struct FormatParam
+            public readonly struct FormatParam
             {
                 /// <summary>The integer stored in the parameter.</summary>
                 private readonly int _int32;
                 /// <summary>The string stored in the parameter.</summary>
-                private readonly string _string; // null means an Int32 is stored
+                private readonly string? _string; // null means an Int32 is stored
 
                 /// <summary>Initializes the parameter with an integer value.</summary>
                 /// <param name="value">The value to be stored in the parameter.</param>
-                public FormatParam(Int32 value) : this(value, null) { }
+                public FormatParam(int value) : this(value, null) { }
 
                 /// <summary>Initializes the parameter with a string value.</summary>
                 /// <param name="value">The value to be stored in the parameter.</param>
-                public FormatParam(String value) : this(0, value ?? string.Empty) { }
+                public FormatParam(string? value) : this(0, value ?? string.Empty) { }
 
                 /// <summary>Initializes the parameter.</summary>
                 /// <param name="intValue">The integer value.</param>
                 /// <param name="stringValue">The string value.</param>
-                private FormatParam(Int32 intValue, String stringValue)
+                private FormatParam(int intValue, string? stringValue)
                 {
                     _int32 = intValue;
                     _string = stringValue;
@@ -928,7 +959,7 @@ namespace System
                 }
 
                 /// <summary>Implicit converts a string into a parameter.</summary>
-                public static implicit operator FormatParam(string value)
+                public static implicit operator FormatParam(string? value)
                 {
                     return new FormatParam(value);
                 }

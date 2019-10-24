@@ -2,19 +2,22 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Net.Http.Headers;
-using System.Threading;
+using System.Net.Test.Common;
 using System.Threading.Tasks;
 
 using Xunit;
+using Xunit.Abstractions;
 
 namespace System.Net.Http.Functional.Tests
 {
-    public class HttpRequestMessageTest
+    public class HttpRequestMessageTest : HttpClientHandlerTestBase
     {
-        Version _expectedRequestMessageVersion = PlatformDetection.IsUap ? new Version(2,0) : new Version(1, 1);
+        private readonly Version _expectedRequestMessageVersion = PlatformDetection.IsInAppContainer ? new Version(2,0) : new Version(1, 1);
+
+        public HttpRequestMessageTest(ITestOutputHelper output) : base(output) { }
 
         [Fact]
         public void Ctor_Default_CorrectDefaults()
@@ -23,8 +26,8 @@ namespace System.Net.Http.Functional.Tests
 
             Assert.Equal(HttpMethod.Get, rm.Method);
             Assert.Equal(_expectedRequestMessageVersion, rm.Version);
-            Assert.Equal(null, rm.Content);
-            Assert.Equal(null, rm.RequestUri);
+            Assert.Null(rm.Content);
+            Assert.Null(rm.RequestUri);
         }
 
         [Fact]
@@ -34,7 +37,7 @@ namespace System.Net.Http.Functional.Tests
 
             Assert.Equal(HttpMethod.Post, rm.Method);
             Assert.Equal(_expectedRequestMessageVersion, rm.Version);
-            Assert.Equal(null, rm.Content);
+            Assert.Null(rm.Content);
             Assert.Equal(new Uri("/relative", UriKind.Relative), rm.RequestUri);
         }
 
@@ -45,7 +48,7 @@ namespace System.Net.Http.Functional.Tests
 
             Assert.Equal(HttpMethod.Post, rm.Method);
             Assert.Equal(_expectedRequestMessageVersion, rm.Version);
-            Assert.Equal(null, rm.Content);
+            Assert.Null(rm.Content);
             Assert.Equal(new Uri("http://host/absolute/"), rm.RequestUri);
         }
 
@@ -54,10 +57,10 @@ namespace System.Net.Http.Functional.Tests
         {
             var rm = new HttpRequestMessage(HttpMethod.Put, (string)null);
 
-            Assert.Equal(null, rm.RequestUri);
+            Assert.Null(rm.RequestUri);
             Assert.Equal(HttpMethod.Put, rm.Method);
             Assert.Equal(_expectedRequestMessageVersion, rm.Version);
-            Assert.Equal(null, rm.Content);
+            Assert.Null(rm.Content);
         }
 
         [Fact]
@@ -68,7 +71,7 @@ namespace System.Net.Http.Functional.Tests
 
             Assert.Equal(HttpMethod.Post, rm.Method);
             Assert.Equal(_expectedRequestMessageVersion, rm.Version);
-            Assert.Equal(null, rm.Content);
+            Assert.Null(rm.Content);
             Assert.Equal(uri, rm.RequestUri);
         }
 
@@ -80,7 +83,7 @@ namespace System.Net.Http.Functional.Tests
 
             Assert.Equal(HttpMethod.Post, rm.Method);
             Assert.Equal(_expectedRequestMessageVersion, rm.Version);
-            Assert.Equal(null, rm.Content);
+            Assert.Null(rm.Content);
             Assert.Equal(uri, rm.RequestUri);
         }
 
@@ -89,10 +92,10 @@ namespace System.Net.Http.Functional.Tests
         {
             var rm = new HttpRequestMessage(HttpMethod.Put, (Uri)null);
 
-            Assert.Equal(null, rm.RequestUri);
+            Assert.Null(rm.RequestUri);
             Assert.Equal(HttpMethod.Put, rm.Method);
             Assert.Equal(_expectedRequestMessageVersion, rm.Version);
-            Assert.Equal(null, rm.Content);
+            Assert.Null(rm.Content);
         }
 
         [Fact]
@@ -117,7 +120,7 @@ namespace System.Net.Http.Functional.Tests
 
             rm.Dispose();
             rm.Dispose(); // Multiple calls don't throw.
-            
+
             Assert.True(content.IsDisposed);
             Assert.Throws<ObjectDisposedException>(() => { rm.Method = HttpMethod.Put; });
             Assert.Throws<ObjectDisposedException>(() => { rm.RequestUri = null; });
@@ -180,10 +183,10 @@ namespace System.Net.Http.Functional.Tests
         public void ToString_DefaultAndNonDefaultInstance_DumpAllFields()
         {
             var rm = new HttpRequestMessage();
-            string expected = 
-                    "Method: GET, RequestUri: '<null>', Version: " + 
-                    _expectedRequestMessageVersion.ToString(2) + 
-                    ", Content: <null>, Headers:\r\n{\r\n}";
+            string expected =
+                    "Method: GET, RequestUri: '<null>', Version: " +
+                    _expectedRequestMessageVersion.ToString(2) +
+                    $", Content: <null>, Headers:{Environment.NewLine}{{{Environment.NewLine}}}";
             Assert.Equal(expected, rm.ToString());
 
             rm.Method = HttpMethod.Put;
@@ -194,25 +197,89 @@ namespace System.Net.Http.Functional.Tests
             // Note that there is no Content-Length header: The reason is that the value for Content-Length header
             // doesn't get set by StringContent..ctor, but only if someone actually accesses the ContentLength property.
             Assert.Equal(
-                "Method: PUT, RequestUri: 'http://a.com/', Version: 1.0, Content: " + typeof(StringContent).ToString() + ", Headers:\r\n" +
-                "{\r\n" +
-                "  Content-Type: text/plain; charset=utf-8\r\n" +
+                "Method: PUT, RequestUri: 'http://a.com/', Version: 1.0, Content: " + typeof(StringContent).ToString() + ", Headers:" + Environment.NewLine +
+                $"{{{Environment.NewLine}" +
+                "  Content-Type: text/plain; charset=utf-8" + Environment.NewLine +
                 "}", rm.ToString());
 
             rm.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("text/plain", 0.2));
             rm.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("text/xml", 0.1));
-            rm.Headers.Add("Custom-Request-Header", "value1");            
+            rm.Headers.Add("Custom-Request-Header", "value1");
             rm.Content.Headers.Add("Custom-Content-Header", "value2");
 
             Assert.Equal(
-                "Method: PUT, RequestUri: 'http://a.com/', Version: 1.0, Content: " + typeof(StringContent).ToString() + ", Headers:\r\n" +
-                "{\r\n" +
-                "  Accept: text/plain; q=0.2\r\n" +
-                "  Accept: text/xml; q=0.1\r\n" +
-                "  Custom-Request-Header: value1\r\n" +
-                "  Content-Type: text/plain; charset=utf-8\r\n" +
-                "  Custom-Content-Header: value2\r\n" +
+                "Method: PUT, RequestUri: 'http://a.com/', Version: 1.0, Content: " + typeof(StringContent).ToString() + ", Headers:" + Environment.NewLine +
+                "{" + Environment.NewLine +
+                "  Accept: text/plain; q=0.2" + Environment.NewLine +
+                "  Accept: text/xml; q=0.1" + Environment.NewLine +
+                "  Custom-Request-Header: value1" + Environment.NewLine +
+                "  Content-Type: text/plain; charset=utf-8" + Environment.NewLine +
+                "  Custom-Content-Header: value2" + Environment.NewLine +
                 "}", rm.ToString());
+        }
+
+        [Theory]
+        [InlineData("DELETE")]
+        [InlineData("OPTIONS")]
+        [InlineData("HEAD")]
+        public async Task HttpRequest_BodylessMethod_NoContentLength(string method)
+        {
+            if (IsWinHttpHandler || IsNetfxHandler)
+            {
+                // Some platform handlers differ but we don't take it as failure.
+                return;
+            }
+
+            using (HttpClient client = CreateHttpClient())
+            {
+                await LoopbackServer.CreateServerAsync(async (server, uri) =>
+                {
+                    var request = new HttpRequestMessage();
+                    request.RequestUri = uri;
+                    request.Method = new HttpMethod(method);
+
+                    Task<HttpResponseMessage> requestTask = client.SendAsync(request);
+                    await server.AcceptConnectionAsync(async connection =>
+                    {
+                        List<string> headers = await connection.ReadRequestHeaderAsync();
+                        Assert.DoesNotContain(headers, line => line.StartsWith("Content-length"));
+
+                        await connection.SendResponseAsync();
+                        await requestTask;
+                    });
+                });
+            }
+        }
+
+        [Fact]
+        public async Task HttpRequest_BodylessMethod_LargeContentLength()
+        {
+            using (HttpClient client = CreateHttpClient())
+            {
+                await LoopbackServer.CreateServerAsync(async (server, uri) =>
+                {
+                    var request = new HttpRequestMessage(HttpMethod.Head, uri);
+
+                    Task<HttpResponseMessage> requestTask = client.SendAsync(request);
+
+                    await server.AcceptConnectionAsync(async connection =>
+                    {
+                        // Content-Length greater than 2GB.
+                        string response = LoopbackServer.GetConnectionCloseResponse(
+                            HttpStatusCode.OK, "Content-Length: 2167849215\r\n\r\n");
+                        await connection.SendResponseAsync(response);
+
+                        await requestTask;
+                    });
+
+                    using (HttpResponseMessage result = requestTask.Result)
+                    {
+                        Assert.NotNull(result);
+                        Assert.NotNull(result.Content);
+                        Assert.Equal(2167849215, result.Content.Headers.ContentLength);
+                    }
+                });
+            }
         }
 
         #region Helper methods

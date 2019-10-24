@@ -18,11 +18,9 @@ namespace System.DirectoryServices.AccountManagement
 
     internal static class GlobalDebug
     {
-        [System.Security.SecurityCritical]
         static GlobalDebug()
         {
             GlobalDebug.s_debugLevel = GlobalConfig.DebugLevel;
-//#if DEBUG        
 #if SUPPORTDEBUGLOGFILE // not defined
             string debugLogFile = GlobalConfig.DebugLogFile;
 
@@ -36,7 +34,7 @@ namespace System.DirectoryServices.AccountManagement
 
                 //
                 Debug.WriteLine(
-                            String.Format(
+                            string.Format(
                                 System.Globalization.CultureInfo.InvariantCulture,
                                 "Principal API Debug Log - AppDomain {0} with ID {1} - {2} (UTC)",
                                 System.Threading.Thread.GetDomain().FriendlyName,
@@ -46,39 +44,37 @@ namespace System.DirectoryServices.AccountManagement
 #endif
         }
 
-        static public bool Error
+        public static bool Error
         {
             get { return DebugLevel.Error >= GlobalDebug.s_debugLevel; }
         }
 
-        static public bool Warn
+        public static bool Warn
         {
             get { return DebugLevel.Warn >= GlobalDebug.s_debugLevel; }
         }
 
-        static public bool Info
+        public static bool Info
         {
             get { return DebugLevel.Info >= GlobalDebug.s_debugLevel; }
         }
 
-        [System.Security.SecuritySafeCritical]
         [ConditionalAttribute("DEBUG")]
-        static public void WriteLineIf(bool f, string category, string message, params object[] args)
+        public static void WriteLineIf(bool f, string category, string message, params object[] args)
         {
             message = "[" + SafeNativeMethods.GetCurrentThreadId().ToString("x", CultureInfo.InvariantCulture) + "] " + message;
 
             Debug.WriteLineIf(
                             f,
-                            String.Format(
+                            string.Format(
                                 CultureInfo.InvariantCulture,
                                 message,
                                 args),
                             category);
         }
 
-        [System.Security.SecuritySafeCritical]
         [ConditionalAttribute("DEBUG")]
-        static public void WriteLineIf(bool f, string category, string message)
+        public static void WriteLineIf(bool f, string category, string message)
         {
             message = "[" + SafeNativeMethods.GetCurrentThreadId().ToString("x", CultureInfo.InvariantCulture) + "] " + message;
 
@@ -88,6 +84,6 @@ namespace System.DirectoryServices.AccountManagement
                             category);
         }
 
-        private static DebugLevel s_debugLevel;
+        private static readonly DebugLevel s_debugLevel;
     }
 }

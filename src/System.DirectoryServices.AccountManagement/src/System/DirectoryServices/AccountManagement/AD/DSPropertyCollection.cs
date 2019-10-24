@@ -16,8 +16,8 @@ namespace System.DirectoryServices.AccountManagement
 {
     internal class dSPropertyCollection
     {
-        private PropertyCollection _pc;
-        private ResultPropertyCollection _rp;
+        private readonly PropertyCollection _pc;
+        private readonly ResultPropertyCollection _rp;
 
         private dSPropertyCollection() { }
         internal dSPropertyCollection(PropertyCollection pc) { _pc = pc; }
@@ -25,11 +25,10 @@ namespace System.DirectoryServices.AccountManagement
 
         public dSPropertyValueCollection this[string propertyName]
         {
-            [System.Security.SecurityCritical]
             get
             {
                 if (propertyName == null)
-                    throw new ArgumentNullException("propertyName");
+                    throw new ArgumentNullException(nameof(propertyName));
 
                 if (null != _pc)
                 {
@@ -45,8 +44,8 @@ namespace System.DirectoryServices.AccountManagement
 
     internal class dSPropertyValueCollection
     {
-        private PropertyValueCollection _pc;
-        private ResultPropertyValueCollection _rc;
+        private readonly PropertyValueCollection _pc;
+        private readonly ResultPropertyValueCollection _rc;
 
         private dSPropertyValueCollection() { }
         internal dSPropertyValueCollection(PropertyValueCollection pc) { _pc = pc; }
@@ -54,7 +53,6 @@ namespace System.DirectoryServices.AccountManagement
 
         public object this[int index]
         {
-            [System.Security.SecurityCritical]
             get
             {
                 if (_pc != null)

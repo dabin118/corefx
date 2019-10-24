@@ -4,22 +4,16 @@
 
 namespace System.ComponentModel.Design
 {
-    using System;
-    using System.ComponentModel;
-    using System.Diagnostics;
-    using System.Security.Permissions;
-    using System.Threading;
-
     /// <summary>
-    ///    <para>Specifies indentifiers for the standard set of commands that are available to
-    ///       most applications.</para>
+    /// Specifies identifiers for the standard set of commands that are available to
+    /// most applications.
     /// </summary>
     public class StandardCommands
     {
         // Note:
         //
-        // This class contains command ID's and GUIDS that correspond to the 
-        // Visual Studio Command Bar menu layout.  The data in this file is 
+        // This class contains command ID's and GUIDS that correspond to the
+        // Visual Studio Command Bar menu layout. The data in this file is
         // DEPENDENT upon constants in the following files:
         //
         //     %VSROOT%\src\common\inc\stdidcmd.h  - for standard shell defined icmds
@@ -27,386 +21,311 @@ namespace System.ComponentModel.Design
         //
 
         /// <summary>
-        ///     This guid corresponds to the standard set of commands for the shell and office.
+        /// This guid corresponds to the standard set of commands for the shell and office.
         /// </summary>
         private static readonly Guid s_standardCommandSet = ShellGuids.VSStandardCommandSet97;
 
         /// <summary>
-        ///     This guid corresponds to the Microsoft .NET Framework command set.  This is used for Verbs.  While these are not
-        ///     "standard" to VS and Office, they are to the Microsoft .NET Framework.
+        /// This guid corresponds to the Microsoft .NET Framework command set. This is used for Verbs. While these are not
+        /// "standard" to VS and Office, they are to the Microsoft .NET Framework.
         /// </summary>
         private static readonly Guid s_ndpCommandSet = new Guid("{74D21313-2AEE-11d1-8BFB-00A0C90F26F7}");
 
-        private const int cmdidDesignerVerbFirst = 0x2000;
-        private const int cmdidDesignerVerbLast = 0x2100;
+        private const int CmdidDesignerVerbFirst = 0x2000;
+        private const int CmdidDesignerVerbLast = 0x2100;
 
         // Component Tray Menu commands...
         /// <summary>
-        ///    <para>Gets the integer value of the arrange icons command. Read only.</para>
+        /// Gets the integer value of the arrange icons command. Read only.
         /// </summary>
         private const int cmdidArrangeIcons = 0x300a;
+
         /// <summary>
-        ///    <para>Gets the integer value of the line up icons command. Read only.</para>
+        /// Gets the integer value of the line up icons command. Read only.
         /// </summary>
         private const int cmdidLineupIcons = 0x300b;
+
         /// <summary>
-        ///    <para>Gets the integer value of the show large icons command. Read only.</para>
+        /// Gets the integer value of the show large icons command. Read only.
         /// </summary>
         private const int cmdidShowLargeIcons = 0x300c;
 
         /// <summary>
-        ///    <para>
-        ///       Gets the GUID/integer value pair for the AlignBottom command. Read only.
-        ///    </para>
+        /// Gets the GUID/integer value pair for the AlignBottom command. Read only.
         /// </summary>
         public static readonly CommandID AlignBottom = new CommandID(s_standardCommandSet, VSStandardCommands.cmdidAlignBottom);
+
         /// <summary>
-        ///    <para>
-        ///       Gets the GUID/integer value pair for the AlignHorizontalCenters command. Read
-        ///       only.
-        ///    </para>
+        /// Gets the GUID/integer value pair for the AlignHorizontalCenters command. Read
+        /// only.
         /// </summary>
         public static readonly CommandID AlignHorizontalCenters = new CommandID(s_standardCommandSet, VSStandardCommands.cmdidAlignHorizontalCenters);
+
         /// <summary>
-        ///    <para>
-        ///       Gets the GUID/integer value pair for the AlignLeft command. Read only.
-        ///    </para>
+        /// Gets the GUID/integer value pair for the AlignLeft command. Read only.
         /// </summary>
         public static readonly CommandID AlignLeft = new CommandID(s_standardCommandSet, VSStandardCommands.cmdidAlignLeft);
+
         /// <summary>
-        ///    <para>
-        ///       Gets the GUID/integer value pair for the AlignRight command. Read only.
-        ///    </para>
+        /// Gets the GUID/integer value pair for the AlignRight command. Read only.
         /// </summary>
         public static readonly CommandID AlignRight = new CommandID(s_standardCommandSet, VSStandardCommands.cmdidAlignRight);
+
         /// <summary>
-        ///    <para>
-        ///       Gets the GUID/integer value pair for the AlignToGrid command. Read only.
-        ///    </para>
+        /// Gets the GUID/integer value pair for the AlignToGrid command. Read only.
         /// </summary>
         public static readonly CommandID AlignToGrid = new CommandID(s_standardCommandSet, VSStandardCommands.cmdidAlignToGrid);
+
         /// <summary>
-        ///    <para>
-        ///       Gets the GUID/integer value pair for the AlignTop command. Read only.
-        ///    </para>
+        /// Gets the GUID/integer value pair for the AlignTop command. Read only.
         /// </summary>
         public static readonly CommandID AlignTop = new CommandID(s_standardCommandSet, VSStandardCommands.cmdidAlignTop);
+
         /// <summary>
-        ///    <para>
-        ///       Gets the GUID/integer value pair for the AlignVerticalCenters command. Read
-        ///       only.
-        ///    </para>
+        /// Gets the GUID/integer value pair for the AlignVerticalCenters command. Read only.
         /// </summary>
         public static readonly CommandID AlignVerticalCenters = new CommandID(s_standardCommandSet, VSStandardCommands.cmdidAlignVerticalCenters);
+
         /// <summary>
-        ///    <para>
-        ///       Gets the GUID/integer value pair for the ArrangeBottom command. Read
-        ///       only.
-        ///    </para>
+        /// Gets the GUID/integer value pair for the ArrangeBottom command. Read only.
         /// </summary>
         public static readonly CommandID ArrangeBottom = new CommandID(s_standardCommandSet, VSStandardCommands.cmdidArrangeBottom);
+
         /// <summary>
-        ///    <para>
-        ///       Gets the GUID/integer value pair for the ArrangeRight command. Read only.
-        ///    </para>
+        /// Gets the GUID/integer value pair for the ArrangeRight command. Read only.
         /// </summary>
         public static readonly CommandID ArrangeRight = new CommandID(s_standardCommandSet, VSStandardCommands.cmdidArrangeRight);
+
         /// <summary>
-        ///    <para>
-        ///       Gets the GUID/integer value pair for the BringForward command. Read only.
-        ///    </para>
+        /// Gets the GUID/integer value pair for the BringForward command. Read only.
         /// </summary>
         public static readonly CommandID BringForward = new CommandID(s_standardCommandSet, VSStandardCommands.cmdidBringForward);
+
         /// <summary>
-        ///    <para>
-        ///       Gets the GUID/integer value pair for the BringToFront command. Read only.
-        ///    </para>
+        /// Gets the GUID/integer value pair for the BringToFront command. Read only.
         /// </summary>
         public static readonly CommandID BringToFront = new CommandID(s_standardCommandSet, VSStandardCommands.cmdidBringToFront);
+
         /// <summary>
-        ///    <para>
-        ///       Gets the GUID/integer value pair for the CenterHorizontally command. Read
-        ///       only.
-        ///    </para>
+        /// Gets the GUID/integer value pair for the CenterHorizontally command. Read only.
         /// </summary>
         public static readonly CommandID CenterHorizontally = new CommandID(s_standardCommandSet, VSStandardCommands.cmdidCenterHorizontally);
+
         /// <summary>
-        ///    <para>
-        ///       Gets the GUID/integer value pair for the CenterVertically command. Read
-        ///       only.
-        ///    </para>
+        /// Gets the GUID/integer value pair for the CenterVertically command. Read only.
         /// </summary>
         public static readonly CommandID CenterVertically = new CommandID(s_standardCommandSet, VSStandardCommands.cmdidCenterVertically);
+
         /// <summary>
-        ///    <para>
-        ///       Gets the GUID/integer value pair for the Code command. Read only.
-        ///    </para>
+        /// Gets the GUID/integer value pair for the Code command. Read only.
         /// </summary>
         public static readonly CommandID ViewCode = new CommandID(s_standardCommandSet, VSStandardCommands.cmdidViewCode);
+
         /// <summary>
-        ///    <para>
-        ///       Gets the GUID/integer value pair for the DocumentOutline command. Read only.
-        ///    </para>
+        /// Gets the GUID/integer value pair for the DocumentOutline command. Read only.
         /// </summary>
         public static readonly CommandID DocumentOutline = new CommandID(s_standardCommandSet, VSStandardCommands.cmdidDocOutlineWindow);
+
         /// <summary>
-        ///    <para>
-        ///       Gets the GUID/integer value pair for the Copy command. Read only.
-        ///    </para>
+        /// Gets the GUID/integer value pair for the Copy command. Read only.
         /// </summary>
         public static readonly CommandID Copy = new CommandID(s_standardCommandSet, VSStandardCommands.cmdidCopy);
+
         /// <summary>
-        ///    <para>
-        ///       Gets the GUID/integer value pair for the Cut command. Read only.
-        ///    </para>
+        /// Gets the GUID/integer value pair for the Cut command. Read only.
         /// </summary>
         public static readonly CommandID Cut = new CommandID(s_standardCommandSet, VSStandardCommands.cmdidCut);
+
         /// <summary>
-        ///    <para>
-        ///       Gets the GUID/integer value pair for the Delete command. Read only.
-        ///    </para>
+        /// Gets the GUID/integer value pair for the Delete command. Read only.
         /// </summary>
         public static readonly CommandID Delete = new CommandID(s_standardCommandSet, VSStandardCommands.cmdidDelete);
+
         /// <summary>
-        ///    <para>
-        ///       Gets the GUID/integer value pair for the Group command. Read only.
-        ///    </para>
+        /// Gets the GUID/integer value pair for the Group command. Read only.
         /// </summary>
         public static readonly CommandID Group = new CommandID(s_standardCommandSet, VSStandardCommands.cmdidGroup);
+
         /// <summary>
-        ///    <para>
-        ///       Gets the GUID/integer value pair for the HorizSpaceConcatenate command. Read
-        ///       only.
-        ///    </para>
+        /// Gets the GUID/integer value pair for the HorizSpaceConcatenate command. Read only.
         /// </summary>
         public static readonly CommandID HorizSpaceConcatenate = new CommandID(s_standardCommandSet, VSStandardCommands.cmdidHorizSpaceConcatenate);
+
         /// <summary>
-        ///    <para>
-        ///       Gets the GUID/integer value pair for the HorizSpaceDecrease command. Read
-        ///       only.
-        ///    </para>
+        /// Gets the GUID/integer value pair for the HorizSpaceDecrease command. Read only.
         /// </summary>
         public static readonly CommandID HorizSpaceDecrease = new CommandID(s_standardCommandSet, VSStandardCommands.cmdidHorizSpaceDecrease);
+
         /// <summary>
-        ///    <para>
-        ///       Gets the GUID/integer value pair for the HorizSpaceIncrease command. Read
-        ///       only.
-        ///    </para>
+        /// Gets the GUID/integer value pair for the HorizSpaceIncrease command. Read only.
         /// </summary>
         public static readonly CommandID HorizSpaceIncrease = new CommandID(s_standardCommandSet, VSStandardCommands.cmdidHorizSpaceIncrease);
+
         /// <summary>
-        ///    <para>
-        ///       Gets the GUID/integer value pair for the HorizSpaceMakeEqual command. Read
-        ///       only.
-        ///    </para>
+        /// Gets the GUID/integer value pair for the HorizSpaceMakeEqual command. Read only.
         /// </summary>
+
         public static readonly CommandID HorizSpaceMakeEqual = new CommandID(s_standardCommandSet, VSStandardCommands.cmdidHorizSpaceMakeEqual);
         /// <summary>
-        ///    <para>
-        ///       Gets the GUID/integer value pair for the Paste command. Read only.
-        ///    </para>
+        /// Gets the GUID/integer value pair for the Paste command. Read only.
         /// </summary>
         public static readonly CommandID Paste = new CommandID(s_standardCommandSet, VSStandardCommands.cmdidPaste);
+
         /// <summary>
-        ///    <para>
-        ///       Gets the GUID/integer value pair for the Properties command. Read only.
-        ///    </para>
+        /// Gets the GUID/integer value pair for the Properties command. Read only.
         /// </summary>
         public static readonly CommandID Properties = new CommandID(s_standardCommandSet, VSStandardCommands.cmdidProperties);
+
         /// <summary>
-        ///    <para>
-        ///       Gets the GUID/integer value pair for the Redo command. Read only.
-        ///    </para>
+        /// Gets the GUID/integer value pair for the Redo command. Read only.
         /// </summary>
         public static readonly CommandID Redo = new CommandID(s_standardCommandSet, VSStandardCommands.cmdidRedo);
+
         /// <summary>
-        ///    <para>
-        ///       Gets the GUID/integer value pair for the MultiLevelRedo command. Read
-        ///       only.
-        ///    </para>
+        /// Gets the GUID/integer value pair for the MultiLevelRedo command. Read only.
         /// </summary>
         public static readonly CommandID MultiLevelRedo = new CommandID(s_standardCommandSet, VSStandardCommands.cmdidMultiLevelRedo);
+
         /// <summary>
-        ///    <para>
-        ///       Gets the GUID/integer value pair for the SelectAll command. Read only.
-        ///    </para>
+        /// Gets the GUID/integer value pair for the SelectAll command. Read only.
         /// </summary>
         public static readonly CommandID SelectAll = new CommandID(s_standardCommandSet, VSStandardCommands.cmdidSelectAll);
+
         /// <summary>
-        ///    <para>
-        ///       Gets the GUID/integer value pair for the SendBackward command. Read only.
-        ///    </para>
+        /// Gets the GUID/integer value pair for the SendBackward command. Read only.
         /// </summary>
         public static readonly CommandID SendBackward = new CommandID(s_standardCommandSet, VSStandardCommands.cmdidSendBackward);
+
         /// <summary>
-        ///    <para>
-        ///       Gets the GUID/integer value pair for the SendToBack command. Read only.
-        ///    </para>
+        /// Gets the GUID/integer value pair for the SendToBack command. Read only.
         /// </summary>
         public static readonly CommandID SendToBack = new CommandID(s_standardCommandSet, VSStandardCommands.cmdidSendToBack);
+
         /// <summary>
-        ///    <para>
-        ///       Gets the GUID/integer value pair for the SizeToControl command. Read
-        ///       only.
-        ///    </para>
+        /// Gets the GUID/integer value pair for the SizeToControl command. Read only.
         /// </summary>
         public static readonly CommandID SizeToControl = new CommandID(s_standardCommandSet, VSStandardCommands.cmdidSizeToControl);
+
         /// <summary>
-        ///    <para>
-        ///       Gets the GUID/integer value pair for the SizeToControlHeight command. Read
-        ///       only.
-        ///    </para>
+        /// Gets the GUID/integer value pair for the SizeToControlHeight command. Read only.
         /// </summary>
         public static readonly CommandID SizeToControlHeight = new CommandID(s_standardCommandSet, VSStandardCommands.cmdidSizeToControlHeight);
+
         /// <summary>
-        ///    <para>
-        ///       Gets the GUID/integer value pair for the SizeToControlWidth command. Read
-        ///       only.
-        ///    </para>
+        /// Gets the GUID/integer value pair for the SizeToControlWidth command. Read only.
         /// </summary>
         public static readonly CommandID SizeToControlWidth = new CommandID(s_standardCommandSet, VSStandardCommands.cmdidSizeToControlWidth);
+
         /// <summary>
-        ///    <para>
-        ///       Gets the GUID/integer value pair for the SizeToFit command. Read only.
-        ///    </para>
+        /// Gets the GUID/integer value pair for the SizeToFit command. Read only.
         /// </summary>
         public static readonly CommandID SizeToFit = new CommandID(s_standardCommandSet, VSStandardCommands.cmdidSizeToFit);
+
         /// <summary>
-        ///    <para>
-        ///       Gets the GUID/integer value pair for the SizeToGrid command. Read only.
-        ///    </para>
+        /// Gets the GUID/integer value pair for the SizeToGrid command. Read only.
         /// </summary>
         public static readonly CommandID SizeToGrid = new CommandID(s_standardCommandSet, VSStandardCommands.cmdidSizeToGrid);
+
         /// <summary>
-        ///    <para>
-        ///       Gets the GUID/integer value pair for the SnapToGrid command. Read only.
-        ///    </para>
+        /// Gets the GUID/integer value pair for the SnapToGrid command. Read only.
         /// </summary>
         public static readonly CommandID SnapToGrid = new CommandID(s_standardCommandSet, VSStandardCommands.cmdidSnapToGrid);
+
         /// <summary>
-        ///    <para>
-        ///       Gets the GUID/integer value pair for the TabOrder command. Read only.
-        ///    </para>
+        /// Gets the GUID/integer value pair for the TabOrder command. Read only.
         /// </summary>
         public static readonly CommandID TabOrder = new CommandID(s_standardCommandSet, VSStandardCommands.cmdidTabOrder);
+
         /// <summary>
-        ///    <para>
-        ///       Gets the GUID/integer value pair for the Undo command. Read only.
-        ///    </para>
+        /// Gets the GUID/integer value pair for the Undo command. Read only.
         /// </summary>
         public static readonly CommandID Undo = new CommandID(s_standardCommandSet, VSStandardCommands.cmdidUndo);
+
         /// <summary>
-        ///    <para>
-        ///       Gets the GUID/integer value pair for the MultiLevelUndo command. Read
-        ///       only.
-        ///    </para>
+        /// Gets the GUID/integer value pair for the MultiLevelUndo command. Read only.
         /// </summary>
         public static readonly CommandID MultiLevelUndo = new CommandID(s_standardCommandSet, VSStandardCommands.cmdidMultiLevelUndo);
+
         /// <summary>
-        ///    <para>
-        ///       Gets the GUID/integer value pair for the Ungroup command. Read only.
-        ///    </para>
+        /// Gets the GUID/integer value pair for the Ungroup command. Read only.
         /// </summary>
         public static readonly CommandID Ungroup = new CommandID(s_standardCommandSet, VSStandardCommands.cmdidUngroup);
+
         /// <summary>
-        ///    <para>
-        ///       Gets the GUID/integer value pair for the VertSpaceConcatenate command. Read
-        ///       only.
-        ///    </para>
+        /// Gets the GUID/integer value pair for the VertSpaceConcatenate command. Read only.
         /// </summary>
         public static readonly CommandID VertSpaceConcatenate = new CommandID(s_standardCommandSet, VSStandardCommands.cmdidVertSpaceConcatenate);
+
         /// <summary>
-        ///    <para>
-        ///       Gets the GUID/integer value pair for the VertSpaceDecrease command. Read
-        ///       only.
-        ///    </para>
+        /// Gets the GUID/integer value pair for the VertSpaceDecrease command. Read only.
         /// </summary>
         public static readonly CommandID VertSpaceDecrease = new CommandID(s_standardCommandSet, VSStandardCommands.cmdidVertSpaceDecrease);
+
         /// <summary>
-        ///    <para>
-        ///       Gets the GUID/integer value pair for the VertSpaceIncrease command. Read
-        ///       only.
-        ///    </para>
+        /// Gets the GUID/integer value pair for the VertSpaceIncrease command. Read only.
         /// </summary>
         public static readonly CommandID VertSpaceIncrease = new CommandID(s_standardCommandSet, VSStandardCommands.cmdidVertSpaceIncrease);
+
         /// <summary>
-        ///    <para>
-        ///       Gets the GUID/integer value pair for the VertSpaceMakeEqual command. Read
-        ///       only.
-        ///    </para>
+        /// Gets the GUID/integer value pair for the VertSpaceMakeEqual command. Read only.
         /// </summary>
         public static readonly CommandID VertSpaceMakeEqual = new CommandID(s_standardCommandSet, VSStandardCommands.cmdidVertSpaceMakeEqual);
+
         /// <summary>
-        ///    <para>
-        ///       Gets the GUID/integer value pair for the ShowGrid command. Read only.
-        ///    </para>
+        /// Gets the GUID/integer value pair for the ShowGrid command. Read only.
         /// </summary>
         public static readonly CommandID ShowGrid = new CommandID(s_standardCommandSet, VSStandardCommands.cmdidShowGrid);
+
         /// <summary>
-        ///    <para>
-        ///       Gets the GUID/integer value pair for the ViewGrid command. Read only.
-        ///    </para>
+        /// Gets the GUID/integer value pair for the ViewGrid command. Read only.
         /// </summary>
         public static readonly CommandID ViewGrid = new CommandID(s_standardCommandSet, VSStandardCommands.cmdidViewGrid);
+
         /// <summary>
-        ///    <para>
-        ///       Gets the GUID/integer value pair for the Replace command. Read only.
-        ///    </para>
+        /// Gets the GUID/integer value pair for the Replace command. Read only.
         /// </summary>
         public static readonly CommandID Replace = new CommandID(s_standardCommandSet, VSStandardCommands.cmdidReplace);
+
         /// <summary>
-        ///    <para>
-        ///       Gets the GUID/integer value pair for the PropertiesWindow command. Read
-        ///       only.
-        ///    </para>
+        /// Gets the GUID/integer value pair for the PropertiesWindow command. Read only.
         /// </summary>
         public static readonly CommandID PropertiesWindow = new CommandID(s_standardCommandSet, VSStandardCommands.cmdidPropertiesWindow);
+
         /// <summary>
-        ///    <para>
-        ///       Gets the GUID/integer value pair for the LockControls command. Read only.
-        ///    </para>
+        /// Gets the GUID/integer value pair for the LockControls command. Read only.
         /// </summary>
         public static readonly CommandID LockControls = new CommandID(s_standardCommandSet, VSStandardCommands.cmdidLockControls);
+
         /// <summary>
-        ///    <para>
-        ///       Gets the GUID/integer value pair for the F1Help command. Read only.
-        ///    </para>
+        /// Gets the GUID/integer value pair for the F1Help command. Read only.
         /// </summary>
         public static readonly CommandID F1Help = new CommandID(s_standardCommandSet, VSStandardCommands.cmdidF1Help);
 
         // Component Tray Menu commands...
         /// <summary>
-        ///    <para>
-        ///       Gets the GUID/integer value pair for the ArrangeIcons command. Read only.
-        ///    </para>
+        /// Gets the GUID/integer value pair for the ArrangeIcons command. Read only.
         /// </summary>
         public static readonly CommandID ArrangeIcons = new CommandID(s_ndpCommandSet, cmdidArrangeIcons);
+
         /// <summary>
-        ///    <para>
-        ///       Gets the GUID/integer value pair for the LineupIcons command. Read only.
-        ///    </para>
+        /// Gets the GUID/integer value pair for the LineupIcons command. Read only.
         /// </summary>
         public static readonly CommandID LineupIcons = new CommandID(s_ndpCommandSet, cmdidLineupIcons);
+
         /// <summary>
-        ///    <para>
-        ///       Gets the GUID/integer value pair for the ShowLargeIcons command. Read
-        ///       only.
-        ///    </para>
+        /// Gets the GUID/integer value pair for the ShowLargeIcons command. Read only.
         /// </summary>
         public static readonly CommandID ShowLargeIcons = new CommandID(s_ndpCommandSet, cmdidShowLargeIcons);
 
         /// <summary>
-        ///    <para> Gets the first of a set of verbs.
-        ///       Read only.</para>
+        /// Gets the first of a set of verbs. Read only.
         /// </summary>
-        public static readonly CommandID VerbFirst = new CommandID(s_ndpCommandSet, cmdidDesignerVerbFirst);
+        public static readonly CommandID VerbFirst = new CommandID(s_ndpCommandSet, CmdidDesignerVerbFirst);
 
         /// <summary>
-        ///    <para> Gets the last of a set of verbs.
-        ///       Read only.</para>
+        /// Gets the last of a set of verbs.Read only.
         /// </summary>
-        public static readonly CommandID VerbLast = new CommandID(s_ndpCommandSet, cmdidDesignerVerbLast);
-
+        public static readonly CommandID VerbLast = new CommandID(s_ndpCommandSet, CmdidDesignerVerbLast);
 
         private static class VSStandardCommands
         {
@@ -567,7 +486,7 @@ namespace System.ComponentModel.Design
             internal const int cmdidObjectVerbList6 = 143;
             internal const int cmdidObjectVerbList7 = 144;
             internal const int cmdidObjectVerbList8 = 145;
-            internal const int cmdidObjectVerbList9 = 146;// Unused on purpose!
+            internal const int cmdidObjectVerbList9 = 146; // Unused on purpose!
 
             internal const int cmdidConvertObject = 147;
             internal const int cmdidCustomControl = 148;
@@ -596,49 +515,49 @@ namespace System.ComponentModel.Design
             internal const int cmdidRemove = 168;
             internal const int cmdidJoinLeftAll = 169;
             internal const int cmdidJoinRightAll = 170;
-            internal const int cmdidAddToOutput = 171;// Add selected fields to query output
-            internal const int cmdidOtherQuery = 172;// change query type to 'other'
+            internal const int cmdidAddToOutput = 171; // Add selected fields to query output
+            internal const int cmdidOtherQuery = 172; // change query type to 'other'
             internal const int cmdidGenerateChangeScript = 173;
-            internal const int cmdidSaveSelection = 174;// Save current selection
-            internal const int cmdidAutojoinCurrent = 175;// Autojoin current tables
-            internal const int cmdidAutojoinAlways = 176;// Toggle Autojoin state
-            internal const int cmdidEditPage = 177;// Launch editor for url
-            internal const int cmdidViewLinks = 178;// Launch new webscope for url
-            internal const int cmdidStop = 179;// Stope webscope rendering
-            internal const int cmdidPause = 180;// Pause webscope rendering
-            internal const int cmdidResume = 181;// Resume webscope rendering
-            internal const int cmdidFilterDiagram = 182;// Filter webscope diagram
-            internal const int cmdidShowAllObjects = 183;// Show All objects in webscope diagram
-            internal const int cmdidShowApplications = 184;// Show Application objects in webscope diagram
-            internal const int cmdidShowOtherObjects = 185;// Show other objects in webscope diagram
-            internal const int cmdidShowPrimRelationships = 186;// Show primary relationships
-            internal const int cmdidExpand = 187;// Expand links
-            internal const int cmdidCollapse = 188;// Collapse links
-            internal const int cmdidRefresh = 189;// Refresh Webscope diagram
-            internal const int cmdidLayout = 190;// Layout websope diagram
-            internal const int cmdidShowResources = 191;// Show resouce objects in webscope diagram
-            internal const int cmdidInsertHTMLWizard = 192;// Insert HTML using a Wizard
-            internal const int cmdidShowDownloads = 193;// Show download objects in webscope diagram
-            internal const int cmdidShowExternals = 194;// Show external objects in webscope diagram
-            internal const int cmdidShowInBoundLinks = 195;// Show inbound links in webscope diagram
-            internal const int cmdidShowOutBoundLinks = 196;// Show out bound links in webscope diagram
-            internal const int cmdidShowInAndOutBoundLinks = 197;// Show in and out bound links in webscope diagram
-            internal const int cmdidPreview = 198;// Preview page
-            internal const int cmdidOpen = 261;// Open
-            internal const int cmdidOpenWith = 199;// Open with
-            internal const int cmdidShowPages = 200;// Show HTML pages
-            internal const int cmdidRunQuery = 201;// Runs a query
-            internal const int cmdidClearQuery = 202;// Clears the query's associated cursor
-            internal const int cmdidRecordFirst = 203;// Go to first record in set
-            internal const int cmdidRecordLast = 204;// Go to last record in set
-            internal const int cmdidRecordNext = 205;// Go to next record in set
-            internal const int cmdidRecordPrevious = 206;// Go to previous record in set
-            internal const int cmdidRecordGoto = 207;// Go to record via dialog
-            internal const int cmdidRecordNew = 208;// Add a record to set
+            internal const int cmdidSaveSelection = 174; // Save current selection
+            internal const int cmdidAutojoinCurrent = 175; // Autojoin current tables
+            internal const int cmdidAutojoinAlways = 176; // Toggle Autojoin state
+            internal const int cmdidEditPage = 177; // Launch editor for url
+            internal const int cmdidViewLinks = 178; // Launch new webscope for url
+            internal const int cmdidStop = 179; // Stope webscope rendering
+            internal const int cmdidPause = 180; // Pause webscope rendering
+            internal const int cmdidResume = 181; // Resume webscope rendering
+            internal const int cmdidFilterDiagram = 182; // Filter webscope diagram
+            internal const int cmdidShowAllObjects = 183; // Show All objects in webscope diagram
+            internal const int cmdidShowApplications = 184; // Show Application objects in webscope diagram
+            internal const int cmdidShowOtherObjects = 185; // Show other objects in webscope diagram
+            internal const int cmdidShowPrimRelationships = 186; // Show primary relationships
+            internal const int cmdidExpand = 187; // Expand links
+            internal const int cmdidCollapse = 188; // Collapse links
+            internal const int cmdidRefresh = 189; // Refresh Webscope diagram
+            internal const int cmdidLayout = 190; // Layout websope diagram
+            internal const int cmdidShowResources = 191; // Show resouce objects in webscope diagram
+            internal const int cmdidInsertHTMLWizard = 192; // Insert HTML using a Wizard
+            internal const int cmdidShowDownloads = 193; // Show download objects in webscope diagram
+            internal const int cmdidShowExternals = 194; // Show external objects in webscope diagram
+            internal const int cmdidShowInBoundLinks = 195; // Show inbound links in webscope diagram
+            internal const int cmdidShowOutBoundLinks = 196; // Show out bound links in webscope diagram
+            internal const int cmdidShowInAndOutBoundLinks = 197; // Show in and out bound links in webscope diagram
+            internal const int cmdidPreview = 198; // Preview page
+            internal const int cmdidOpen = 261; // Open
+            internal const int cmdidOpenWith = 199; // Open with
+            internal const int cmdidShowPages = 200; // Show HTML pages
+            internal const int cmdidRunQuery = 201; // Runs a query
+            internal const int cmdidClearQuery = 202; // Clears the query's associated cursor
+            internal const int cmdidRecordFirst = 203; // Go to first record in set
+            internal const int cmdidRecordLast = 204; // Go to last record in set
+            internal const int cmdidRecordNext = 205; // Go to next record in set
+            internal const int cmdidRecordPrevious = 206; // Go to previous record in set
+            internal const int cmdidRecordGoto = 207; // Go to record via dialog
+            internal const int cmdidRecordNew = 208; // Add a record to set
 
-            internal const int cmdidInsertNewMenu = 209;// menu designer
-            internal const int cmdidInsertSeparator = 210;// menu designer
-            internal const int cmdidEditMenuNames = 211;// menu designer
+            internal const int cmdidInsertNewMenu = 209; // menu designer
+            internal const int cmdidInsertSeparator = 210; // menu designer
+            internal const int cmdidEditMenuNames = 211; // menu designer
 
             internal const int cmdidDebugExplorer = 212;
             internal const int cmdidDebugProcesses = 213;
@@ -750,7 +669,7 @@ namespace System.ComponentModel.Design
             internal const int cmdidDockingViewFloater = 291;
             internal const int cmdidAutoHideWindow = 292;
             internal const int cmdidMoveToDropdownBar = 293;
-            internal const int cmdidFindCmd = 294;// internal Find commands
+            internal const int cmdidFindCmd = 294; // internal Find commands
             internal const int cmdidStart = 295;
             internal const int cmdidRestart = 296;
 
@@ -835,8 +754,8 @@ namespace System.ComponentModel.Design
             internal const int cmdidFindHelp = 356;
             internal const int cmdidFindInFiles = 277;
             internal const int cmdidReplaceInFiles = 278;
-            internal const int cmdidNextLocation = 279;// next item in task list, find in files results, etc.
-            internal const int cmdidPreviousLocation = 280;// prev item "
+            internal const int cmdidNextLocation = 279; // next item in task list, find in files results, etc.
+            internal const int cmdidPreviousLocation = 280; // prev item "
 
             internal const int cmdidTaskListNextError = 357;
             internal const int cmdidTaskListPrevError = 358;
@@ -880,7 +799,7 @@ namespace System.ComponentModel.Design
             internal const int cmdidMarkerCmd8 = 408;
             internal const int cmdidMarkerCmd9 = 409;
             internal const int cmdidMarkerLast = 409;
-            internal const int cmdidMarkerEnd = 410;// list terminator reserved
+            internal const int cmdidMarkerEnd = 410; // list terminator reserved
 
             // user-invoked project reload and unload
             internal const int cmdidReloadProject = 412;
@@ -929,7 +848,7 @@ namespace System.ComponentModel.Design
             internal const int cmdidWindow22 = 591;
             internal const int cmdidWindow23 = 592;
             internal const int cmdidWindow24 = 593;
-            internal const int cmdidWindow25 = 594;// note cmdidWindow25 is unused on purpose!
+            internal const int cmdidWindow25 = 594; // note cmdidWindow25 is unused on purpose!
             internal const int cmdidMoreWindows = 595;
 
             //internal const int    = 597;//UNUSED
@@ -961,7 +880,7 @@ namespace System.ComponentModel.Design
             internal const int cmdidMRUProj22 = 621;
             internal const int cmdidMRUProj23 = 622;
             internal const int cmdidMRUProj24 = 623;
-            internal const int cmdidMRUProj25 = 624;// note cmdidMRUProj25 is unused on purpose!
+            internal const int cmdidMRUProj25 = 624; // note cmdidMRUProj25 is unused on purpose!
 
             internal const int cmdidSplitNext = 625;
             internal const int cmdidSplitPrev = 626;
@@ -970,8 +889,8 @@ namespace System.ComponentModel.Design
             internal const int cmdidNextDocument = 628;
             internal const int cmdidPrevDocument = 629;
 
-            internal const int cmdidTool1 = 630;// note cmdidTool1 - cmdidTool24 must be
-            internal const int cmdidTool2 = 631;// consecutive
+            internal const int cmdidTool1 = 630; // note cmdidTool1 - cmdidTool24 must be
+            internal const int cmdidTool2 = 631; // consecutive
             internal const int cmdidTool3 = 632;
             internal const int cmdidTool4 = 633;
             internal const int cmdidTool5 = 634;
@@ -1002,30 +921,30 @@ namespace System.ComponentModel.Design
             internal const int cmdidCloseDocument = 658;
             internal const int cmdidToolboxSortItems = 659;
 
-            internal const int cmdidViewBarView1 = 660;//UNUSED
-            internal const int cmdidViewBarView2 = 661;//UNUSED
-            internal const int cmdidViewBarView3 = 662;//UNUSED
-            internal const int cmdidViewBarView4 = 663;//UNUSED
-            internal const int cmdidViewBarView5 = 664;//UNUSED
-            internal const int cmdidViewBarView6 = 665;//UNUSED
-            internal const int cmdidViewBarView7 = 666;//UNUSED
-            internal const int cmdidViewBarView8 = 667;//UNUSED
-            internal const int cmdidViewBarView9 = 668;//UNUSED
-            internal const int cmdidViewBarView10 = 669;//UNUSED
-            internal const int cmdidViewBarView11 = 670;//UNUSED
-            internal const int cmdidViewBarView12 = 671;//UNUSED
-            internal const int cmdidViewBarView13 = 672;//UNUSED
-            internal const int cmdidViewBarView14 = 673;//UNUSED
-            internal const int cmdidViewBarView15 = 674;//UNUSED
-            internal const int cmdidViewBarView16 = 675;//UNUSED
-            internal const int cmdidViewBarView17 = 676;//UNUSED
-            internal const int cmdidViewBarView18 = 677;//UNUSED
-            internal const int cmdidViewBarView19 = 678;//UNUSED
-            internal const int cmdidViewBarView20 = 679;//UNUSED
-            internal const int cmdidViewBarView21 = 680;//UNUSED
-            internal const int cmdidViewBarView22 = 681;//UNUSED
-            internal const int cmdidViewBarView23 = 682;//UNUSED
-            internal const int cmdidViewBarView24 = 683;//UNUSED
+            internal const int cmdidViewBarView1 = 660; //UNUSED
+            internal const int cmdidViewBarView2 = 661; //UNUSED
+            internal const int cmdidViewBarView3 = 662; //UNUSED
+            internal const int cmdidViewBarView4 = 663; //UNUSED
+            internal const int cmdidViewBarView5 = 664; //UNUSED
+            internal const int cmdidViewBarView6 = 665; //UNUSED
+            internal const int cmdidViewBarView7 = 666; //UNUSED
+            internal const int cmdidViewBarView8 = 667; //UNUSED
+            internal const int cmdidViewBarView9 = 668; //UNUSED
+            internal const int cmdidViewBarView10 = 669; //UNUSED
+            internal const int cmdidViewBarView11 = 670; //UNUSED
+            internal const int cmdidViewBarView12 = 671; //UNUSED
+            internal const int cmdidViewBarView13 = 672; //UNUSED
+            internal const int cmdidViewBarView14 = 673; //UNUSED
+            internal const int cmdidViewBarView15 = 674; //UNUSED
+            internal const int cmdidViewBarView16 = 675; //UNUSED
+            internal const int cmdidViewBarView17 = 676; //UNUSED
+            internal const int cmdidViewBarView18 = 677; //UNUSED
+            internal const int cmdidViewBarView19 = 678; //UNUSED
+            internal const int cmdidViewBarView20 = 679; //UNUSED
+            internal const int cmdidViewBarView21 = 680; //UNUSED
+            internal const int cmdidViewBarView22 = 681; //UNUSED
+            internal const int cmdidViewBarView23 = 682; //UNUSED
+            internal const int cmdidViewBarView24 = 683; //UNUSED
 
             internal const int cmdidSolutionCfg = 684;
             internal const int cmdidSolutionCfgGetList = 685;
@@ -1087,7 +1006,7 @@ namespace System.ComponentModel.Design
             internal const int cmdidTaskListCustomView47 = 724;
             internal const int cmdidTaskListCustomView48 = 725;
             internal const int cmdidTaskListCustomView49 = 726;
-            internal const int cmdidTaskListCustomView50 = 727;//not used on purpose, ends the list
+            internal const int cmdidTaskListCustomView50 = 727; //not used on purpose, ends the list
 
             internal const int cmdidObjectSearch = 728;
 
@@ -1140,7 +1059,7 @@ namespace System.ComponentModel.Design
             internal const int cmdidTaggedExp8 = 767;
             internal const int cmdidTaggedExp9 = 768;
 
-            internal const int cmdidEditorWidgetClick = 769;// param    = 0;is the moniker as VT_BSTR, param    = 1;is the buffer line as VT_I4, and param    = 2;is the buffer index as VT_I4
+            internal const int cmdidEditorWidgetClick = 769; // param    = 0;is the moniker as VT_BSTR, param    = 1;is the buffer line as VT_I4, and param    = 2;is the buffer index as VT_I4
             internal const int cmdidCmdWinUpdateAC = 770;
 
             internal const int cmdidSlnCfgMgr = 771;
@@ -1182,7 +1101,7 @@ namespace System.ComponentModel.Design
             internal const int cmdidAutoHideContext30 = 805;
             internal const int cmdidAutoHideContext31 = 806;
             internal const int cmdidAutoHideContext32 = 807;
-            internal const int cmdidAutoHideContext33 = 808;// must remain unused
+            internal const int cmdidAutoHideContext33 = 808; // must remain unused
 
             internal const int cmdidShellNavBackward = 809;
             internal const int cmdidShellNavForward = 810;
@@ -1219,7 +1138,7 @@ namespace System.ComponentModel.Design
             internal const int cmdidShellNavigate30 = 840;
             internal const int cmdidShellNavigate31 = 841;
             internal const int cmdidShellNavigate32 = 842;
-            internal const int cmdidShellNavigate33 = 843;// must remain unused
+            internal const int cmdidShellNavigate33 = 843; // must remain unused
 
             internal const int cmdidShellWindowNavigate1 = 844;
             internal const int cmdidShellWindowNavigate2 = 845;
@@ -1253,7 +1172,7 @@ namespace System.ComponentModel.Design
             internal const int cmdidShellWindowNavigate30 = 873;
             internal const int cmdidShellWindowNavigate31 = 874;
             internal const int cmdidShellWindowNavigate32 = 875;
-            internal const int cmdidShellWindowNavigate33 = 876;// must remain unused
+            internal const int cmdidShellWindowNavigate33 = 876; // must remain unused
 
             // ObjectSearch cmds
             internal const int cmdidOBSDoFind = 877;
@@ -1307,7 +1226,7 @@ namespace System.ComponentModel.Design
             internal const int cmdidMRUFile22 = 921;
             internal const int cmdidMRUFile23 = 922;
             internal const int cmdidMRUFile24 = 923;
-            internal const int cmdidMRUFile25 = 924;// note cmdidMRUFile25 is unused on purpose!
+            internal const int cmdidMRUFile25 = 924; // note cmdidMRUFile25 is unused on purpose!
 
             // Object Browsing & ClassView cmds
             // Shared shell cmds (for accessing Object Browsing functionality)
@@ -1331,7 +1250,7 @@ namespace System.ComponentModel.Design
             internal const int cmdidCVShowPackages = 953;
             internal const int cmdidQryManageIndexes = 954;
             internal const int cmdidBrowseComponent = 955;
-            internal const int cmdidPrintDefault = 956;// quick print
+            internal const int cmdidPrintDefault = 956; // quick print
 
             internal const int cmdidBrowseDoc = 957;
 
@@ -1342,7 +1261,7 @@ namespace System.ComponentModel.Design
             // if you are adding shell commands.
             //
             // If you are not adding shell commands,
-            // you shouldn't be doing it in this file! 
+            // you shouldn't be doing it in this file!
             //
             ///////////////////////////////////////////
 
@@ -1435,4 +1354,3 @@ namespace System.ComponentModel.Design
         }
     }
 }
-

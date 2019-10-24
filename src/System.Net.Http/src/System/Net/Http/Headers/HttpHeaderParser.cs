@@ -4,19 +4,15 @@
 
 using System.Collections;
 using System.Diagnostics;
-using System.Diagnostics.Contracts;
 
 namespace System.Net.Http.Headers
 {
-#if DEBUG
-    [ContractClass(typeof(HttpHeaderParserContract))]
-#endif
     internal abstract class HttpHeaderParser
     {
         internal const string DefaultSeparator = ", ";
 
-        private bool _supportsMultipleValues;
-        private string _separator;
+        private readonly bool _supportsMultipleValues;
+        private readonly string _separator;
 
         public bool SupportsMultipleValues
         {
@@ -74,15 +70,15 @@ namespace System.Net.Http.Headers
             object result = null;
             if (!TryParseValue(value, storeValue, ref index, out result))
             {
-                throw new FormatException(string.Format(System.Globalization.CultureInfo.InvariantCulture, SR.net_http_headers_invalid_value,
+                throw new FormatException(SR.Format(System.Globalization.CultureInfo.InvariantCulture, SR.net_http_headers_invalid_value,
                     value == null ? "<null>" : value.Substring(index)));
             }
             return result;
         }
 
         // If ValueType is a custom header value type (e.g. NameValueHeaderValue) it already implements ToString() correctly.
-        // However for existing types like int, byte[], DateTimeOffset we can't override ToString(). Therefore the 
-        // parser provides a ToString() virtual method that can be overridden by derived types to correctly serialize 
+        // However for existing types like int, byte[], DateTimeOffset we can't override ToString(). Therefore the
+        // parser provides a ToString() virtual method that can be overridden by derived types to correctly serialize
         // values (e.g. byte[] to Base64 encoded string).
         public virtual string ToString(object value)
         {
@@ -91,25 +87,4 @@ namespace System.Net.Http.Headers
             return value.ToString();
         }
     }
-
-#if DEBUG
-    [ContractClassFor(typeof(HttpHeaderParser))]
-    internal abstract class HttpHeaderParserContract : HttpHeaderParser
-    {
-        public HttpHeaderParserContract()
-            : base(false)
-        {
-        }
-
-        public override bool TryParseValue(string value, object storeValue, ref int index, out object parsedValue)
-        {
-            // Index may be value.Length (e.g. both 0). This may be allowed for some headers (e.g. Accept but not
-            // allowed by others (e.g. Content-Length). The parser has to decide if this is valid or not.
-            Debug.Assert((value == null) || ((index >= 0) && (index <= value.Length)));
-
-            parsedValue = null;
-            return false;
-        }
-    }
-#endif
 }

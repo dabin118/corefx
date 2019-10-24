@@ -3,9 +3,7 @@
 // See the LICENSE file in the project root for more information.
 
 using System;
-using System.Diagnostics;		//Assert
-
-[assembly: System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverageAssembly]
+using System.Diagnostics;
 
 namespace OLEDB.Test.ModuleCore
 {

@@ -11,16 +11,16 @@
 
 using System.IO;
 using System.Net.NetworkInformation;
+using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
 
 namespace System.Net.Mail.Tests
 {
-    public class SmtpClientTest : IDisposable
+    public class SmtpClientTest : FileCleanupTestBase
     {
         private SmtpClient _smtp;
-        private string _tempFolder;
 
         private SmtpClient Smtp
         {
@@ -34,33 +34,21 @@ namespace System.Net.Mail.Tests
         {
             get
             {
-                if (_tempFolder == null)
-                {
-                    _tempFolder = Path.Combine(Path.GetTempPath(), GetType().FullName, Guid.NewGuid().ToString());
-                    if (Directory.Exists(_tempFolder))
-                        Directory.Delete(_tempFolder, true);
-
-                    Directory.CreateDirectory(_tempFolder);
-                }
-
-                return _tempFolder;
+                return TestDirectory;
             }
         }
 
-        public void Dispose()
+        protected override void Dispose(bool disposing)
         {
             if (_smtp != null)
             {
                 _smtp.Dispose();
             }
-
-            if (Directory.Exists(_tempFolder))
-                Directory.Delete(_tempFolder, true);
+            base.Dispose(disposing);
         }
 
         [Theory]
         [InlineData(SmtpDeliveryMethod.SpecifiedPickupDirectory)]
-        [InlineData(SmtpDeliveryMethod.PickupDirectoryFromIis)]
         [InlineData(SmtpDeliveryMethod.PickupDirectoryFromIis)]
         public void DeliveryMethodTest(SmtpDeliveryMethod method)
         {
@@ -118,7 +106,6 @@ namespace System.Net.Mail.Tests
             }
         }
 
-        [SkipOnTargetFramework(TargetFrameworkMonikers.NetFramework)]
         [Fact]
         public void ServicePoint_NetCoreApp_AddressIsAccessible()
         {
@@ -127,17 +114,6 @@ namespace System.Net.Mail.Tests
                 Assert.Equal("mailto", smtp.ServicePoint.Address.Scheme);
                 Assert.Equal("localhost", smtp.ServicePoint.Address.Host);
                 Assert.Equal(25, smtp.ServicePoint.Address.Port);
-            }
-        }
-
-        [SkipOnTargetFramework(~TargetFrameworkMonikers.NetFramework)]
-        [Fact]
-        public void ServicePoint_NetFramework_AddressIsInaccessible()
-        {
-            using (var smtp = new SmtpClient("localhost", 25))
-            {
-                ServicePoint sp = smtp.ServicePoint;
-                Assert.Throws<NotSupportedException>(() => sp.Address);
             }
         }
 
@@ -241,6 +217,28 @@ namespace System.Net.Mail.Tests
             Assert.Equal(".eml", Path.GetExtension(files[0]));
         }
 
+        [Fact]
+        public void Send_SpecifiedPickupDirectory_MessageBodyDoesNotEncodeForTransport()
+        {
+            // This test verifies that a line fold which results in a dot appearing as the first character of
+            // a new line does not get dot-stuffed when the delivery method is pickup. To do so, it relies on
+            // folding happening at a precise location. If folding implementation details change, this test will
+            // likely fail and need to be updated accordingly.
+
+            string padding = new string('a', 65);
+
+            Smtp.DeliveryMethod = SmtpDeliveryMethod.SpecifiedPickupDirectory;
+            Smtp.PickupDirectoryLocation = TempFolder;
+            Smtp.Send("mono@novell.com", "everyone@novell.com", "introduction", padding + ".");
+
+            string[] files = Directory.GetFiles(TempFolder, "*");
+            Assert.Equal(1, files.Length);
+            Assert.Equal(".eml", Path.GetExtension(files[0]));
+
+            string message = File.ReadAllText(files[0]);
+            Assert.EndsWith($"{padding}=\r\n.\r\n", message);
+        }
+
         [Theory]
         [InlineData("some_path_not_exist")]
         [InlineData("")]
@@ -272,6 +270,24 @@ namespace System.Net.Mail.Tests
         }
 
         [Fact]
+        public void Send_ServerDoesntExist_Throws()
+        {
+            using (var smtp = new SmtpClient(Guid.NewGuid().ToString("N")))
+            {
+                Assert.Throws<SmtpException>(() => smtp.Send("anyone@anyone.com", "anyone@anyone.com", "subject", "body"));
+            }
+        }
+
+        [Fact]
+        public async Task SendAsync_ServerDoesntExist_Throws()
+        {
+            using (var smtp = new SmtpClient(Guid.NewGuid().ToString("N")))
+            {
+                await Assert.ThrowsAsync<SmtpException>(() => smtp.SendMailAsync("anyone@anyone.com", "anyone@anyone.com", "subject", "body"));
+            }
+        }
+
+        [Fact]
         public void TestMailDelivery()
         {
             SmtpServer server = new SmtpServer();
@@ -300,24 +316,55 @@ namespace System.Net.Mail.Tests
         }
 
         [Fact]
-        public async Task TestMailDeliveryAsync()
+        // [ActiveIssue(40711)]
+        [SkipOnTargetFramework(TargetFrameworkMonikers.NetFramework, ".NET Framework has a bug and may not time out for low values")]
+        [PlatformSpecific(~TestPlatforms.OSX)] // on OSX, not all synchronous operations (e.g. connect) can be aborted by closing the socket.
+        public void TestZeroTimeout()
+        {
+            var testTask = Task.Run(() =>
+            {
+                using (Socket serverSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp))
+                {
+                    serverSocket.Bind(new IPEndPoint(IPAddress.Loopback, 0));
+                    serverSocket.Listen(1);
+
+                    SmtpClient smtpClient = new SmtpClient("localhost", (serverSocket.LocalEndPoint as IPEndPoint).Port);
+                    smtpClient.Timeout = 0;
+
+                    MailMessage msg = new MailMessage("foo@example.com", "bar@example.com", "hello", "test");
+                    Assert.Throws<SmtpException>(() => smtpClient.Send(msg));
+                }
+            });
+            // Abort in order to get a coredump if this test takes too long.
+            if (!testTask.Wait(TimeSpan.FromMinutes(5)))
+            {
+                Environment.FailFast(nameof(TestZeroTimeout));
+            }
+        }
+
+        [SkipOnTargetFramework(TargetFrameworkMonikers.NetFramework, ".NET Framework has a bug and could hang in case of null or empty body")]
+        [Theory]
+        [InlineData("howdydoo")]
+        [InlineData("")]
+        [InlineData(null)]
+        public async Task TestMailDeliveryAsync(string body)
         {
             SmtpServer server = new SmtpServer();
             SmtpClient client = new SmtpClient("localhost", server.EndPoint.Port);
-            MailMessage msg = new MailMessage("foo@example.com", "bar@example.com", "hello", "howdydoo");
+            MailMessage msg = new MailMessage("foo@example.com", "bar@example.com", "hello", body);
             string clientDomain = IPGlobalProperties.GetIPGlobalProperties().HostName.Trim().ToLower();
 
             try
             {
                 Thread t = new Thread(server.Run);
                 t.Start();
-                await client.SendMailAsync(msg);
+                await client.SendMailAsync(msg).TimeoutAfter((int)TimeSpan.FromSeconds(30).TotalMilliseconds);
                 t.Join();
 
                 Assert.Equal("<foo@example.com>", server.MailFrom);
                 Assert.Equal("<bar@example.com>", server.MailTo);
                 Assert.Equal("hello", server.Subject);
-                Assert.Equal("howdydoo", server.Body);
+                Assert.Equal(body ?? "", server.Body);
                 Assert.Equal(clientDomain, server.ClientDomain);
             }
             finally
@@ -351,6 +398,74 @@ namespace System.Net.Mail.Tests
                 Assert.Equal("hello", server.Subject);
                 Assert.Equal("howdydoo", server.Body);
                 Assert.Equal(clientDomain, server.ClientDomain);
+            }
+            finally
+            {
+                server.Stop();
+            }
+        }
+
+
+        [Theory]
+        [InlineData(false, false, false)]
+        [InlineData(false, false, true)] // Received subjectText.
+        [InlineData(false, true, false)]
+        [InlineData(false, true, true)]
+        [InlineData(true, false, false)]
+        [InlineData(true, false, true)] // Received subjectText.
+        [InlineData(true, true, false)]
+        [InlineData(true, true, true)] // Received subjectBase64. If subjectText is received, the test fails, and the results are inconsistent with those of synchronous methods.
+        public void SendMail_DeliveryFormat_SubjectEncoded(bool useAsyncSend, bool useSevenBit, bool useSmtpUTF8)
+        {
+            // If the server support `SMTPUTF8` and use `SmtpDeliveryFormat.International`, the server should received this subject.
+            const string subjectText = "Test \u6d4b\u8bd5 Contain \u5305\u542b UTF8";
+
+            // If the server does not support `SMTPUTF8` or use `SmtpDeliveryFormat.SevenBit`, the server should received this subject.
+            const string subjectBase64 = "=?utf-8?B?VGVzdCDmtYvor5UgQ29udGFpbiDljIXlkKsgVVRGOA==?=";
+
+            SmtpServer server = new SmtpServer();
+
+            // Setting up Server Support for `SMTPUTF8`.
+            server.SupportSmtpUTF8 = useSmtpUTF8;
+
+            SmtpClient client = new SmtpClient("localhost", server.EndPoint.Port);
+
+            if (useSevenBit)
+            {
+                // Subject will be encoded by Base64.
+                client.DeliveryFormat = SmtpDeliveryFormat.SevenBit;
+            }
+            else
+            {
+                // If the server supports `SMTPUTF8`, subject will not be encoded. Otherwise, subject will be encoded by Base64.
+                client.DeliveryFormat = SmtpDeliveryFormat.International;
+            }
+
+            MailMessage msg = new MailMessage("foo@example.com", "bar@example.com", subjectText, "hello \u9ad8\u575a\u679c");
+            msg.HeadersEncoding = msg.BodyEncoding = msg.SubjectEncoding = System.Text.Encoding.UTF8;
+
+            try
+            {
+                Thread t = new Thread(server.Run);
+                t.Start();
+
+                if (useAsyncSend)
+                {
+                    client.SendMailAsync(msg).Wait();
+                }
+                else
+                {
+                    client.Send(msg);
+                }
+
+                if (useSevenBit || !useSmtpUTF8)
+                {
+                    Assert.Equal(subjectBase64, server.Subject);
+                }
+                else
+                {
+                    Assert.Equal(subjectText, server.Subject);
+                }
             }
             finally
             {

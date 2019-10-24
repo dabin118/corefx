@@ -12,8 +12,6 @@ namespace System.Configuration
     {
         private const string EncryptedSectionTemplate = "<{0} {1}=\"{2}\"> {3} </{0}>";
 
-        private static readonly ConfigurationPropertyCollection s_properties;
-
         private static readonly ConfigurationProperty s_propProviders =
             new ConfigurationProperty("providers",
                 typeof(ProtectedProviderSettings),
@@ -28,13 +26,9 @@ namespace System.Configuration
                 validator: ConfigurationProperty.s_nonEmptyStringValidator,
                 options: ConfigurationPropertyOptions.None);
 
-        static ProtectedConfigurationSection()
-        {
-            // Property initialization
-            s_properties = new ConfigurationPropertyCollection { s_propProviders, s_propDefaultProvider };
-        }
+        private static readonly ConfigurationPropertyCollection s_properties = new ConfigurationPropertyCollection { s_propProviders, s_propDefaultProvider };
 
-        public ProtectedConfigurationSection(){}       
+        public ProtectedConfigurationSection() { }
 
         protected internal override ConfigurationPropertyCollection Properties => s_properties;
 
@@ -55,7 +49,7 @@ namespace System.Configuration
             ProviderSettings ps = Providers[providerName];
 
             if (ps == null)
-                throw new Exception(string.Format(SR.ProtectedConfigurationProvider_not_found, providerName));
+                throw new ArgumentException(SR.Format(SR.ProtectedConfigurationProvider_not_found, providerName), nameof(providerName));
 
             return InstantiateProvider(ps);
         }
@@ -85,7 +79,7 @@ namespace System.Configuration
         {
             Type t = TypeUtil.GetType(pn.Type, true);
             if (!typeof(ProtectedConfigurationProvider).IsAssignableFrom(t))
-                throw new Exception(SR.WrongType_of_Protected_provider);
+                throw new ArgumentException(SR.WrongType_of_Protected_provider, nameof(pn));
 
             return CreateAndInitializeProviderWithAssert(t, pn);
         }

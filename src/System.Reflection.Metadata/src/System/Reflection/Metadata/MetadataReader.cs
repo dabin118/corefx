@@ -22,9 +22,12 @@ namespace System.Reflection.Metadata
         // A row id of "mscorlib" AssemblyRef in a WinMD file (each WinMD file must have such a reference).
         internal readonly int WinMDMscorlibRef;
 
+        // Keeps the underlying memory alive.
+        private readonly object _memoryOwnerObj;
+
         private readonly MetadataReaderOptions _options;
         private Dictionary<TypeDefinitionHandle, ImmutableArray<TypeDefinitionHandle>> _lazyNestedTypesMap;
-        
+
         #region Constructors
 
         /// <summary>
@@ -34,7 +37,7 @@ namespace System.Reflection.Metadata
         /// The memory is owned by the caller and it must be kept memory alive and unmodified throughout the lifetime of the <see cref="MetadataReader"/>.
         /// </remarks>
         public unsafe MetadataReader(byte* metadata, int length)
-            : this(metadata, length, MetadataReaderOptions.Default, null)
+            : this(metadata, length, MetadataReaderOptions.Default, utf8Decoder: null, memoryOwner: null)
         {
         }
 
@@ -43,11 +46,11 @@ namespace System.Reflection.Metadata
         /// </summary>
         /// <remarks>
         /// The memory is owned by the caller and it must be kept memory alive and unmodified throughout the lifetime of the <see cref="MetadataReader"/>.
-        /// Use <see cref="PEReaderExtensions.GetMetadataReader(PortableExecutable.PEReader, MetadataReaderOptions)"/> to obtain 
+        /// Use <see cref="PEReaderExtensions.GetMetadataReader(PortableExecutable.PEReader, MetadataReaderOptions)"/> to obtain
         /// metadata from a PE image.
         /// </remarks>
         public unsafe MetadataReader(byte* metadata, int length, MetadataReaderOptions options)
-            : this(metadata, length, options, null)
+            : this(metadata, length, options, utf8Decoder: null, memoryOwner: null)
         {
         }
 
@@ -56,7 +59,7 @@ namespace System.Reflection.Metadata
         /// </summary>
         /// <remarks>
         /// The memory is owned by the caller and it must be kept memory alive and unmodified throughout the lifetime of the <see cref="MetadataReader"/>.
-        /// Use <see cref="PEReaderExtensions.GetMetadataReader(PortableExecutable.PEReader, MetadataReaderOptions, MetadataStringDecoder)"/> to obtain 
+        /// Use <see cref="PEReaderExtensions.GetMetadataReader(PortableExecutable.PEReader, MetadataReaderOptions, MetadataStringDecoder)"/> to obtain
         /// metadata from a PE image.
         /// </remarks>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="length"/> is not positive.</exception>
@@ -65,17 +68,22 @@ namespace System.Reflection.Metadata
         /// <exception cref="PlatformNotSupportedException">The current platform is big-endian.</exception>
         /// <exception cref="BadImageFormatException">Bad metadata header.</exception>
         public unsafe MetadataReader(byte* metadata, int length, MetadataReaderOptions options, MetadataStringDecoder utf8Decoder)
+            : this(metadata, length, options, utf8Decoder, memoryOwner: null)
         {
-            // Do not throw here when length is 0. We'll throw BadImageFormatException later on, so that the caller doesn't need to 
+        }
+
+        internal unsafe MetadataReader(byte* metadata, int length, MetadataReaderOptions options, MetadataStringDecoder utf8Decoder, object memoryOwner)
+        {
+            // Do not throw here when length is 0. We'll throw BadImageFormatException later on, so that the caller doesn't need to
             // worry about the image (stream) being empty and can handle all image errors by catching BadImageFormatException.
             if (length < 0)
             {
-                throw new ArgumentOutOfRangeException(nameof(length));
+                Throw.ArgumentOutOfRange(nameof(length));
             }
 
             if (metadata == null)
             {
-                throw new ArgumentNullException(nameof(metadata));
+                Throw.ArgumentNull(nameof(metadata));
             }
 
             if (utf8Decoder == null)
@@ -85,28 +93,28 @@ namespace System.Reflection.Metadata
 
             if (!(utf8Decoder.Encoding is UTF8Encoding))
             {
-                throw new ArgumentException(SR.MetadataStringDecoderEncodingMustBeUtf8, nameof(utf8Decoder));
+                Throw.InvalidArgument(SR.MetadataStringDecoderEncodingMustBeUtf8, nameof(utf8Decoder));
             }
 
-            this.Block = new MemoryBlock(metadata, length);
+            Block = new MemoryBlock(metadata, length);
 
+            _memoryOwnerObj = memoryOwner;
             _options = options;
-            this.UTF8Decoder = utf8Decoder;
+            UTF8Decoder = utf8Decoder;
 
-            var headerReader = new BlobReader(this.Block);
-            this.ReadMetadataHeader(ref headerReader, out _versionString);
+            var headerReader = new BlobReader(Block);
+            ReadMetadataHeader(ref headerReader, out _versionString);
             _metadataKind = GetMetadataKind(_versionString);
-            var streamHeaders = this.ReadStreamHeaders(ref headerReader);
+            var streamHeaders = ReadStreamHeaders(ref headerReader);
 
             // storage header and stream headers:
-            MemoryBlock metadataTableStream;
-            MemoryBlock standalonePdbStream;
-            this.InitializeStreamReaders(ref this.Block, streamHeaders, out _metadataStreamKind, out metadataTableStream, out standalonePdbStream);
+            InitializeStreamReaders(Block, streamHeaders, out _metadataStreamKind, out var metadataTableStream, out var pdbStream);
 
             int[] externalTableRowCountsOpt;
-            if (standalonePdbStream.Length > 0)
+            if (pdbStream.Length > 0)
             {
-                ReadStandalonePortablePdbStream(standalonePdbStream, out _debugMetadataHeader, out externalTableRowCountsOpt);
+                int pdbStreamOffset = (int)(pdbStream.Pointer - metadata);
+                ReadStandalonePortablePdbStream(pdbStream, pdbStreamOffset, out _debugMetadataHeader, out externalTableRowCountsOpt);
             }
             else
             {
@@ -115,30 +123,28 @@ namespace System.Reflection.Metadata
 
             var tableReader = new BlobReader(metadataTableStream);
 
-            HeapSizes heapSizes;
-            int[] metadataTableRowCounts;
-            this.ReadMetadataTableHeader(ref tableReader, out heapSizes, out metadataTableRowCounts, out _sortedTables);
+            ReadMetadataTableHeader(ref tableReader, out var heapSizes, out var metadataTableRowCounts, out _sortedTables);
 
-            this.InitializeTableReaders(tableReader.GetMemoryBlockAt(0, tableReader.RemainingBytes), heapSizes, metadataTableRowCounts, externalTableRowCountsOpt);
+            InitializeTableReaders(tableReader.GetMemoryBlockAt(0, tableReader.RemainingBytes), heapSizes, metadataTableRowCounts, externalTableRowCountsOpt);
 
-            // This previously could occur in obfuscated assemblies but a check was added to prevent 
+            // This previously could occur in obfuscated assemblies but a check was added to prevent
             // it getting to this point
-            Debug.Assert(this.AssemblyTable.NumberOfRows <= 1);
+            Debug.Assert(AssemblyTable.NumberOfRows <= 1);
 
             // Although the specification states that the module table will have exactly one row,
             // the native metadata reader would successfully read files containing more than one row.
             // Such files exist in the wild and may be produced by obfuscators.
-            if (standalonePdbStream.Length == 0 && this.ModuleTable.NumberOfRows < 1)
+            if (pdbStream.Length == 0 && ModuleTable.NumberOfRows < 1)
             {
                 throw new BadImageFormatException(SR.Format(SR.ModuleTableInvalidNumberOfRows, this.ModuleTable.NumberOfRows));
             }
 
-            //  read 
-            this.NamespaceCache = new NamespaceCache(this);
+            //  read
+            NamespaceCache = new NamespaceCache(this);
 
             if (_metadataKind != MetadataKind.Ecma335)
             {
-                this.WinMDMscorlibRef = FindMscorlibAssemblyRefNoProjection();
+                WinMDMscorlibRef = FindMscorlibAssemblyRefNoProjection();
             }
         }
 
@@ -162,8 +168,8 @@ namespace System.Reflection.Metadata
         /// <remarks>
         /// The metadata stream has minimal delta format if "#JTD" stream is present.
         /// Minimal delta format uses large size (4B) when encoding table/heap references.
-        /// The heaps in minimal delta only contain data of the delta, 
-        /// there is no padding at the beginning of the heaps that would align them 
+        /// The heaps in minimal delta only contain data of the delta,
+        /// there is no padding at the beginning of the heaps that would align them
         /// with the original full metadata heaps.
         /// </remarks>
         internal bool IsMinimalDelta;
@@ -259,14 +265,14 @@ namespace System.Reflection.Metadata
         }
 
         private void InitializeStreamReaders(
-            ref MemoryBlock metadataRoot, 
-            StreamHeader[] streamHeaders, 
+            in MemoryBlock metadataRoot,
+            StreamHeader[] streamHeaders,
             out MetadataStreamKind metadataStreamKind,
             out MemoryBlock metadataTableStream,
             out MemoryBlock standalonePdbStream)
         {
-            metadataTableStream = default(MemoryBlock);
-            standalonePdbStream = default(MemoryBlock);
+            metadataTableStream = default;
+            standalonePdbStream = default;
             metadataStreamKind = MetadataStreamKind.Illegal;
 
             foreach (StreamHeader streamHeader in streamHeaders)
@@ -452,10 +458,10 @@ namespace System.Reflection.Metadata
             ulong presentTables = reader.ReadUInt64();
             sortedTables = (TableMask)reader.ReadUInt64();
 
-            // According to ECMA-335, MajorVersion and MinorVersion have fixed values and, 
-            // based on recommendation in 24.1 Fixed fields: When writing these fields it 
+            // According to ECMA-335, MajorVersion and MinorVersion have fixed values and,
+            // based on recommendation in 24.1 Fixed fields: When writing these fields it
             // is best that they be set to the value indicated, on reading they should be ignored.
-            // We will not be checking version values. We will continue checking that the set of 
+            // We will not be checking version values. We will continue checking that the set of
             // present tables is within the set we understand.
 
             ulong validTables = (ulong)(TableMask.TypeSystemTables | TableMask.DebugTables);
@@ -468,7 +474,7 @@ namespace System.Reflection.Metadata
             if (_metadataStreamKind == MetadataStreamKind.Compressed)
             {
                 // In general Ptr tables and EnC tables are not allowed in a compressed stream.
-                // However when asked for a snapshot of the current metadata after an EnC change has been applied 
+                // However when asked for a snapshot of the current metadata after an EnC change has been applied
                 // the CLR includes the EnCLog table into the snapshot. We need to be able to read the image,
                 // so we'll allow the table here but pretend it's empty later.
                 if ((presentTables & (ulong)(TableMask.PtrTables | TableMask.EnCMap)) != 0)
@@ -517,24 +523,24 @@ namespace System.Reflection.Metadata
         }
 
         // internal for testing
-        internal static void ReadStandalonePortablePdbStream(MemoryBlock block, out DebugMetadataHeader debugMetadataHeader, out int[] externalTableRowCounts)
+        internal static void ReadStandalonePortablePdbStream(MemoryBlock pdbStreamBlock, int pdbStreamOffset, out DebugMetadataHeader debugMetadataHeader, out int[] externalTableRowCounts)
         {
-            var reader = new BlobReader(block);
+            var reader = new BlobReader(pdbStreamBlock);
 
             const int PdbIdSize = 20;
             byte[] pdbId = reader.ReadBytes(PdbIdSize);
 
             // ECMA-335 15.4.1.2:
             // The entry point to an application shall be static.
-            // This entry point method can be a global method or it can appear inside a type. 
+            // This entry point method can be a global method or it can appear inside a type.
             // The entry point method shall either accept no arguments or a vector of strings.
-            // The return type of the entry point method shall be void, int32, or unsigned int32. 
+            // The return type of the entry point method shall be void, int32, or unsigned int32.
             // The entry point method cannot be defined in a generic class.
             uint entryPointToken = reader.ReadUInt32();
             int entryPointRowId = (int)(entryPointToken & TokenTypeIds.RIDMask);
             if (entryPointToken != 0 && ((entryPointToken & TokenTypeIds.TypeMask) != TokenTypeIds.MethodDef || entryPointRowId == 0))
             {
-                throw new BadImageFormatException(string.Format(SR.InvalidEntryPointToken, entryPointToken));
+                throw new BadImageFormatException(SR.Format(SR.InvalidEntryPointToken, entryPointToken));
             }
 
             ulong externalTableMask = reader.ReadUInt64();
@@ -544,14 +550,15 @@ namespace System.Reflection.Metadata
 
             if ((externalTableMask & ~validTables) != 0)
             {
-                throw new BadImageFormatException(string.Format(SR.UnknownTables, (TableMask)externalTableMask));
+                throw new BadImageFormatException(SR.Format(SR.UnknownTables, externalTableMask));
             }
 
             externalTableRowCounts = ReadMetadataTableRowCounts(ref reader, externalTableMask);
 
             debugMetadataHeader = new DebugMetadataHeader(
                 ImmutableByteArrayInterop.DangerousCreateFromUnderlyingArray(ref pdbId),
-                MethodDefinitionHandle.FromRowId(entryPointRowId));
+                MethodDefinitionHandle.FromRowId(entryPointRowId),
+                idStartOffset: pdbStreamOffset);
         }
 
         private const int SmallIndexSize = 2;
@@ -567,7 +574,7 @@ namespace System.Reflection.Metadata
             // Size of reference tags in each table.
             this.TableRowCounts = rowCounts;
 
-            // TODO (https://github.com/dotnet/corefx/issues/2061): 
+            // TODO (https://github.com/dotnet/corefx/issues/2061):
             // Shouldn't XxxPtr table be always the same size or smaller than the corresponding Xxx table?
 
             // Compute ref sizes for tables that can have pointer tables
@@ -1346,8 +1353,6 @@ namespace System.Reflection.Metadata
 
             return TypeDefTable.FindTypeContainingField(fieldRowId, FieldTable.NumberOfRows);
         }
-
-        private static readonly ObjectPool<StringBuilder> s_stringBuilderPool = new ObjectPool<StringBuilder>(() => new StringBuilder());
 
         public string GetString(DocumentNameBlobHandle handle)
         {

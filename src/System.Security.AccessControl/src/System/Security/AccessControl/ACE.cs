@@ -11,7 +11,6 @@
 
 using System;
 using System.Diagnostics;
-using System.Diagnostics.Contracts;
 using System.Globalization;
 using System.Security.Principal;
 
@@ -140,7 +139,7 @@ nameof(binaryForm),
                 // Indicates a bug in the implementation, not in user's code.
                 //
 
-                Debug.Assert(false, "Length > ushort.MaxValue");
+                Debug.Fail("Length > ushort.MaxValue");
                 // Replacing SystemException with InvalidOperationException. It's not a perfect fit,
                 // but it's the best exception type available to indicate a failure because
                 // of a bug in the ACE itself.
@@ -691,7 +690,6 @@ nameof(binaryForm));
             {
                 throw new ArgumentNullException(nameof(securityIdentifier));
             }
-            Contract.EndContractBlock();
 
             //
             // The values are set by invoking the properties.
@@ -742,7 +740,6 @@ nameof(binaryForm));
                 {
                     throw new ArgumentNullException(nameof(value));
                 }
-                Contract.EndContractBlock();
 
                 _sid = value;
             }
@@ -791,7 +788,6 @@ nameof(binaryForm));
 nameof(type),
                      SR.ArgumentOutOfRange_InvalidUserDefinedAceType);
             }
-            Contract.EndContractBlock();
 
             SetOpaque(opaque);
         }
@@ -854,13 +850,13 @@ nameof(type),
                 {
                     throw new ArgumentOutOfRangeException(
 nameof(opaque),
-                        string.Format(CultureInfo.CurrentCulture, SR.ArgumentOutOfRange_ArrayLength, 0, MaxOpaqueLength));
+                        SR.Format(SR.ArgumentOutOfRange_ArrayLength, 0, MaxOpaqueLength));
                 }
                 else if (opaque.Length % 4 != 0)
                 {
                     throw new ArgumentOutOfRangeException(
 nameof(opaque),
-                        string.Format(CultureInfo.CurrentCulture, SR.ArgumentOutOfRange_ArrayLengthMultiple, 4));
+                        SR.Format(SR.ArgumentOutOfRange_ArrayLengthMultiple, 4));
                 }
             }
 
@@ -889,7 +885,7 @@ nameof(opaque),
             {
                 if (OpaqueLength > MaxOpaqueLength)
                 {
-                    Debug.Assert(false, "OpaqueLength somehow managed to exceed MaxOpaqueLength");
+                    Debug.Fail("OpaqueLength somehow managed to exceed MaxOpaqueLength");
                     // Replacing SystemException with InvalidOperationException. It's not a perfect fit,
                     // but it's the best exception type available to indicate a failure because
                     // of a bug in the ACE itself.
@@ -1206,7 +1202,7 @@ nameof(opaque),
                     // Indicates a bug in the implementation, not in user's code
                     //
 
-                    Debug.Assert(false, "Invalid ACE type");
+                    Debug.Fail("Invalid ACE type");
                     // Replacing SystemException with InvalidOperationException. It's not a perfect fit,
                     // but it's the best exception type available to indicate a failure because
                     // of a bug in the ACE itself.
@@ -1307,13 +1303,13 @@ nameof(opaque),
                 {
                     throw new ArgumentOutOfRangeException(
 nameof(opaque),
-                        string.Format(CultureInfo.CurrentCulture, SR.ArgumentOutOfRange_ArrayLength, 0, MaxOpaqueLengthInternal));
+                        SR.Format(SR.ArgumentOutOfRange_ArrayLength, 0, MaxOpaqueLengthInternal));
                 }
                 else if (opaque.Length % 4 != 0)
                 {
                     throw new ArgumentOutOfRangeException(
 nameof(opaque),
-                        string.Format(CultureInfo.CurrentCulture, SR.ArgumentOutOfRange_ArrayLengthMultiple, 4));
+                        SR.Format(SR.ArgumentOutOfRange_ArrayLengthMultiple, 4));
                 }
             }
 
@@ -1357,21 +1353,21 @@ nameof(opaque),
     //     ULONG SidStart;
     //     // Opaque resouce manager specific data
     // } ACCESS_ALLOWED_CALLBACK_ACE, *PACCESS_ALLOWED_CALLBACK_ACE;
-    // 
+    //
     // typedef struct _ACCESS_DENIED_CALLBACK_ACE {
     //     ACE_HEADER Header;
     //     ACCESS_MASK Mask;
     //     ULONG SidStart;
     //     // Opaque resouce manager specific data
     // } ACCESS_DENIED_CALLBACK_ACE, *PACCESS_DENIED_CALLBACK_ACE;
-    // 
+    //
     // typedef struct _SYSTEM_AUDIT_CALLBACK_ACE {
     //     ACE_HEADER Header;
     //     ACCESS_MASK Mask;
     //     ULONG SidStart;
     //     // Opaque resouce manager specific data
     // } SYSTEM_AUDIT_CALLBACK_ACE, *PSYSTEM_AUDIT_CALLBACK_ACE;
-    // 
+    //
     // typedef struct _SYSTEM_ALARM_CALLBACK_ACE {
     //     ACE_HEADER Header;
     //     ACCESS_MASK Mask;
@@ -1404,33 +1400,18 @@ nameof(opaque),
         // computes the numerical type of the ACE
         //
 
-        private static AceType TypeFromQualifier(bool isCallback, AceQualifier qualifier)
-        {
+        private static AceType TypeFromQualifier(bool isCallback, AceQualifier qualifier) =>
             //
             // Might benefit from replacing this with a static hard-coded table
             //
-
-            switch (qualifier)
+            qualifier switch
             {
-                case AceQualifier.AccessAllowed:
-                    return isCallback ? AceType.AccessAllowedCallback : AceType.AccessAllowed;
-
-                case AceQualifier.AccessDenied:
-                    return isCallback ? AceType.AccessDeniedCallback : AceType.AccessDenied;
-
-                case AceQualifier.SystemAudit:
-                    return isCallback ? AceType.SystemAuditCallback : AceType.SystemAudit;
-
-                case AceQualifier.SystemAlarm:
-                    return isCallback ? AceType.SystemAlarmCallback : AceType.SystemAlarm;
-
-                default:
-
-                    throw new ArgumentOutOfRangeException(
-nameof(qualifier),
-                        SR.ArgumentOutOfRange_Enum);
-            }
-        }
+                AceQualifier.AccessAllowed => isCallback ? AceType.AccessAllowedCallback : AceType.AccessAllowed,
+                AceQualifier.AccessDenied => isCallback ? AceType.AccessDeniedCallback : AceType.AccessDenied,
+                AceQualifier.SystemAudit => isCallback ? AceType.SystemAuditCallback : AceType.SystemAudit,
+                AceQualifier.SystemAlarm => isCallback ? AceType.SystemAlarmCallback : AceType.SystemAlarm,
+                _ => throw new ArgumentOutOfRangeException(nameof(qualifier), SR.ArgumentOutOfRange_Enum),
+            };
 
         #endregion
 
@@ -1650,7 +1631,7 @@ nameof(qualifier),
             {
                 if (OpaqueLength > MaxOpaqueLengthInternal)
                 {
-                    Debug.Assert(false, "OpaqueLength somehow managed to exceed MaxOpaqueLength");
+                    Debug.Fail("OpaqueLength somehow managed to exceed MaxOpaqueLength");
                     // Replacing SystemException with InvalidOperationException. It's not a perfect fit,
                     // but it's the best exception type available to indicate a failure because
                     // of a bug in the ACE itself.
@@ -1782,42 +1763,28 @@ nameof(qualifier),
 
         #region Private Methods
 
-        //  
+        //
         // The following access mask bits in object aces may refer to an objectType that
         // identifies the property set, property, extended right, or type of child object to which the ACE applies
         //
-        //    ADS_RIGHT_DS_CREATE_CHILD = 0x1, 
-        //    ADS_RIGHT_DS_DELETE_CHILD = 0x2, 
+        //    ADS_RIGHT_DS_CREATE_CHILD = 0x1,
+        //    ADS_RIGHT_DS_DELETE_CHILD = 0x2,
         //    ADS_RIGHT_DS_SELF = 0x8,
-        //    ADS_RIGHT_DS_READ_PROP = 0x10, 
-        //    ADS_RIGHT_DS_WRITE_PROP = 0x20, 
+        //    ADS_RIGHT_DS_READ_PROP = 0x10,
+        //    ADS_RIGHT_DS_WRITE_PROP = 0x20,
         //    ADS_RIGHT_DS_CONTROL_ACCESS = 0x100
         //
-        internal static readonly int AccessMaskWithObjectType = 0x1 | 0x2 | 0x8 | 0x10 | 0x20 | 0x100;
+        internal const int AccessMaskWithObjectType = 0x1 | 0x2 | 0x8 | 0x10 | 0x20 | 0x100;
 
-        private static AceType TypeFromQualifier(bool isCallback, AceQualifier qualifier)
-        {
-            switch (qualifier)
+        private static AceType TypeFromQualifier(bool isCallback, AceQualifier qualifier) =>
+            qualifier switch
             {
-                case AceQualifier.AccessAllowed:
-                    return isCallback ? AceType.AccessAllowedCallbackObject : AceType.AccessAllowedObject;
-
-                case AceQualifier.AccessDenied:
-                    return isCallback ? AceType.AccessDeniedCallbackObject : AceType.AccessDeniedObject;
-
-                case AceQualifier.SystemAudit:
-                    return isCallback ? AceType.SystemAuditCallbackObject : AceType.SystemAuditObject;
-
-                case AceQualifier.SystemAlarm:
-                    return isCallback ? AceType.SystemAlarmCallbackObject : AceType.SystemAlarmObject;
-
-                default:
-
-                    throw new ArgumentOutOfRangeException(
-nameof(qualifier),
-                        SR.ArgumentOutOfRange_Enum);
-            }
-        }
+                AceQualifier.AccessAllowed => isCallback ? AceType.AccessAllowedCallbackObject : AceType.AccessAllowedObject,
+                AceQualifier.AccessDenied => isCallback ? AceType.AccessDeniedCallbackObject : AceType.AccessDeniedObject,
+                AceQualifier.SystemAudit => isCallback ? AceType.SystemAuditCallbackObject : AceType.SystemAuditObject,
+                AceQualifier.SystemAlarm => isCallback ? AceType.SystemAlarmCallbackObject : AceType.SystemAlarmObject,
+                _ => throw new ArgumentOutOfRangeException(nameof(qualifier), SR.ArgumentOutOfRange_Enum),
+            };
 
         //
         // This method checks if the objectType matches with the specified object type
@@ -2216,7 +2183,7 @@ nameof(qualifier),
             {
                 if (OpaqueLength > MaxOpaqueLengthInternal)
                 {
-                    Debug.Assert(false, "OpaqueLength somehow managed to exceed MaxOpaqueLength");
+                    Debug.Fail("OpaqueLength somehow managed to exceed MaxOpaqueLength");
                     // Replacing SystemException with InvalidOperationException. It's not a perfect fit,
                     // but it's the best exception type available to indicate a failure because
                     // of a bug in the ACE itself.

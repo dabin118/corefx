@@ -9,7 +9,7 @@ namespace System.Reflection.Metadata.Ecma335
     // TODO: debug metadata blobs
     // TODO: revisit ctors (public vs internal vs static factories)?
 
-    public struct BlobEncoder
+    public readonly struct BlobEncoder
     {
         public BlobBuilder Builder { get; }
 
@@ -41,7 +41,7 @@ namespace System.Reflection.Metadata.Ecma335
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="genericArgumentCount"/> is not in range [0, 0xffff].</exception>
         public GenericTypeArgumentsEncoder MethodSpecificationSignature(int genericArgumentCount)
         {
-            if (unchecked((uint)genericArgumentCount) > ushort.MaxValue) 
+            if (unchecked((uint)genericArgumentCount) > ushort.MaxValue)
             {
                 Throw.ArgumentOutOfRange(nameof(genericArgumentCount));
             }
@@ -62,7 +62,7 @@ namespace System.Reflection.Metadata.Ecma335
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="genericParameterCount"/> is not in range [0, 0xffff].</exception>
         public MethodSignatureEncoder MethodSignature(
             SignatureCallingConvention convention = SignatureCallingConvention.Default,
-            int genericParameterCount = 0, 
+            int genericParameterCount = 0,
             bool isInstanceMethod = false)
         {
             if (unchecked((uint)genericParameterCount) > ushort.MaxValue)
@@ -70,8 +70,8 @@ namespace System.Reflection.Metadata.Ecma335
                 Throw.ArgumentOutOfRange(nameof(genericParameterCount));
             }
 
-            var attributes = 
-                (genericParameterCount != 0 ? SignatureAttributes.Generic : 0) | 
+            var attributes =
+                (genericParameterCount != 0 ? SignatureAttributes.Generic : 0) |
                 (isInstanceMethod ? SignatureAttributes.Instance : 0);
 
             Builder.WriteByte(new SignatureHeader(SignatureKind.Method, convention, attributes).RawValue);
@@ -191,7 +191,7 @@ namespace System.Reflection.Metadata.Ecma335
         }
     }
 
-    public struct MethodSignatureEncoder
+    public readonly struct MethodSignatureEncoder
     {
         public BlobBuilder Builder { get; }
         public bool HasVarArgs { get; }
@@ -242,7 +242,7 @@ namespace System.Reflection.Metadata.Ecma335
         }
     }
 
-    public struct LocalVariablesEncoder
+    public readonly struct LocalVariablesEncoder
     {
         public BlobBuilder Builder { get; }
 
@@ -257,7 +257,7 @@ namespace System.Reflection.Metadata.Ecma335
         }
     }
 
-    public struct LocalVariableTypeEncoder
+    public readonly struct LocalVariableTypeEncoder
     {
         public BlobBuilder Builder { get; }
 
@@ -292,7 +292,7 @@ namespace System.Reflection.Metadata.Ecma335
         }
     }
 
-    public struct ParameterTypeEncoder
+    public readonly struct ParameterTypeEncoder
     {
         public BlobBuilder Builder { get; }
 
@@ -322,7 +322,7 @@ namespace System.Reflection.Metadata.Ecma335
         }
     }
 
-    public struct PermissionSetEncoder
+    public readonly struct PermissionSetEncoder
     {
         public BlobBuilder Builder { get; }
 
@@ -378,7 +378,7 @@ namespace System.Reflection.Metadata.Ecma335
         }
     }
 
-    public struct GenericTypeArgumentsEncoder
+    public readonly struct GenericTypeArgumentsEncoder
     {
         public BlobBuilder Builder { get; }
 
@@ -393,7 +393,7 @@ namespace System.Reflection.Metadata.Ecma335
         }
     }
 
-    public struct FixedArgumentsEncoder
+    public readonly struct FixedArgumentsEncoder
     {
         public BlobBuilder Builder { get; }
 
@@ -408,7 +408,7 @@ namespace System.Reflection.Metadata.Ecma335
         }
     }
 
-    public struct LiteralEncoder
+    public readonly struct LiteralEncoder
     {
         public BlobBuilder Builder { get; }
 
@@ -425,7 +425,7 @@ namespace System.Reflection.Metadata.Ecma335
         /// <summary>
         /// Encodes the type and the items of a vector literal.
         /// Returns a pair of encoders that must be used in the order they appear in the parameter list.
-        /// </summary>        
+        /// </summary>
         /// <param name="arrayType">Use first, to encode the type of the vector.</param>
         /// <param name="vector">Use second, to encode the items of the vector.</param>
         public void TaggedVector(out CustomAttributeArrayTypeEncoder arrayType, out VectorEncoder vector)
@@ -492,7 +492,7 @@ namespace System.Reflection.Metadata.Ecma335
         }
     }
 
-    public struct ScalarEncoder
+    public readonly struct ScalarEncoder
     {
         public BlobBuilder Builder { get; }
 
@@ -513,7 +513,7 @@ namespace System.Reflection.Metadata.Ecma335
         /// Encodes constant literal.
         /// </summary>
         /// <param name="value">
-        /// Constant of type 
+        /// Constant of type
         /// <see cref="bool"/>,
         /// <see cref="byte"/>,
         /// <see cref="sbyte"/>,
@@ -564,7 +564,7 @@ namespace System.Reflection.Metadata.Ecma335
         }
     }
 
-    public struct LiteralsEncoder
+    public readonly struct LiteralsEncoder
     {
         public BlobBuilder Builder { get; }
 
@@ -579,7 +579,7 @@ namespace System.Reflection.Metadata.Ecma335
         }
     }
 
-    public struct VectorEncoder
+    public readonly struct VectorEncoder
     {
         public BlobBuilder Builder { get; }
 
@@ -600,7 +600,7 @@ namespace System.Reflection.Metadata.Ecma335
         }
     }
 
-    public struct NameEncoder
+    public readonly struct NameEncoder
     {
         public BlobBuilder Builder { get; }
 
@@ -618,7 +618,7 @@ namespace System.Reflection.Metadata.Ecma335
         }
     }
 
-    public struct CustomAttributeNamedArgumentsEncoder
+    public readonly struct CustomAttributeNamedArgumentsEncoder
     {
         public BlobBuilder Builder { get; }
 
@@ -633,13 +633,13 @@ namespace System.Reflection.Metadata.Ecma335
             {
                 Throw.ArgumentOutOfRange(nameof(count));
             }
-            
+
             Builder.WriteUInt16((ushort)count);
             return new NamedArgumentsEncoder(Builder);
         }
     }
 
-    public struct NamedArgumentsEncoder
+    public readonly struct NamedArgumentsEncoder
     {
         public BlobBuilder Builder { get; }
 
@@ -688,7 +688,7 @@ namespace System.Reflection.Metadata.Ecma335
         }
     }
 
-    public struct NamedArgumentTypeEncoder
+    public readonly struct NamedArgumentTypeEncoder
     {
         public BlobBuilder Builder { get; }
 
@@ -713,7 +713,7 @@ namespace System.Reflection.Metadata.Ecma335
         }
     }
 
-    public struct CustomAttributeArrayTypeEncoder
+    public readonly struct CustomAttributeArrayTypeEncoder
     {
         public BlobBuilder Builder { get; }
 
@@ -735,7 +735,7 @@ namespace System.Reflection.Metadata.Ecma335
         }
     }
 
-    public struct CustomAttributeElementTypeEncoder
+    public readonly struct CustomAttributeElementTypeEncoder
     {
         public BlobBuilder Builder { get; }
 
@@ -804,7 +804,7 @@ namespace System.Reflection.Metadata.Ecma335
         }
     }
 
-    public struct SignatureTypeEncoder
+    public readonly struct SignatureTypeEncoder
     {
         public BlobBuilder Builder { get; }
 
@@ -932,8 +932,8 @@ namespace System.Reflection.Metadata.Ecma335
         /// <exception cref="ArgumentException"><paramref name="attributes"/> is invalid.</exception>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="genericParameterCount"/> is not in range [0, 0xffff].</exception>
         public MethodSignatureEncoder FunctionPointer(
-            SignatureCallingConvention convention = SignatureCallingConvention.Default, 
-            FunctionPointerAttributes attributes = FunctionPointerAttributes.None, 
+            SignatureCallingConvention convention = SignatureCallingConvention.Default,
+            FunctionPointerAttributes attributes = FunctionPointerAttributes.None,
             int genericParameterCount = 0)
         {
             // Spec:
@@ -1057,7 +1057,7 @@ namespace System.Reflection.Metadata.Ecma335
         }
     }
 
-    public struct CustomModifiersEncoder
+    public readonly struct CustomModifiersEncoder
     {
         public BlobBuilder Builder { get; }
 
@@ -1094,7 +1094,7 @@ namespace System.Reflection.Metadata.Ecma335
         }
     }
 
-    public struct ArrayShapeEncoder
+    public readonly struct ArrayShapeEncoder
     {
         public BlobBuilder Builder { get; }
 
@@ -1111,7 +1111,7 @@ namespace System.Reflection.Metadata.Ecma335
         /// Dimension sizes. The array may be shorter than <paramref name="rank"/> but not longer.
         /// </param>
         /// <param name="lowerBounds">
-        /// Dimension lower bounds, or <c>default(<see cref="ImmutableArray{Int32}"/>)</c> to set all <paramref name="rank"/> lower bounds to 0. 
+        /// Dimension lower bounds, or <c>default(<see cref="ImmutableArray{Int32}"/>)</c> to set all <paramref name="rank"/> lower bounds to 0.
         /// The array may be shorter than <paramref name="rank"/> but not longer.
         /// </param>
         /// <exception cref="ArgumentOutOfRangeException">
@@ -1122,7 +1122,7 @@ namespace System.Reflection.Metadata.Ecma335
         /// <exception cref="ArgumentNullException"><paramref name="sizes"/> is null.</exception>
         public void Shape(int rank, ImmutableArray<int> sizes, ImmutableArray<int> lowerBounds)
         {
-            // The specification doesn't impose a limit on the max number of array dimensions. 
+            // The specification doesn't impose a limit on the max number of array dimensions.
             // The CLR supports <64. More than 0xffff is causing crashes in various tools (ildasm).
             if (unchecked((uint)(rank - 1)) > ushort.MaxValue - 1)
             {
@@ -1174,7 +1174,7 @@ namespace System.Reflection.Metadata.Ecma335
         }
     }
 
-    public struct ReturnTypeEncoder
+    public readonly struct ReturnTypeEncoder
     {
         public BlobBuilder Builder { get; }
 
@@ -1209,7 +1209,7 @@ namespace System.Reflection.Metadata.Ecma335
         }
     }
 
-    public struct ParametersEncoder
+    public readonly struct ParametersEncoder
     {
         public BlobBuilder Builder { get; }
         public bool HasVarArgs { get; }

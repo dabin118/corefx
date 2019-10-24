@@ -34,7 +34,7 @@ namespace System.Configuration
                        D, E, F, A, B, C
 
           That means that the Alternate allows the "nearest" config file entries to
-          take precedence over the "parent" config file entries.  
+          take precedence over the "parent" config file entries.
 
         - AddRemoveClearMap and AddRemoveClearMapAlternate
 
@@ -46,7 +46,7 @@ namespace System.Configuration
           Any access via indexes have to go through some transformation step.
 
           The Alternate version changes the inheritance stuff like the BasicMapAlternate,
-          where the "nearest" config file entries take precendence over the "parent"
+          where the "nearest" config file entries take precedence over the "parent"
           config file entries (see example above).
         **********************************************************************/
 

@@ -17,7 +17,16 @@ namespace System.Net.Tests
         [Fact]
         public void ServicePointManager_CheckAllowedProtocols_SystemDefault_Allowed()
         {
-            ServicePointManager.SecurityProtocol = SecurityProtocolType.SystemDefault;
+            SecurityProtocolType orig = ServicePointManager.SecurityProtocol;
+            try
+            {
+                ServicePointManager.SecurityProtocol = SecurityProtocolType.SystemDefault;
+                Assert.Equal(orig, ServicePointManager.SecurityProtocol);
+            }
+            finally
+            {
+                ServicePointManager.SecurityProtocol = orig;
+            }
         }
     }
 }

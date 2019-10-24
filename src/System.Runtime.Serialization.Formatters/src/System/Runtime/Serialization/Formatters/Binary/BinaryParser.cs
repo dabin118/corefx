@@ -5,6 +5,7 @@
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Text;
 
 namespace System.Runtime.Serialization.Formatters.Binary
@@ -19,7 +20,7 @@ namespace System.Runtime.Serialization.Formatters.Binary
         internal long _topId;
         internal long _headerId;
         internal SizedArray _objectMapIdTable;
-        internal SizedArray _assemIdToAssemblyTable;    // Used to hold assembly information        
+        internal SizedArray _assemIdToAssemblyTable;    // Used to hold assembly information
         internal SerStack _stack = new SerStack("ObjectProgressStack");
 
         internal BinaryTypeEnum _expectedType = BinaryTypeEnum.ObjectUrt;
@@ -27,7 +28,7 @@ namespace System.Runtime.Serialization.Formatters.Binary
         internal ParseRecord _prs;
 
         private BinaryAssemblyInfo _systemAssemblyInfo;
-        private BinaryReader _dataReader;
+        private readonly BinaryReader _dataReader;
         private SerStack _opPool;
 
         private BinaryObject _binaryObject;
@@ -145,7 +146,7 @@ namespace System.Runtime.Serialization.Formatters.Binary
                     }
 
                     // If an assembly is encountered, don't advance
-                    // object Progress, 
+                    // object Progress,
                     if (binaryHeaderEnum != BinaryHeaderEnum.Assembly)
                     {
                         // End of parse loop.
@@ -257,8 +258,13 @@ namespace System.Runtime.Serialization.Formatters.Binary
 
         private static DateTime FromBinaryRaw(long dateData)
         {
+            // Use DateTime's public constructor to validate the input, but we
+            // can't return that result as it strips off the kind. To address
+            // that, store the value directly into a DateTime via an unsafe cast.
+            // See BinaryFormatterWriter.WriteDateTime for details.
             const long TicksMask = 0x3FFFFFFFFFFFFFFF;
-            return new DateTime(dateData & TicksMask);
+            new DateTime(dateData & TicksMask);
+            return MemoryMarshal.Cast<long, DateTime>(MemoryMarshal.CreateReadOnlySpan(ref dateData, 1))[0];
         }
 
         internal ushort ReadUInt16() => _dataReader.ReadUInt16();
@@ -658,7 +664,7 @@ namespace System.Runtime.Serialization.Formatters.Binary
 
             _objectReader.Parse(PRs);
         }
-        
+
         private void ReadMemberPrimitiveTyped()
         {
             if (_memberPrimitiveTyped == null)
@@ -667,7 +673,7 @@ namespace System.Runtime.Serialization.Formatters.Binary
             }
             _memberPrimitiveTyped.Read(this);
 
-            PRs._objectTypeEnum = InternalObjectTypeE.Object; //Get rid of 
+            PRs._objectTypeEnum = InternalObjectTypeE.Object; //Get rid of
             ObjectProgress objectOp = (ObjectProgress)_stack.Peek();
 
             PRs.Init();
@@ -742,7 +748,7 @@ namespace System.Runtime.Serialization.Formatters.Binary
             }
             else
             {
-                // Nested Object            
+                // Nested Object
                 pr._parseTypeEnum = InternalParseTypeE.Member;
                 pr._memberValueEnum = InternalMemberValueE.Nested;
                 op._memberValueEnum = InternalMemberValueE.Nested;
@@ -888,7 +894,7 @@ namespace System.Runtime.Serialization.Formatters.Binary
                 }
             }
         }
-        
+
         private void ReadMemberPrimitiveUnTyped()
         {
             ObjectProgress objectOp = (ObjectProgress)_stack.Peek();
@@ -995,30 +1001,26 @@ namespace System.Runtime.Serialization.Formatters.Binary
         }
 
         // ReadValue from stream using InternalPrimitiveTypeE code
-        internal object ReadValue(InternalPrimitiveTypeE code)
-        {
-            object var = null;
-            switch (code)
+        internal object ReadValue(InternalPrimitiveTypeE code) =>
+            code switch
             {
-                case InternalPrimitiveTypeE.Boolean: var = ReadBoolean(); break;
-                case InternalPrimitiveTypeE.Byte: var = ReadByte(); break;
-                case InternalPrimitiveTypeE.Char: var = ReadChar(); break;
-                case InternalPrimitiveTypeE.Double: var = ReadDouble(); break;
-                case InternalPrimitiveTypeE.Int16: var = ReadInt16(); break;
-                case InternalPrimitiveTypeE.Int32: var = ReadInt32(); break;
-                case InternalPrimitiveTypeE.Int64: var = ReadInt64(); break;
-                case InternalPrimitiveTypeE.SByte: var = ReadSByte(); break;
-                case InternalPrimitiveTypeE.Single: var = ReadSingle(); break;
-                case InternalPrimitiveTypeE.UInt16: var = ReadUInt16(); break;
-                case InternalPrimitiveTypeE.UInt32: var = ReadUInt32(); break;
-                case InternalPrimitiveTypeE.UInt64: var = ReadUInt64(); break;
-                case InternalPrimitiveTypeE.Decimal: var = ReadDecimal(); break;
-                case InternalPrimitiveTypeE.TimeSpan: var = ReadTimeSpan(); break;
-                case InternalPrimitiveTypeE.DateTime: var = ReadDateTime(); break;
-                default: throw new SerializationException(SR.Format(SR.Serialization_TypeCode, code.ToString()));
-            }
-            return var;
-        }
+                InternalPrimitiveTypeE.Boolean => ReadBoolean(),
+                InternalPrimitiveTypeE.Byte => ReadByte(),
+                InternalPrimitiveTypeE.Char => ReadChar(),
+                InternalPrimitiveTypeE.Double => ReadDouble(),
+                InternalPrimitiveTypeE.Int16 => ReadInt16(),
+                InternalPrimitiveTypeE.Int32 => ReadInt32(),
+                InternalPrimitiveTypeE.Int64 => ReadInt64(),
+                InternalPrimitiveTypeE.SByte => ReadSByte(),
+                InternalPrimitiveTypeE.Single => ReadSingle(),
+                InternalPrimitiveTypeE.UInt16 => ReadUInt16(),
+                InternalPrimitiveTypeE.UInt32 => ReadUInt32(),
+                InternalPrimitiveTypeE.UInt64 => ReadUInt64(),
+                InternalPrimitiveTypeE.Decimal => ReadDecimal(),
+                InternalPrimitiveTypeE.TimeSpan => ReadTimeSpan(),
+                InternalPrimitiveTypeE.DateTime => ReadDateTime(),
+                _ => throw new SerializationException(SR.Format(SR.Serialization_TypeCode, code.ToString())),
+            };
 
         private ObjectProgress GetOp()
         {

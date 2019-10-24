@@ -9,6 +9,8 @@
 // (C) 2005, 2006 John Luke
 //
 
+using System.IO;
+using System.Reflection;
 using System.Text;
 using Xunit;
 
@@ -34,11 +36,11 @@ namespace System.Net.Mail.Tests
         [Fact]
         public void TestRecipients()
         {
-            Assert.Equal(emptyMessage.To.Count, 2);
-            Assert.Equal(emptyMessage.To[0].Address, "r1@t1.com");
-            Assert.Equal(emptyMessage.To[1].Address, "r2@t1.com");
+            Assert.Equal(2, emptyMessage.To.Count);
+            Assert.Equal("r1@t1.com", emptyMessage.To[0].Address);
+            Assert.Equal("r2@t1.com", emptyMessage.To[1].Address);
         }
-        
+
         [Fact]
         public void TestForNullException()
         {
@@ -47,11 +49,11 @@ namespace System.Net.Mail.Tests
             Assert.Throws<ArgumentNullException>(() => new MailMessage(new MailAddress("from@example.com"), null));
             Assert.Throws<ArgumentNullException>(() => new MailMessage(null, "to@example.com"));
         }
-        
+
         [Fact]
         public void AlternateViewTest()
         {
-            Assert.Equal(messageWithSubjectAndBody.AlternateViews.Count, 1);
+            Assert.Equal(1, messageWithSubjectAndBody.AlternateViews.Count);
             AlternateView av = messageWithSubjectAndBody.AlternateViews[0];
             Assert.Equal(0, av.LinkedResources.Count);
             Assert.Equal("text/html; charset=us-ascii", av.ContentType.ToString());
@@ -60,7 +62,7 @@ namespace System.Net.Mail.Tests
         [Fact]
         public void AttachmentTest()
         {
-            Assert.Equal(messageWithSubjectAndBody.Attachments.Count, 1);
+            Assert.Equal(1, messageWithSubjectAndBody.Attachments.Count);
             Attachment at = messageWithSubjectAndBody.Attachments[0];
             Assert.Equal("text/plain", at.ContentType.MediaType);
         }
@@ -68,7 +70,7 @@ namespace System.Net.Mail.Tests
         [Fact]
         public void BodyTest()
         {
-            Assert.Equal(messageWithSubjectAndBody.Body, "hello");
+            Assert.Equal("hello", messageWithSubjectAndBody.Body);
         }
 
         [Fact]
@@ -80,7 +82,7 @@ namespace System.Net.Mail.Tests
         [Fact]
         public void FromTest()
         {
-            Assert.Equal(messageWithSubjectAndBody.From.Address, "from@example.com");
+            Assert.Equal("from@example.com", messageWithSubjectAndBody.From.Address);
         }
 
         [Fact]
@@ -92,34 +94,34 @@ namespace System.Net.Mail.Tests
         [Fact]
         public void PriorityTest()
         {
-            Assert.Equal(messageWithSubjectAndBody.Priority, MailPriority.Normal);
+            Assert.Equal(MailPriority.Normal, messageWithSubjectAndBody.Priority);
         }
 
         [Fact]
         public void SubjectTest()
         {
-            Assert.Equal(messageWithSubjectAndBody.Subject, "the subject");
+            Assert.Equal("the subject", messageWithSubjectAndBody.Subject);
         }
 
         [Fact]
         public void ToTest()
         {
-            Assert.Equal(messageWithSubjectAndBody.To.Count, 1);
-            Assert.Equal(messageWithSubjectAndBody.To[0].Address, "to@example.com");
+            Assert.Equal(1, messageWithSubjectAndBody.To.Count);
+            Assert.Equal("to@example.com", messageWithSubjectAndBody.To[0].Address);
 
             messageWithSubjectAndBody = new MailMessage();
             messageWithSubjectAndBody.To.Add("to@example.com");
             messageWithSubjectAndBody.To.Add("you@nowhere.com");
-            Assert.Equal(messageWithSubjectAndBody.To.Count, 2);
-            Assert.Equal(messageWithSubjectAndBody.To[0].Address, "to@example.com");
-            Assert.Equal(messageWithSubjectAndBody.To[1].Address, "you@nowhere.com");
+            Assert.Equal(2, messageWithSubjectAndBody.To.Count);
+            Assert.Equal("to@example.com", messageWithSubjectAndBody.To[0].Address);
+            Assert.Equal("you@nowhere.com", messageWithSubjectAndBody.To[1].Address);
         }
 
         [Fact]
         public void BodyAndEncodingTest()
         {
             MailMessage msg = new MailMessage("from@example.com", "to@example.com");
-            Assert.Equal(null, msg.BodyEncoding);
+            Assert.Null(msg.BodyEncoding);
             msg.Body = "test";
             Assert.Equal(Encoding.ASCII, msg.BodyEncoding);
             msg.Body = "test\u3067\u3059";
@@ -133,14 +135,67 @@ namespace System.Net.Mail.Tests
         public void SubjectAndEncodingTest()
         {
             MailMessage msg = new MailMessage("from@example.com", "to@example.com");
-            Assert.Equal(null, msg.SubjectEncoding);
+            Assert.Null(msg.SubjectEncoding);
             msg.Subject = "test";
-            Assert.Equal(null, msg.SubjectEncoding);
+            Assert.Null(msg.SubjectEncoding);
             msg.Subject = "test\u3067\u3059";
             Assert.Equal(Encoding.UTF8.CodePage, msg.SubjectEncoding.CodePage);
             msg.SubjectEncoding = null;
             msg.Subject = "test\u3067\u3059";
             Assert.Equal(Encoding.UTF8.CodePage, msg.SubjectEncoding.CodePage);
+        }
+
+        [Fact]
+        public void SentSpecialLengthMailAttachment_Base64Decode_Success()
+        {
+            // The special length follows pattern: (3N - 1) * 0x4400 + 1
+            // This length will trigger WriteState.Padding = 2 & count = 1 (byte to write)
+            // The smallest number to match the pattern is 34817.
+            int specialLength = 34817;
+
+            string stringLength34817 = new string('A', specialLength - 1) + 'Z';
+            byte[] toBytes = Encoding.ASCII.GetBytes(stringLength34817);
+
+            using (var tempFile = TempFile.Create(toBytes))
+            {
+                var message = new MailMessage("sender@test.com", "user1@pop.local", "testSubject", "testBody");
+                message.Attachments.Add(new Attachment(tempFile.Path));
+                string decodedAttachment = DecodeSentMailMessage(message);
+
+                // Make sure last byte is not encoded twice.
+                Assert.Equal(specialLength, decodedAttachment.Length);
+                Assert.Equal("AAAAAAAAAAAAAAAAZ", decodedAttachment.Substring(34800));
+            }
+        }
+
+        private static string DecodeSentMailMessage(MailMessage mail)
+        {
+            // Create a MIME message that would be sent using System.Net.Mail.
+            var stream = new MemoryStream();
+            var mailWriterType = mail.GetType().Assembly.GetType("System.Net.Mail.MailWriter");
+            var mailWriter = Activator.CreateInstance(
+                                type: mailWriterType,
+                                bindingAttr: BindingFlags.Instance | BindingFlags.NonPublic,
+                                binder: null,
+                                args: new object[] { stream, true },    // true to encode message for transport
+                                culture: null,
+                                activationAttributes: null);
+
+            // Send the message.
+            mail.GetType().InvokeMember(
+                                name: "Send",
+                                invokeAttr: BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.InvokeMethod,
+                                binder: null,
+                                target: mail,
+                                args: new object[] { mailWriter, true, true });
+
+            // Decode contents.
+            string result = Encoding.UTF8.GetString(stream.ToArray());
+            string encodedAttachment = result.Split(new[] { "attachment" }, StringSplitOptions.None)[1].Trim().Split('-')[0].Trim();
+            byte[] data = Convert.FromBase64String(encodedAttachment);
+            string decodedString = Encoding.UTF8.GetString(data);
+
+            return decodedString;
         }
     }
 }

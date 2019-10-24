@@ -23,14 +23,45 @@ namespace System.Runtime.Serialization.Json
         private const char WHITESPACE = ' ';
         private const char CARRIAGE_RETURN = '\r';
         private const char NEWLINE = '\n';
-        private const char BACKSPACE = '\b';
-        private const char FORM_FEED = '\f';
-        private const char HORIZONTAL_TABULATION = '\t';
         private const string xmlNamespace = "http://www.w3.org/XML/1998/namespace";
         private const string xmlnsNamespace = "http://www.w3.org/2000/xmlns/";
 
         // This array was part of a perf improvement for escaping characters < WHITESPACE.
-        private static readonly string[] s_escapedJsonStringTable = CreateEscapedJsonStringTable();
+        private static readonly string[] s_escapedJsonStringTable =
+        {
+            "\\u0000",
+            "\\u0001",
+            "\\u0002",
+            "\\u0003",
+            "\\u0004",
+            "\\u0005",
+            "\\u0006",
+            "\\u0007",
+            "\\b",
+            "\\t",
+            "\\n",
+            "\\u000b",
+            "\\f",
+            "\\r",
+            "\\u000e",
+            "\\u000f",
+            "\\u0010",
+            "\\u0011",
+            "\\u0012",
+            "\\u0013",
+            "\\u0014",
+            "\\u0015",
+            "\\u0016",
+            "\\u0017",
+            "\\u0018",
+            "\\u0019",
+            "\\u001a",
+            "\\u001b",
+            "\\u001c",
+            "\\u001d",
+            "\\u001e",
+            "\\u001f"
+        };
 
         private static BinHexEncoding s_binHexEncoding;
 
@@ -52,8 +83,8 @@ namespace System.Runtime.Serialization.Json
         // If it's necessary to check the WriteState outside WriteState, use the WriteState property.
         private WriteState _writeState;
         private bool _wroteServerTypeAttribute;
-        private bool _indent;
-        private string _indentChars;
+        private readonly bool _indent;
+        private readonly string _indentChars;
         private int _indentLevel;
 
         public XmlJsonWriter() : this(false, null) { }
@@ -70,20 +101,6 @@ namespace System.Runtime.Serialization.Json
                 _indentChars = indentChars;
             }
             InitializeWriter();
-        }
-
-        private static string[] CreateEscapedJsonStringTable()
-        {
-            var table = new string[WHITESPACE];
-            for (int ch = 0; ch < WHITESPACE; ch++)
-            {
-                char abbrev;
-                table[ch] = TryEscapeControlCharacter((char)ch, out abbrev) ?
-                    string.Concat(BACK_SLASH, abbrev) :
-                    string.Format(CultureInfo.InvariantCulture, "\\u{0:x4}", ch);
-            }
-            
-            return table;
         }
 
         private enum JsonDataType
@@ -110,7 +127,7 @@ namespace System.Runtime.Serialization.Json
         {
             // The XmlWriterSettings object used to create this writer instance.
             // If this writer was not created using the Create method, this property
-            // returns a null reference. 
+            // returns a null reference.
             get { return null; }
         }
 
@@ -267,17 +284,17 @@ namespace System.Runtime.Serialization.Json
             throw new NotSupportedException(SR.JsonWriteArrayNotSupported);
         }
 
-        public override void WriteArray(string prefix, string localName, string namespaceUri, Int16[] array, int offset, int count)
+        public override void WriteArray(string prefix, string localName, string namespaceUri, short[] array, int offset, int count)
         {
             throw new NotSupportedException(SR.JsonWriteArrayNotSupported);
         }
 
-        public override void WriteArray(string prefix, string localName, string namespaceUri, Int32[] array, int offset, int count)
+        public override void WriteArray(string prefix, string localName, string namespaceUri, int[] array, int offset, int count)
         {
             throw new NotSupportedException(SR.JsonWriteArrayNotSupported);
         }
 
-        public override void WriteArray(string prefix, string localName, string namespaceUri, Int64[] array, int offset, int count)
+        public override void WriteArray(string prefix, string localName, string namespaceUri, long[] array, int offset, int count)
         {
             throw new NotSupportedException(SR.JsonWriteArrayNotSupported);
         }
@@ -629,7 +646,7 @@ namespace System.Runtime.Serialization.Json
                     throw new XmlException(SR.Format(SR.JsonMustSpecifyDataType, JsonGlobals.itemString, string.Empty, JsonGlobals.itemString));
                 }
 
-                // the element is empty, it does not have any content, 
+                // the element is empty, it does not have any content,
                 if ((_dataType == JsonDataType.None) ||
                     (_dataType == JsonDataType.String))
                 {
@@ -868,13 +885,13 @@ namespace System.Runtime.Serialization.Json
 
         public override void WriteStartDocument(bool standalone)
         {
-            // In XML, writes the XML declaration with the version "1.0" and the standalone attribute. 
+            // In XML, writes the XML declaration with the version "1.0" and the standalone attribute.
             WriteStartDocument();
         }
 
         public override void WriteStartDocument()
         {
-            // In XML, writes the XML declaration with the version "1.0". 
+            // In XML, writes the XML declaration with the version "1.0".
             if (IsClosed)
             {
                 ThrowClosed();
@@ -1418,33 +1435,6 @@ namespace System.Runtime.Serialization.Json
             }
         }
 
-        private static bool TryEscapeControlCharacter(char ch, out char abbrev)
-        {
-            switch (ch)
-            {
-                case BACKSPACE:
-                    abbrev = 'b';
-                    break;
-                case FORM_FEED:
-                    abbrev = 'f';
-                    break;
-                case NEWLINE:
-                    abbrev = 'n';
-                    break;
-                case CARRIAGE_RETURN:
-                    abbrev = 'r';
-                    break;
-                case HORIZONTAL_TABULATION:
-                    abbrev = 't';
-                    break;
-                default:
-                    abbrev = ' ';
-                    return false;
-            }
-
-            return true;
-        }
-
         private void WriteIndent()
         {
             for (int i = 0; i < _indentLevel; i++)
@@ -1573,10 +1563,10 @@ namespace System.Runtime.Serialization.Json
         {
             // This method is called only if WriteValue(object) is called with an array
             // The contract for XmlWriter.WriteValue(object) requires that this object array be written out as a string.
-            // E.g. WriteValue(new int[] { 1, 2, 3}) should be equivalent to WriteString("1 2 3").             
+            // E.g. WriteValue(new int[] { 1, 2, 3}) should be equivalent to WriteString("1 2 3").
             JsonDataType oldDataType = _dataType;
             // Set attribute mode to String because WritePrimitiveValue might write numerical text.
-            //  Calls to methods that write numbers can't be mixed with calls that write quoted text unless the attribute mode is explicitly string.            
+            //  Calls to methods that write numbers can't be mixed with calls that write quoted text unless the attribute mode is explicitly string.
             _dataType = JsonDataType.String;
             StartText();
             for (int i = 0; i < array.Length; i++)

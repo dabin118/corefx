@@ -17,7 +17,7 @@ namespace System.Runtime.Serialization.Xml.Tests
         {
             // The test is to verify the fix made for the following issue:
             // When reading value chunk from XmlReader where Encoding.UTF8 is used, and where the
-            // encoded bytes contains 4-byte UTF-8 encoded characters: if the 4 byte character is decoded 
+            // encoded bytes contains 4-byte UTF-8 encoded characters: if the 4 byte character is decoded
             // into 2 chars and the char[] only has one space left, an ArgumentException will be thrown
             // stating that there is not enough space to decode the bytes.
             string xmlPayloadHolder = @"<s:Envelope xmlns:s=""http://schemas.xmlsoap.org/soap/envelope/""><s:Body><Response xmlns=""http://tempuri.org/""><Result>{0}</Result></Response></s:Body></s:Envelope>";
@@ -59,7 +59,7 @@ namespace System.Runtime.Serialization.Xml.Tests
                         returnedString = new string(resultChars.ToArray());
                     }
 
-                    Assert.StrictEqual(testString, returnedString);
+                    Assert.Equal(testString, returnedString);
                 }
             }
         }
@@ -87,7 +87,7 @@ namespace System.Runtime.Serialization.Xml.Tests
                 returnedString = xmlReader.ReadElementContentAsString();
             }
 
-            Assert.StrictEqual(testString, returnedString);
+            Assert.Equal(testString, returnedString);
         }
 
         [Fact]
@@ -100,6 +100,18 @@ namespace System.Runtime.Serialization.Xml.Tests
             DateTime dt = reader.ReadElementContentAsDateTime();
             DateTime expected = new DateTime(2013, 1, 2, 3, 4, 5, 6, DateTimeKind.Utc);
             Assert.Equal(expected, dt);
+        }
+
+        [Fact]
+        public static void ReadElementContentAsBinHexTest()
+        {
+            string xmlFileContent = @"<data>540068006500200071007500690063006B002000620072006F0077006E00200066006F00780020006A0075006D007000730020006F00760065007200200074006800650020006C0061007A007900200064006F0067002E00</data>";
+            Stream sm = GenerateStreamFromString(xmlFileContent);
+            XmlDictionaryReader reader = XmlDictionaryReader.CreateTextReader(sm, XmlDictionaryReaderQuotas.Max);
+            reader.ReadToFollowing("data");
+            byte[] bytes = reader.ReadElementContentAsBinHex();
+            byte[] expected = Encoding.Unicode.GetBytes("The quick brown fox jumps over the lazy dog.");
+            Assert.Equal(expected, bytes);
         }
 
         [Fact]
@@ -139,7 +151,7 @@ namespace System.Runtime.Serialization.Xml.Tests
 
             using (XmlDictionaryWriter writer = XmlDictionaryWriter.CreateBinaryWriter(stream, dictionary, null))
             {
-                // write using the dictionary - element name, namespace, value 
+                // write using the dictionary - element name, namespace, value
                 string value = "value";
                 writer.WriteElementString(stringList[0], stringList[1], value);
                 writer.Flush();
@@ -182,6 +194,41 @@ namespace System.Runtime.Serialization.Xml.Tests
             }
 
             return sb.ToString();
+        }
+
+        [Fact]
+        public static void Close_DerivedReader_Success()
+        {
+            new NotImplementedXmlDictionaryReader().Close();
+        }
+
+        private sealed class NotImplementedXmlDictionaryReader : XmlDictionaryReader
+        {
+            public override ReadState ReadState => ReadState.Initial;
+
+            public override int AttributeCount => throw new NotImplementedException();
+            public override string BaseURI => throw new NotImplementedException();
+            public override int Depth => throw new NotImplementedException();
+            public override bool EOF => throw new NotImplementedException();
+            public override bool IsEmptyElement => throw new NotImplementedException();
+            public override string LocalName => throw new NotImplementedException();
+            public override string NamespaceURI => throw new NotImplementedException();
+            public override XmlNameTable NameTable => throw new NotImplementedException();
+            public override XmlNodeType NodeType => throw new NotImplementedException();
+            public override string Prefix => throw new NotImplementedException();
+            public override string Value => throw new NotImplementedException();
+            public override string GetAttribute(int i) => throw new NotImplementedException();
+            public override string GetAttribute(string name) => throw new NotImplementedException();
+            public override string GetAttribute(string name, string namespaceURI) => throw new NotImplementedException();
+            public override string LookupNamespace(string prefix) => throw new NotImplementedException();
+            public override bool MoveToAttribute(string name) => throw new NotImplementedException();
+            public override bool MoveToAttribute(string name, string ns) => throw new NotImplementedException();
+            public override bool MoveToElement() => throw new NotImplementedException();
+            public override bool MoveToFirstAttribute() => throw new NotImplementedException();
+            public override bool MoveToNextAttribute() => throw new NotImplementedException();
+            public override bool Read() => throw new NotImplementedException();
+            public override bool ReadAttributeValue() => throw new NotImplementedException();
+            public override void ResolveEntity() => throw new NotImplementedException();
         }
     }
 }

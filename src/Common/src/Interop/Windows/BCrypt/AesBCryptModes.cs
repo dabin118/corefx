@@ -13,22 +13,17 @@ namespace Internal.Cryptography
         private static readonly SafeAlgorithmHandle s_hAlgCbc = OpenAesAlgorithm(Cng.BCRYPT_CHAIN_MODE_CBC);
         private static readonly SafeAlgorithmHandle s_hAlgEcb = OpenAesAlgorithm(Cng.BCRYPT_CHAIN_MODE_ECB);
 
-        internal static SafeAlgorithmHandle GetSharedHandle(CipherMode cipherMode)
-        {
+        internal static SafeAlgorithmHandle GetSharedHandle(CipherMode cipherMode) =>
             // Windows 8 added support to set the CipherMode value on a key,
             // but Windows 7 requires that it be set on the algorithm before key creation.
-            switch (cipherMode)
+            cipherMode switch
             {
-                case CipherMode.CBC:
-                    return s_hAlgCbc;
-                case CipherMode.ECB:
-                    return s_hAlgEcb;
-                default:
-                    throw new NotSupportedException();
-            }
-        }
+                CipherMode.CBC => s_hAlgCbc,
+                CipherMode.ECB => s_hAlgEcb,
+                _ => throw new NotSupportedException(),
+            };
 
-        private static SafeAlgorithmHandle OpenAesAlgorithm(string cipherMode)
+        internal static SafeAlgorithmHandle OpenAesAlgorithm(string cipherMode)
         {
             SafeAlgorithmHandle hAlg = Cng.BCryptOpenAlgorithmProvider(Cng.BCRYPT_AES_ALGORITHM, null, Cng.OpenAlgorithmProviderFlags.NONE);
             hAlg.SetCipherMode(cipherMode);

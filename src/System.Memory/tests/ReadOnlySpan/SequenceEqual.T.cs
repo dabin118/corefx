@@ -57,14 +57,14 @@ namespace System.SpanTests
                 bool b = firstSpan.SequenceEqual(secondSpan);
                 Assert.True(b);
 
-                // Make sure each element of the array was compared once. (Strictly speaking, it would not be illegal for 
-                // SequenceEqual to compare an element more than once but that would be a non-optimal implementation and 
+                // Make sure each element of the array was compared once. (Strictly speaking, it would not be illegal for
+                // SequenceEqual to compare an element more than once but that would be a non-optimal implementation and
                 // a red flag. So we'll stick with the stricter test.)
                 Assert.Equal(first.Length, log.Count);
                 foreach (TInt elem in first)
                 {
                     int numCompares = log.CountCompares(elem.Value, elem.Value);
-                    Assert.True(numCompares == 1);
+                    Assert.True(numCompares == 1, $"Expected {numCompares} == 1 for element {elem.Value}.");
                 }
             }
         }
@@ -129,6 +129,15 @@ namespace System.SpanTests
                 bool b = firstSpan.SequenceEqual(secondSpan);
                 Assert.True(b);
             }
+        }
+
+        [Theory]
+        [MemberData(nameof(TestHelpers.SequenceEqualsNullData), MemberType = typeof(TestHelpers))]
+        public static void SequenceEqualsNullData_String(string[] firstInput, string[] secondInput, bool expected)
+        {
+            ReadOnlySpan<string> theStrings = firstInput;
+            Assert.Equal(expected, theStrings.SequenceEqual(secondInput));
+            Assert.Equal(expected, theStrings.SequenceEqual((ReadOnlySpan<string>)secondInput));
         }
     }
 }

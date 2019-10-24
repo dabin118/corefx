@@ -1,4 +1,3 @@
-
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
@@ -22,8 +21,7 @@ namespace System.Xml.Tests
         }
 
         //[Variation("Load(IXPathNavigable = null)", Pri = 1)]
-        [InlineData()]
-        [Theory]
+        [Fact]
         public void Var1()
         {
             try
@@ -45,8 +43,7 @@ namespace System.Xml.Tests
         }
 
         //[Variation("Load(XmlReader = null)", Pri = 1)]
-        [InlineData()]
-        [Theory]
+        [Fact]
         public void Var2()
         {
             try
@@ -68,8 +65,7 @@ namespace System.Xml.Tests
         }
 
         //[Variation("Load(IXPathNavigable = null, XmlResolver = null)", Pri = 1)]
-        [InlineData()]
-        [Theory]
+        [Fact]
         public void Var3()
         {
             try
@@ -91,8 +87,7 @@ namespace System.Xml.Tests
         }
 
         //[Variation("Load(XmlReader = null, XmlResolver = null)", Pri = 1)]
-        [InlineData()]
-        [Theory]
+        [Fact]
         public void Var4()
         {
             try
@@ -114,8 +109,7 @@ namespace System.Xml.Tests
         }
 
         //[Variation("Load(IXPathNavigable = null, XmlResolver = null, Evidence = null)", Pri = 1)]
-        [InlineData()]
-        [Theory]
+        [Fact]
         public void Var5()
         {
             /*try
@@ -137,8 +131,7 @@ namespace System.Xml.Tests
         }
 
         //[Variation("Load(XmlReader = null, XmlResolver = null, Evidence = null)", Pri = 1)]
-        [InlineData()]
-        [Theory]
+        [Fact]
         public void Var6()
         {
             /*try
@@ -160,8 +153,7 @@ namespace System.Xml.Tests
         }
 
         //[Variation("Transform(IXPathNavigable = null, XsltArgumentList = null)", Pri = 1)]
-        [InlineData()]
-        [Theory]
+        [Fact]
         public void Var7()
         {
             try
@@ -183,8 +175,7 @@ namespace System.Xml.Tests
         }
 
         //[Variation("Transform(IXPathNavigable = null, XsltArgumentList = null, XmlResolver = null)", Pri = 1)]
-        [InlineData()]
-        [Theory]
+        [Fact]
         public void Var8()
         {
             try
@@ -206,8 +197,7 @@ namespace System.Xml.Tests
         }
 
         //[Variation("Transform(IXPathNavigable = null, XsltArgumentList = null, TextWriter = null)", Pri = 1)]
-        [InlineData()]
-        [Theory]
+        [Fact]
         public void Var9()
         {
             try
@@ -229,8 +219,7 @@ namespace System.Xml.Tests
         }
 
         //[Variation("Transform(IXPathNavigable = null, XsltArgumentList = null, TextWriter = null, XmlResolver = null)", Pri = 1)]
-        [InlineData()]
-        [Theory]
+        [Fact]
         public void Var10()
         {
             try
@@ -252,8 +241,7 @@ namespace System.Xml.Tests
         }
 
         //[Variation("Transform(IXPathNavigable = null, XsltArgumentList = null, Stream = null)", Pri = 1)]
-        [InlineData()]
-        [Theory]
+        [Fact]
         public void Var11()
         {
             try
@@ -275,8 +263,7 @@ namespace System.Xml.Tests
         }
 
         //[Variation("Transform(IXPathNavigable = null, XsltArgumentList = null, Stream = null, XmlResolver = null)", Pri = 1)]
-        [InlineData()]
-        [Theory]
+        [Fact]
         public void Var12()
         {
             try
@@ -298,8 +285,7 @@ namespace System.Xml.Tests
         }
 
         //[Variation("Transform(IXPathNavigable = null, XsltArgumentList = null, XmlWriter = null)", Pri = 1)]
-        [InlineData()]
-        [Theory]
+        [Fact]
         public void Var13()
         {
             try
@@ -321,8 +307,7 @@ namespace System.Xml.Tests
         }
 
         //[Variation("Transform(IXPathNavigable = null, XsltArgumentList = null, XmlWriter = null, XmlResolver = null)", Pri = 1)]
-        [InlineData()]
-        [Theory]
+        [Fact]
         public void Var14()
         {
             try
@@ -488,7 +473,6 @@ namespace System.Xml.Tests
         [InlineData(InputType.Navigator, ReaderType.XmlValidatingReader, TransformType.Writer, DocType.XPathDocument)]
         [InlineData(InputType.Navigator, ReaderType.XmlValidatingReader, TransformType.Stream, DocType.XPathDocument)]
         [InlineData(InputType.Navigator, ReaderType.XmlValidatingReader, TransformType.TextWriter, DocType.XPathDocument)]
-        [SkipOnTargetFramework(TargetFrameworkMonikers.Uap, "Absolute path access is denied in uap")]
         [Theory]
         public void TC_AbsolutePath_Transform(InputType inputType, ReaderType readerType, TransformType transformType, DocType docType)
         {
@@ -1073,7 +1057,7 @@ namespace System.Xml.Tests
                 var e = Assert.Throws<XsltCompileException>(() => LoadXSL_Resolver("XmlResolver_Main.xsl", myResolver, inputType, readerType));
                 var xsltException = Assert.IsType<XsltException>(e.InnerException);
                 var absoluteUri = new Uri(Path.Combine(Environment.CurrentDirectory, FullFilePath("XmlResolver_Include.xsl"))).AbsoluteUri;
-                var exceptionSourceAssembly = PlatformDetection.IsFullFramework ? "System.Data.SqlXml" : "System.Xml";
+                var exceptionSourceAssembly = "System.Xml";
                 CheckExpectedError(xsltException, exceptionSourceAssembly, "Xslt_CantResolve", new[] { absoluteUri });
             }
 
@@ -1084,21 +1068,11 @@ namespace System.Xml.Tests
         }
 
         //[Variation("Style sheet has import/include, call Load first with default resolver and then with custom null resolver, should fail")]
-        [InlineData(InputType.Reader, ReaderType.XmlValidatingReader, TransformType.Reader, DocType.XPathDocument)]
-        [InlineData(InputType.Reader, ReaderType.XmlValidatingReader, TransformType.Stream, DocType.XPathDocument)]
-        [InlineData(InputType.Reader, ReaderType.XmlValidatingReader, TransformType.Writer, DocType.XPathDocument)]
-        [InlineData(InputType.Reader, ReaderType.XmlValidatingReader, TransformType.TextWriter, DocType.XPathDocument)]
-        [InlineData(InputType.URI, ReaderType.XmlValidatingReader, TransformType.Reader, DocType.XPathDocument)]
-        [InlineData(InputType.URI, ReaderType.XmlValidatingReader, TransformType.Writer, DocType.XPathDocument)]
-        [InlineData(InputType.URI, ReaderType.XmlValidatingReader, TransformType.Stream, DocType.XPathDocument)]
-        [InlineData(InputType.URI, ReaderType.XmlValidatingReader, TransformType.TextWriter, DocType.XPathDocument)]
-        [InlineData(InputType.Navigator, ReaderType.XmlValidatingReader, TransformType.Reader, DocType.XPathDocument)]
-        [InlineData(InputType.Navigator, ReaderType.XmlValidatingReader, TransformType.Writer, DocType.XPathDocument)]
-        [InlineData(InputType.Navigator, ReaderType.XmlValidatingReader, TransformType.Stream, DocType.XPathDocument)]
-        [InlineData(InputType.Navigator, ReaderType.XmlValidatingReader, TransformType.TextWriter, DocType.XPathDocument)]
-        [SkipOnTargetFramework(TargetFrameworkMonikers.NetFramework, "Only full framework implicit resolver works")]
+        [InlineData(InputType.Reader, ReaderType.XmlValidatingReader)]
+        [InlineData(InputType.URI, ReaderType.XmlValidatingReader)]
+        [InlineData(InputType.Navigator, ReaderType.XmlValidatingReader)]
         [Theory]
-        public void TC_No_Explicit_Resolver_Prohibits_External_Url(InputType inputType, ReaderType readerType, TransformType transformType, DocType docType)
+        public void TC_No_Explicit_Resolver_Prohibits_External_Url(InputType inputType, ReaderType readerType)
         {
             AppContext.TryGetSwitch("Switch.System.Xml.AllowDefaultResolver", out bool isEnabled);
             Assert.False(isEnabled);
@@ -1414,7 +1388,7 @@ namespace System.Xml.Tests
         {
             try
             {
-                LoadXSL("\\\\", InputType.URI, readerType);
+                LoadXSL("     ", InputType.URI, readerType);
             }
             catch (System.ArgumentException)
             {
@@ -1455,7 +1429,7 @@ namespace System.Xml.Tests
 #pragma warning disable 0618
             xslt = new XslTransform();
 #pragma warning restore 0618
-            String _strXslFile = "showParam.xsl";
+            string _strXslFile = "showParam.xsl";
 
             _strXslFile = FullFilePath(_strXslFile);
             _output.WriteLine("Compiling {0}", _strXslFile);
@@ -1532,21 +1506,6 @@ namespace System.Xml.Tests
 
             Assert.True(false);
         }
-
-        //[Variation("Regression case for bug 80768")]
-        [SkipOnTargetFramework(TargetFrameworkMonikers.NetFramework, "Full framework supports <msxml:script>")]
-        [Fact]
-        public void TC_Ensure_Script_Not_Allowed()
-        {
-#pragma warning disable 0618
-            xslt = new XslTransform();
-
-            var xrLoad = new XmlValidatingReader(new XmlTextReader(FullFilePath("Bug80768.xsl")));
-#pragma warning restore 0618
-            var xd = new XPathDocument(xrLoad, XmlSpace.Preserve);
-            var e = Assert.Throws<XsltCompileException>(() => xslt.Load(xd, new XmlUrlResolver()));
-            Assert.IsType<PlatformNotSupportedException>(e.InnerException);
-        }
     }
 
     /***********************************************************/
@@ -1575,7 +1534,7 @@ namespace System.Xml.Tests
 		5.No Value Specified
 		6.No Value Specified</result>";
 
-            Boolean fTEST_FAIL = false;
+            bool fTEST_FAIL = false;
 #pragma warning disable 0618
             xslt = new XslTransform();
 
@@ -1607,8 +1566,7 @@ namespace System.Xml.Tests
         }
 
         //[Variation("Calling with a closed reader, should throw exception")]
-        [InlineData()]
-        [Theory]
+        [Fact]
         public void LoadXmlReader2()
         {
 #pragma warning disable 0618
@@ -1626,10 +1584,7 @@ namespace System.Xml.Tests
             }
             catch (System.Xml.Xsl.XsltCompileException e)
             {
-                if (PlatformDetection.IsFullFramework)
-                    CheckExpectedError(e.InnerException, "system.data.sqlxml", "Xslt_WrongStylesheetElement", new string[] { "" });
-                else
-                    CheckExpectedError(e.InnerException, "system.xml", "Xslt_WrongStylesheetElement", new string[] { "" });
+                CheckExpectedError(e.InnerException, "system.xml", "Xslt_WrongStylesheetElement", new string[] { "" });
                 return;
             }
             _output.WriteLine("No exception thrown for a loading a closed reader!");
@@ -1637,11 +1592,10 @@ namespace System.Xml.Tests
         }
 
         //[Variation("Verify Reader isn""t closed after Load")]
-        [InlineData()]
-        [Theory]
+        [Fact]
         public void LoadXmlReader3()
         {
-            Boolean fTEST_FAIL = false;
+            bool fTEST_FAIL = false;
 #pragma warning disable 0618
             xslt = new XslTransform();
 
@@ -1673,11 +1627,10 @@ namespace System.Xml.Tests
         }
 
         //[Variation("Verify position of node in Reader is at EOF after Load")]
-        [InlineData()]
-        [Theory]
+        [Fact]
         public void LoadXmlReader4()
         {
-            Boolean fTEST_FAIL = false;
+            bool fTEST_FAIL = false;
 #pragma warning disable 0618
             xslt = new XslTransform();
 
@@ -1709,11 +1662,10 @@ namespace System.Xml.Tests
         }
 
         //[Variation("Load with reader position at EOF, should throw exception")]
-        [InlineData()]
-        [Theory]
+        [Fact]
         public void LoadXmlReader5()
         {
-            Boolean fTEST_FAIL = false;
+            bool fTEST_FAIL = false;
 #pragma warning disable 0618
             xslt = new XslTransform();
 
@@ -1729,11 +1681,7 @@ namespace System.Xml.Tests
             }
             catch (System.Xml.Xsl.XsltCompileException e)
             {
-
-                if (PlatformDetection.IsFullFramework)
-                    CheckExpectedError(e.InnerException, "system.data.sqlxml", "Xslt_WrongStylesheetElement", new string[] { "" });
-                else
-                    CheckExpectedError(e.InnerException, "system.xml", "Xslt_WrongStylesheetElement", new string[] { "" });
+                CheckExpectedError(e.InnerException, "system.xml", "Xslt_WrongStylesheetElement", new string[] { "" });
             }
             finally
             {
@@ -1745,8 +1693,7 @@ namespace System.Xml.Tests
         }
 
         //[Variation("Load with NULL reader, should throw System.ArgumentNullException")]
-        [InlineData()]
-        [Theory]
+        [Fact]
         public void LoadXmlReader6()
         {
 #pragma warning disable 0618
@@ -1926,14 +1873,6 @@ namespace System.Xml.Tests
         [InlineData(TransformType.Reader, DocType.XPathDocument)]
         [InlineData(TransformType.Stream, DocType.XPathDocument)]
         [InlineData(TransformType.Writer, DocType.XPathDocument)]
-        [InlineData(TransformType.TextWriter, DocType.XPathDocument)]
-        [InlineData(TransformType.Reader, DocType.XPathDocument)]
-        [InlineData(TransformType.Writer, DocType.XPathDocument)]
-        [InlineData(TransformType.Stream, DocType.XPathDocument)]
-        [InlineData(TransformType.TextWriter, DocType.XPathDocument)]
-        [InlineData(TransformType.Reader, DocType.XPathDocument)]
-        [InlineData(TransformType.Writer, DocType.XPathDocument)]
-        [InlineData(TransformType.Stream, DocType.XPathDocument)]
         [InlineData(TransformType.TextWriter, DocType.XPathDocument)]
         [Theory]
         public void TransformGeneric4(TransformType transformType, DocType docType)
@@ -2158,7 +2097,6 @@ namespace System.Xml.Tests
         [InlineData(InputType.Navigator, ReaderType.XmlValidatingReader, TransformType.Writer, DocType.XPathDocument)]
         [InlineData(InputType.Navigator, ReaderType.XmlValidatingReader, TransformType.Stream, DocType.XPathDocument)]
         [InlineData(InputType.Navigator, ReaderType.XmlValidatingReader, TransformType.TextWriter, DocType.XPathDocument)]
-        [SkipOnTargetFramework(TargetFrameworkMonikers.Uap, "Absolute path access is denied in uap")]
         [Theory]
         public void TC_AbsolutePath_Transform(InputType inputType, ReaderType readerType, TransformType transformType, DocType docType)
         {
@@ -2201,7 +2139,7 @@ namespace System.Xml.Tests
 		5.No Value Specified
 		6.No Value Specified</result>";
 
-            String szFullFilename = FullFilePath("fruits.xml");
+            string szFullFilename = FullFilePath("fruits.xml");
 
             if (LoadXSL("showParam.xsl", inputType, readerType) == 1)
             {
@@ -2239,7 +2177,7 @@ namespace System.Xml.Tests
         [Theory]
         public void TransformStrStr3(InputType inputType, ReaderType readerType)
         {
-            String szFullFilename = FullFilePath("fruits.xml");
+            string szFullFilename = FullFilePath("fruits.xml");
 
             if (LoadXSL("showParam.xsl", inputType, readerType) == 1)
             {
@@ -2286,7 +2224,7 @@ namespace System.Xml.Tests
         [Theory]
         public void TransformStrStr5(InputType inputType, ReaderType readerType)
         {
-            String szFullFilename = FullFilePath("fruits.xml");
+            string szFullFilename = FullFilePath("fruits.xml");
 
             if (LoadXSL("showParam.xsl", inputType, readerType) == 1)
             {
@@ -2332,7 +2270,7 @@ namespace System.Xml.Tests
         [Theory]
         public void TransformStrStr7(InputType inputType, ReaderType readerType)
         {
-            String szFullFilename = FullFilePath("fruits.xml");
+            string szFullFilename = FullFilePath("fruits.xml");
 
             if (LoadXSL("showParam.xsl", inputType, readerType) == 1)
             {
@@ -2364,7 +2302,7 @@ namespace System.Xml.Tests
 		5.No Value Specified
 		6.No Value Specified</result>";
 
-            String szFullFilename = FullFilePath("fruits.xml");
+            string szFullFilename = FullFilePath("fruits.xml");
 
             for (int i = 0; i < 50; i++)
             {
@@ -2375,7 +2313,7 @@ namespace System.Xml.Tests
                     {
                         VerifyResult(expected);
                     }
-                    catch(Exception)
+                    catch (Exception)
                     {
                         _output.WriteLine("Failed to process Load after calling {0} times", i);
                         throw;
@@ -2386,8 +2324,7 @@ namespace System.Xml.Tests
         }
 
         //[Variation("Call without loading")]
-        [InlineData()]
-        [Theory]
+        [Fact]
         public void TransformStrStr9()
         {
 #pragma warning disable 0618
@@ -2481,7 +2418,7 @@ namespace System.Xml.Tests
         [Theory]
         public void TransformStrStr12(InputType inputType, ReaderType readerType)
         {
-            String szFullFilename = FullFilePath("fruits.xml");
+            string szFullFilename = FullFilePath("fruits.xml");
             int iCount = 0;
             if (LoadXSL("showParam.xsl", inputType, readerType) == 1)
             {
@@ -2519,11 +2456,11 @@ namespace System.Xml.Tests
         [Theory]
         public void TransformStrStr12_win(InputType inputType, ReaderType readerType)
         {
-            String szFullFilename = FullFilePath("fruits.xml");
+            string szFullFilename = FullFilePath("fruits.xml");
 
             if (LoadXSL("showParam.xsl", inputType, readerType) == 1)
             {
-                Assert.Throws<System.ArgumentException>(() => xslt.Transform(szFullFilename, "\\\\"));
+                Assert.Throws<System.ArgumentException>(() => xslt.Transform(szFullFilename, "    "));
                 return;
             }
 
@@ -2538,7 +2475,7 @@ namespace System.Xml.Tests
         [Theory]
         public void TransformStrStr13(InputType inputType, ReaderType readerType)
         {
-            String szFullFilename = FullFilePath("fruits.xml");
+            string szFullFilename = FullFilePath("fruits.xml");
             Stream strmTemp;
 
             if (LoadXSL("showParam.xsl", inputType, readerType) == 1)
@@ -2618,7 +2555,7 @@ namespace System.Xml.Tests
             // "xmlResolver_document_function.xsl" contains
             // <xsl:for-each select="document('xmlResolver_document_function.xml')//elem">
             string expected = @"<?xml version=""1.0"" encoding=""utf-8""?><result></result>";
-            String szFullFilename = FullFilePath("fruits.xml");
+            string szFullFilename = FullFilePath("fruits.xml");
 
             if (LoadXSL("xmlResolver_document_function.xsl", inputType, readerType) == 1)
             {
@@ -2635,11 +2572,11 @@ namespace System.Xml.Tests
         }
 
         //[Variation("Pass XmlUrlResolver, load style sheet with document function, should resolve during transform")]
-        [InlineData(InputType.Reader, ReaderType.XmlValidatingReader, TransformType.Stream)]
-        [InlineData(InputType.URI, ReaderType.XmlValidatingReader, TransformType.Stream)]
-        [InlineData(InputType.Navigator, ReaderType.XmlValidatingReader, TransformType.Stream)]
+        [InlineData(InputType.Reader, ReaderType.XmlValidatingReader)]
+        [InlineData(InputType.URI, ReaderType.XmlValidatingReader)]
+        [InlineData(InputType.Navigator, ReaderType.XmlValidatingReader)]
         [Theory]
-        public void TC_Xslt_Document_Function_Use_XmlUrlResolver(InputType inputType, ReaderType readerType, TransformType transformType)
+        public void TC_Xslt_Document_Function_Use_XmlUrlResolver(InputType inputType, ReaderType readerType)
         {
             // "xmlResolver_document_function.xsl" contains
             // <xsl:for-each select="document('xmlResolver_document_function.xml')//elem">

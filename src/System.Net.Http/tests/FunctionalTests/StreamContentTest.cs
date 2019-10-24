@@ -14,12 +14,12 @@ namespace System.Net.Http.Functional.Tests
     public class StreamContentTest
     {
         private readonly ITestOutputHelper _output;
-        
+
         public StreamContentTest(ITestOutputHelper output)
         {
             _output = output;
         }
-        
+
         [Fact]
         public void Ctor_NullStream_ThrowsArgumentNullException()
         {
@@ -30,6 +30,12 @@ namespace System.Net.Http.Functional.Tests
         public void Ctor_ZeroBufferSize_ThrowsArgumentOutOfRangeException()
         {
             Assert.Throws<ArgumentOutOfRangeException>(() => new StreamContent(new MemoryStream(), 0));
+        }
+
+        [Fact]
+        public void Ctor_NullStreamAndZeroBufferSize_ThrowsArgumentNullException()
+        {
+            Assert.Throws<ArgumentNullException>(() => new StreamContent(null, 0));
         }
 
         [Fact]
@@ -212,7 +218,7 @@ namespace System.Net.Http.Functional.Tests
             var content = new StreamContent(source);
             Stream contentReadStream = await content.ReadAsStreamAsync();
 
-            // The following checks verify that the stream returned passes all read-related properties to the 
+            // The following checks verify that the stream returned passes all read-related properties to the
             // underlying MockStream and throws when using write-related members.
 
             Assert.False(contentReadStream.CanWrite);
@@ -225,19 +231,23 @@ namespace System.Net.Http.Functional.Tests
 
             contentReadStream.Position = 3; // No exception.
             Assert.Equal(3, contentReadStream.Position);
-          
+
             byte byteOnIndex3 = (byte)contentReadStream.ReadByte();
             Assert.Equal(data[3], byteOnIndex3);
 
             byte[] byteOnIndex4 = new byte[1];
             int result = await contentReadStream.ReadAsync(byteOnIndex4, 0, 1);
             Assert.Equal(1, result);
-                        
+
             Assert.Equal(data[4], byteOnIndex4[0]);
 
             byte[] byteOnIndex5 = new byte[1];
             Assert.Equal(1, contentReadStream.Read(byteOnIndex5, 0, 1));
             Assert.Equal(data[5], byteOnIndex5[0]);
+
+            byte[] byteOnIndex6 = new byte[1];
+            Assert.Equal(1, contentReadStream.Read(new Span<byte>(byteOnIndex6, 0, 1)));
+            Assert.Equal(data[6], byteOnIndex6[0]);
 
             contentReadStream.ReadTimeout = 123;
             Assert.Equal(123, source.ReadTimeout);
@@ -256,6 +266,7 @@ namespace System.Net.Http.Functional.Tests
             Assert.Throws<NotSupportedException>(() => contentReadStream.Flush());
             Assert.Throws<NotSupportedException>(() => contentReadStream.SetLength(1));
             Assert.Throws<NotSupportedException>(() => contentReadStream.Write(null, 0, 0));
+            Assert.Throws<NotSupportedException>(() => contentReadStream.Write(new Span<byte>(Array.Empty<byte>())));
             Assert.Throws<NotSupportedException>(() => contentReadStream.WriteByte(1));
 
             Assert.Equal(0, source.DisposeCount);

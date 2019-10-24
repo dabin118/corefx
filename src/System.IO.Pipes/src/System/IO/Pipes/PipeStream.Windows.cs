@@ -5,7 +5,6 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
-using System.Security;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Win32.SafeHandles;
@@ -20,7 +19,7 @@ namespace System.IO.Pipes
         internal static string GetPipePath(string serverName, string pipeName)
         {
             string normalizedPipePath = Path.GetFullPath(@"\\" + serverName + @"\pipe\" + pipeName);
-            if (String.Equals(normalizedPipePath, @"\\.\pipe\" + AnonymousPipeName, StringComparison.OrdinalIgnoreCase))
+            if (string.Equals(normalizedPipePath, @"\\.\pipe\" + AnonymousPipeName, StringComparison.OrdinalIgnoreCase))
             {
                 throw new ArgumentOutOfRangeException(nameof(pipeName), SR.ArgumentOutOfRange_AnonymousReserved);
             }
@@ -42,18 +41,19 @@ namespace System.IO.Pipes
         /// <param name="handle">The handle.</param>
         private void InitializeAsyncHandle(SafePipeHandle handle)
         {
-            // If the handle is of async type, bind the handle to the ThreadPool so that we can use 
+            // If the handle is of async type, bind the handle to the ThreadPool so that we can use
             // the async operations (it's needed so that our native callbacks get called).
             _threadPoolBinding = ThreadPoolBoundHandle.BindHandle(handle);
         }
 
-        private void UninitializeAsyncHandle()
+        private void DisposeCore(bool disposing)
         {
-            if (_threadPoolBinding != null)
-                _threadPoolBinding.Dispose();
+            if (disposing)
+            {
+                _threadPoolBinding?.Dispose();
+            }
         }
 
-        [SecurityCritical]
         private unsafe int ReadCore(Span<byte> buffer)
         {
             int errorCode = 0;
@@ -70,7 +70,7 @@ namespace System.IO.Pipes
                 }
                 else
                 {
-                    throw Win32Marshal.GetExceptionForWin32Error(errorCode, String.Empty);
+                    throw Win32Marshal.GetExceptionForWin32Error(errorCode, string.Empty);
                 }
             }
             _isMessageComplete = (errorCode != Interop.Errors.ERROR_MORE_DATA);
@@ -80,17 +80,16 @@ namespace System.IO.Pipes
             return r;
         }
 
-        [SecuritySafeCritical]
-        private Task<int> ReadAsyncCore(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
+        private ValueTask<int> ReadAsyncCore(Memory<byte> buffer, CancellationToken cancellationToken)
         {
-            var completionSource = new ReadWriteCompletionSource(this, buffer, cancellationToken, isWrite: false);
+            var completionSource = new ReadWriteCompletionSource(this, buffer, isWrite: false);
 
             // Queue an async ReadFile operation and pass in a packed overlapped
             int errorCode = 0;
             int r;
             unsafe
             {
-                r = ReadFileNative(_handle, new Span<byte>(buffer, offset, count), completionSource.Overlapped, out errorCode);
+                r = ReadFileNative(_handle, buffer.Span, completionSource.Overlapped, out errorCode);
             }
 
             // ReadFile, the OS version, will return 0 on failure, but this ReadFileNative wrapper
@@ -98,8 +97,8 @@ namespace System.IO.Pipes
             // - On error, r==-1.
             // - On async requests that are still pending, r==-1 w/ hr==ERROR_IO_PENDING
             // - On async requests that completed sequentially, r==0
-            // 
-            // You will NEVER RELIABLY be able to get the number of buffer read back from this call 
+            //
+            // You will NEVER RELIABLY be able to get the number of buffer read back from this call
             // when using overlapped structures!  You must not pass in a non-null lpNumBytesRead to
             // ReadFile when using overlapped structures!  This is by design NT behavior.
             if (r == -1)
@@ -114,14 +113,14 @@ namespace System.IO.Pipes
 
                         unsafe
                         {
-                            // Clear the overlapped status bit for this special case. Failure to do so looks 
+                            // Clear the overlapped status bit for this special case. Failure to do so looks
                             // like we are freeing a pending overlapped.
                             completionSource.Overlapped->InternalLow = IntPtr.Zero;
                         }
 
                         completionSource.ReleaseResources();
                         UpdateMessageCompletion(true);
-                        return s_zeroTask;
+                        return new ValueTask<int>(0);
 
                     case Interop.Errors.ERROR_IO_PENDING:
                         break;
@@ -131,11 +130,10 @@ namespace System.IO.Pipes
                 }
             }
 
-            completionSource.RegisterForCancellation();
-            return completionSource.Task;
+            completionSource.RegisterForCancellation(cancellationToken);
+            return new ValueTask<int>(completionSource.Task);
         }
 
-        [SecurityCritical]
         private unsafe void WriteCore(ReadOnlySpan<byte> buffer)
         {
             int errorCode = 0;
@@ -148,28 +146,27 @@ namespace System.IO.Pipes
             Debug.Assert(r >= 0, "PipeStream's WriteCore is likely broken.");
         }
 
-        [SecuritySafeCritical]
-        private Task WriteAsyncCore(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
+        private Task WriteAsyncCore(ReadOnlyMemory<byte> buffer, CancellationToken cancellationToken)
         {
-            var completionSource = new ReadWriteCompletionSource(this, buffer, cancellationToken, isWrite: true);
+            var completionSource = new ReadWriteCompletionSource(this, buffer, isWrite: true);
             int errorCode = 0;
 
             // Queue an async WriteFile operation and pass in a packed overlapped
             int r;
             unsafe
             {
-                r = WriteFileNative(_handle, new ReadOnlySpan<byte>(buffer, offset, count), completionSource.Overlapped, out errorCode);
+                r = WriteFileNative(_handle, buffer.Span, completionSource.Overlapped, out errorCode);
             }
 
-            // WriteFile, the OS version, will return 0 on failure, but this WriteFileNative 
+            // WriteFile, the OS version, will return 0 on failure, but this WriteFileNative
             // wrapper returns -1. This will return the following:
             // - On error, r==-1.
             // - On async requests that are still pending, r==-1 w/ hr==ERROR_IO_PENDING
             // - On async requests that completed sequentially, r==0
-            // 
-            // You will NEVER RELIABLY be able to get the number of buffer written back from this 
-            // call when using overlapped structures!  You must not pass in a non-null 
-            // lpNumBytesWritten to WriteFile when using overlapped structures!  This is by design 
+            //
+            // You will NEVER RELIABLY be able to get the number of buffer written back from this
+            // call when using overlapped structures!  You must not pass in a non-null
+            // lpNumBytesWritten to WriteFile when using overlapped structures!  This is by design
             // NT behavior.
             if (r == -1 && errorCode != Interop.Errors.ERROR_IO_PENDING)
             {
@@ -177,12 +174,11 @@ namespace System.IO.Pipes
                 throw WinIOError(errorCode);
             }
 
-            completionSource.RegisterForCancellation();
+            completionSource.RegisterForCancellation(cancellationToken);
             return completionSource.Task;
         }
 
         // Blocks until the other end of the pipe has read in all written buffer.
-        [SecurityCritical]
         public void WaitForPipeDrain()
         {
             CheckWriteOperations();
@@ -198,11 +194,10 @@ namespace System.IO.Pipes
             }
         }
 
-        // Gets the transmission mode for the pipe.  This is virtual so that subclassing types can 
+        // Gets the transmission mode for the pipe.  This is virtual so that subclassing types can
         // override this in cases where only one mode is legal (such as anonymous pipes)
-        public virtual PipeTransmissionMode TransmissionMode
+        public unsafe virtual PipeTransmissionMode TransmissionMode
         {
-            [SecurityCritical]
             [SuppressMessage("Microsoft.Security", "CA2122:DoNotIndirectlyExposeMethodsWithLinkDemands", Justification = "Security model of pipes: demand at creation but no subsequent demands")]
             get
             {
@@ -210,9 +205,8 @@ namespace System.IO.Pipes
 
                 if (_isFromExistingHandle)
                 {
-                    int pipeFlags;
-                    if (!Interop.Kernel32.GetNamedPipeInfo(_handle, out pipeFlags, IntPtr.Zero, IntPtr.Zero,
-                            IntPtr.Zero))
+                    uint pipeFlags;
+                    if (!Interop.Kernel32.GetNamedPipeInfo(_handle, &pipeFlags, null, null, null))
                     {
                         throw WinIOError(Marshal.GetLastWin32Error());
                     }
@@ -234,9 +228,8 @@ namespace System.IO.Pipes
 
         // Gets the buffer size in the inbound direction for the pipe. This checks if pipe has read
         // access. If that passes, call to GetNamedPipeInfo will succeed.
-        public virtual int InBufferSize
+        public unsafe virtual int InBufferSize
         {
-            [SecurityCritical]
             [SuppressMessage("Microsoft.Security", "CA2122:DoNotIndirectlyExposeMethodsWithLinkDemands")]
             get
             {
@@ -246,23 +239,22 @@ namespace System.IO.Pipes
                     throw new NotSupportedException(SR.NotSupported_UnreadableStream);
                 }
 
-                int inBufferSize;
-                if (!Interop.Kernel32.GetNamedPipeInfo(_handle, IntPtr.Zero, IntPtr.Zero, out inBufferSize, IntPtr.Zero))
+                uint inBufferSize;
+                if (!Interop.Kernel32.GetNamedPipeInfo(_handle, null, null, &inBufferSize, null))
                 {
                     throw WinIOError(Marshal.GetLastWin32Error());
                 }
 
-                return inBufferSize;
+                return (int)inBufferSize;
             }
         }
 
-        // Gets the buffer size in the outbound direction for the pipe. This uses cached version 
+        // Gets the buffer size in the outbound direction for the pipe. This uses cached version
         // if it's an outbound only pipe because GetNamedPipeInfo requires read access to the pipe.
-        // However, returning cached is good fallback, especially if user specified a value in 
+        // However, returning cached is good fallback, especially if user specified a value in
         // the ctor.
-        public virtual int OutBufferSize
+        public unsafe virtual int OutBufferSize
         {
-            [SecurityCritical]
             [SuppressMessage("Microsoft.Security", "CA2122:DoNotIndirectlyExposeMethodsWithLinkDemands", Justification = "Security model of pipes: demand at creation but no subsequent demands")]
             get
             {
@@ -272,26 +264,24 @@ namespace System.IO.Pipes
                     throw new NotSupportedException(SR.NotSupported_UnwritableStream);
                 }
 
-                int outBufferSize;
+                uint outBufferSize;
 
                 // Use cached value if direction is out; otherwise get fresh version
                 if (_pipeDirection == PipeDirection.Out)
                 {
                     outBufferSize = _outBufferSize;
                 }
-                else if (!Interop.Kernel32.GetNamedPipeInfo(_handle, IntPtr.Zero, out outBufferSize,
-                    IntPtr.Zero, IntPtr.Zero))
+                else if (!Interop.Kernel32.GetNamedPipeInfo(_handle, null, &outBufferSize, null, null))
                 {
                     throw WinIOError(Marshal.GetLastWin32Error());
                 }
 
-                return outBufferSize;
+                return (int)outBufferSize;
             }
         }
 
         public virtual PipeTransmissionMode ReadMode
         {
-            [SecurityCritical]
             get
             {
                 CheckPipePropertyOperations();
@@ -303,7 +293,6 @@ namespace System.IO.Pipes
                 }
                 return _readMode;
             }
-            [SecurityCritical]
             [SuppressMessage("Microsoft.Security", "CA2122:DoNotIndirectlyExposeMethodsWithLinkDemands", Justification = "Security model of pipes: demand at creation but no subsequent demands")]
             set
             {
@@ -335,7 +324,6 @@ namespace System.IO.Pipes
         // ---- PAL layer ends here ----
         // -----------------------------
 
-        [SecurityCritical]
         private unsafe int ReadFileNative(SafePipeHandle handle, Span<byte> buffer, NativeOverlapped* overlapped, out int errorCode)
         {
             DebugAssertHandleValid(handle);
@@ -352,7 +340,7 @@ namespace System.IO.Pipes
             int r = 0;
             int numBytesRead = 0;
 
-            fixed (byte* p = &buffer.DangerousGetPinnableReference())
+            fixed (byte* p = &MemoryMarshal.GetReference(buffer))
             {
                 r = _isAsync ?
                     Interop.Kernel32.ReadFile(handle, p, buffer.Length, IntPtr.Zero, overlapped) :
@@ -374,7 +362,6 @@ namespace System.IO.Pipes
             }
         }
 
-        [SecurityCritical]
         private unsafe int WriteFileNative(SafePipeHandle handle, ReadOnlySpan<byte> buffer, NativeOverlapped* overlapped, out int errorCode)
         {
             DebugAssertHandleValid(handle);
@@ -391,7 +378,7 @@ namespace System.IO.Pipes
             int r = 0;
             int numBytesWritten = 0;
 
-            fixed (byte* p = &buffer.DangerousGetPinnableReference())
+            fixed (byte* p = &MemoryMarshal.GetReference(buffer))
             {
                 r = _isAsync ?
                     Interop.Kernel32.WriteFile(handle, p, buffer.Length, IntPtr.Zero, overlapped) :
@@ -410,7 +397,6 @@ namespace System.IO.Pipes
             }
         }
 
-        [SecurityCritical]
         internal static unsafe Interop.Kernel32.SECURITY_ATTRIBUTES GetSecAttrs(HandleInheritability inheritability)
         {
             Interop.Kernel32.SECURITY_ATTRIBUTES secAttrs = default(Interop.Kernel32.SECURITY_ATTRIBUTES);
@@ -423,15 +409,38 @@ namespace System.IO.Pipes
             return secAttrs;
         }
 
-        /// <summary>
-        /// Determine pipe read mode from Win32 
-        /// </summary>
-        [SecurityCritical]
-        private void UpdateReadMode()
+        internal static unsafe Interop.Kernel32.SECURITY_ATTRIBUTES GetSecAttrs(HandleInheritability inheritability, PipeSecurity pipeSecurity, ref GCHandle pinningHandle)
         {
-            int flags;
-            if (!Interop.Kernel32.GetNamedPipeHandleState(SafePipeHandle, out flags, IntPtr.Zero, IntPtr.Zero,
-                    IntPtr.Zero, IntPtr.Zero, 0))
+            Interop.Kernel32.SECURITY_ATTRIBUTES secAttrs = default(Interop.Kernel32.SECURITY_ATTRIBUTES);
+            secAttrs.nLength = (uint)sizeof(Interop.Kernel32.SECURITY_ATTRIBUTES);
+
+            if ((inheritability & HandleInheritability.Inheritable) != 0)
+            {
+                secAttrs.bInheritHandle = Interop.BOOL.TRUE;
+            }
+
+            if (pipeSecurity != null)
+            {
+                byte[] securityDescriptor = pipeSecurity.GetSecurityDescriptorBinaryForm();
+                pinningHandle = GCHandle.Alloc(securityDescriptor, GCHandleType.Pinned);
+                fixed (byte* pSecurityDescriptor = securityDescriptor)
+                {
+                    secAttrs.lpSecurityDescriptor = (IntPtr)pSecurityDescriptor;
+                }
+            }
+
+            return secAttrs;
+        }
+
+
+
+        /// <summary>
+        /// Determine pipe read mode from Win32
+        /// </summary>
+        private unsafe void UpdateReadMode()
+        {
+            uint flags;
+            if (!Interop.Kernel32.GetNamedPipeHandleStateW(SafePipeHandle, &flags, null, null, null, null, 0))
             {
                 throw WinIOError(Marshal.GetLastWin32Error());
             }
@@ -450,7 +459,6 @@ namespace System.IO.Pipes
         /// Filter out all pipe related errors and do some cleanup before calling Error.WinIOError.
         /// </summary>
         /// <param name="errorCode"></param>
-        [SecurityCritical]
         internal Exception WinIOError(int errorCode)
         {
             switch (errorCode)

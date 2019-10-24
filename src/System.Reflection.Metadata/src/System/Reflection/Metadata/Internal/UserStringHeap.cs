@@ -6,7 +6,7 @@ using System.Reflection.Internal;
 
 namespace System.Reflection.Metadata.Ecma335
 {
-    internal struct UserStringHeap
+    internal readonly struct UserStringHeap
     {
         internal readonly MemoryBlock Block;
 
@@ -23,7 +23,7 @@ namespace System.Reflection.Metadata.Ecma335
                 return string.Empty;
             }
 
-            // Spec: Furthermore, there is an additional terminal byte (so all byte counts are odd, not even). 
+            // Spec: Furthermore, there is an additional terminal byte (so all byte counts are odd, not even).
             // The size in the blob header is the length of the string in bytes + 1.
             return Block.PeekUtf16(offset, size & ~1);
         }

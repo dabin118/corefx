@@ -6,20 +6,22 @@ using System;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
-using System.Text;
 
 internal static partial class Interop
 {
     internal static partial class Crypto
     {
-        [DllImport(Libraries.CryptoNative, EntryPoint = "CryptoNative_ErrGetError")]
-        internal static extern ulong ErrGetError();
+        [DllImport(Libraries.CryptoNative, EntryPoint = "CryptoNative_ErrClearError")]
+        internal static extern ulong ErrClearError();
+
+        [DllImport(Libraries.CryptoNative, EntryPoint = "CryptoNative_ErrGetErrorAlloc")]
+        private static extern ulong ErrGetErrorAlloc([MarshalAs(UnmanagedType.Bool)] out bool isAllocFailure);
 
         [DllImport(Libraries.CryptoNative, EntryPoint = "CryptoNative_ErrPeekError")]
         internal static extern ulong ErrPeekError();
 
-        [DllImport(Libraries.CryptoNative, EntryPoint = "CryptoNative_ErrGetErrorAlloc")]
-        private static extern ulong ErrGetErrorAlloc([MarshalAs(UnmanagedType.Bool)] out bool isAllocFailure);
+        [DllImport(Libraries.CryptoNative, EntryPoint = "CryptoNative_ErrPeekLastError")]
+        internal static extern ulong ErrPeekLastError();
 
         [DllImport(Libraries.CryptoNative, EntryPoint = "CryptoNative_ErrReasonErrorString")]
         internal static extern IntPtr ErrReasonErrorString(ulong error);
@@ -80,7 +82,7 @@ internal static partial class Interop
                 return new OutOfMemoryException();
             }
 
-            // Even though ErrGetError returns ulong (C++ unsigned long), we 
+            // Even though ErrGetError returns ulong (C++ unsigned long), we
             // really only expect error codes in the UInt32 range
             Debug.Assert(error <= uint.MaxValue, "ErrGetError should only return error codes in the UInt32 range.");
 

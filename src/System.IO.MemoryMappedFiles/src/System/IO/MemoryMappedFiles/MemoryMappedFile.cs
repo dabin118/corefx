@@ -16,7 +16,6 @@ namespace System.IO.MemoryMappedFiles
         internal const int DefaultSize = 0;
 
         // Private constructors to be used by the factory methods.
-        [SecurityCritical]
         private MemoryMappedFile(SafeMemoryMappedFileHandle handle)
         {
             Debug.Assert(handle != null);
@@ -27,7 +26,6 @@ namespace System.IO.MemoryMappedFiles
             _leaveOpen = true; // No FileStream to dispose of in this case.
         }
 
-        [SecurityCritical]
         private MemoryMappedFile(SafeMemoryMappedFileHandle handle, FileStream fileStream, bool leaveOpen)
         {
             Debug.Assert(handle != null);
@@ -41,12 +39,12 @@ namespace System.IO.MemoryMappedFiles
         }
 
         // Factory Method Group #1: Opens an existing named memory mapped file. The native OpenFileMapping call
-        // will check the desiredAccessRights against the ACL on the memory mapped file.  Note that a memory 
+        // will check the desiredAccessRights against the ACL on the memory mapped file.  Note that a memory
         // mapped file created without an ACL will use a default ACL taken from the primary or impersonation token
         // of the creator.  On my machine, I always get ReadWrite access to it so I never have to use anything but
-        // the first override of this method.  Note: having ReadWrite access to the object does not mean that we 
+        // the first override of this method.  Note: having ReadWrite access to the object does not mean that we
         // have ReadWrite access to the pages mapping the file.  The OS will check against the access on the pages
-        // when a view is created. 
+        // when a view is created.
         public static MemoryMappedFile OpenExisting(string mapName)
         {
             return OpenExisting(mapName, MemoryMappedFileRights.ReadWrite, HandleInheritability.None);
@@ -57,7 +55,6 @@ namespace System.IO.MemoryMappedFiles
             return OpenExisting(mapName, desiredAccessRights, HandleInheritability.None);
         }
 
-        [SecurityCritical]
         public static MemoryMappedFile OpenExisting(string mapName, MemoryMappedFileRights desiredAccessRights,
                                                                     HandleInheritability inheritability)
         {
@@ -85,13 +82,13 @@ namespace System.IO.MemoryMappedFiles
             return new MemoryMappedFile(handle);
         }
 
-        // Factory Method Group #2: Creates a new memory mapped file where the content is taken from an existing 
-        // file on disk.  This file must be opened by a FileStream before given to us.  Specifying DefaultSize to 
+        // Factory Method Group #2: Creates a new memory mapped file where the content is taken from an existing
+        // file on disk.  This file must be opened by a FileStream before given to us.  Specifying DefaultSize to
         // the capacity will make the capacity of the memory mapped file match the size of the file.  Specifying
         // a value larger than the size of the file will enlarge the new file to this size.  Note that in such a
         // case, the capacity (and there for the size of the file) will be rounded up to a multiple of the system
-        // page size.  One can use FileStream.SetLength to bring the length back to a desirable size. By default, 
-        // the MemoryMappedFile will close the FileStream object when it is disposed.  This behavior can be 
+        // page size.  One can use FileStream.SetLength to bring the length back to a desirable size. By default,
+        // the MemoryMappedFile will close the FileStream object when it is disposed.  This behavior can be
         // changed by the leaveOpen boolean argument.
         public static MemoryMappedFile CreateFromFile(string path)
         {
@@ -112,7 +109,6 @@ namespace System.IO.MemoryMappedFiles
             return CreateFromFile(path, mode, mapName, capacity, MemoryMappedFileAccess.ReadWrite);
         }
 
-        [SecurityCritical]
         public static MemoryMappedFile CreateFromFile(string path, FileMode mode, string mapName, long capacity,
                                                                         MemoryMappedFileAccess access)
         {
@@ -170,7 +166,7 @@ namespace System.IO.MemoryMappedFiles
                 capacity = fileStream.Length;
             }
 
-            // one can always create a small view if they do not want to map an entire file 
+            // one can always create a small view if they do not want to map an entire file
             if (fileStream.Length > capacity)
             {
                 CleanupFile(fileStream, existed, path);
@@ -194,7 +190,6 @@ namespace System.IO.MemoryMappedFiles
             return new MemoryMappedFile(handle, fileStream, false);
         }
 
-        [SecurityCritical]
         public static MemoryMappedFile CreateFromFile(FileStream fileStream, string mapName, long capacity,
                                                         MemoryMappedFileAccess access,
                                                         HandleInheritability inheritability, bool leaveOpen)
@@ -248,7 +243,7 @@ namespace System.IO.MemoryMappedFiles
                 capacity = fileStream.Length;
             }
 
-            // one can always create a small view if they do not want to map an entire file 
+            // one can always create a small view if they do not want to map an entire file
             if (fileStream.Length > capacity)
             {
                 throw new ArgumentOutOfRangeException(nameof(capacity), SR.ArgumentOutOfRange_CapacityGEFileSizeRequired);
@@ -260,8 +255,8 @@ namespace System.IO.MemoryMappedFiles
             return new MemoryMappedFile(handle, fileStream, leaveOpen);
         }
 
-        // Factory Method Group #3: Creates a new empty memory mapped file.  Such memory mapped files are ideal 
-        // for IPC, when mapName != null. 
+        // Factory Method Group #3: Creates a new empty memory mapped file.  Such memory mapped files are ideal
+        // for IPC, when mapName != null.
         public static MemoryMappedFile CreateNew(string mapName, long capacity)
         {
             return CreateNew(mapName, capacity, MemoryMappedFileAccess.ReadWrite, MemoryMappedFileOptions.None,
@@ -274,7 +269,6 @@ namespace System.IO.MemoryMappedFiles
                    HandleInheritability.None);
         }
 
-        [SecurityCritical]
         public static MemoryMappedFile CreateNew(string mapName, long capacity, MemoryMappedFileAccess access,
                                                     MemoryMappedFileOptions options,
                                                     HandleInheritability inheritability)
@@ -320,7 +314,7 @@ namespace System.IO.MemoryMappedFiles
         }
 
         // Factory Method Group #4: Creates a new empty memory mapped file or opens an existing
-        // memory mapped file if one exists with the same name.  The capacity, options, and 
+        // memory mapped file if one exists with the same name.  The capacity, options, and
         // memoryMappedFileSecurity arguments will be ignored in the case of the later.
         // This is ideal for P2P style IPC.
         public static MemoryMappedFile CreateOrOpen(string mapName, long capacity)
@@ -335,7 +329,6 @@ namespace System.IO.MemoryMappedFiles
             return CreateOrOpen(mapName, capacity, access, MemoryMappedFileOptions.None, HandleInheritability.None);
         }
 
-        [SecurityCritical]
         public static MemoryMappedFile CreateOrOpen(string mapName, long capacity,
                                                     MemoryMappedFileAccess access, MemoryMappedFileOptions options,
                                                     HandleInheritability inheritability)
@@ -400,7 +393,6 @@ namespace System.IO.MemoryMappedFiles
             return CreateViewStream(offset, size, MemoryMappedFileAccess.ReadWrite);
         }
 
-        [SecurityCritical]
         public MemoryMappedViewStream CreateViewStream(long offset, long size, MemoryMappedFileAccess access)
         {
             if (offset < 0)
@@ -438,7 +430,6 @@ namespace System.IO.MemoryMappedFiles
             return CreateViewAccessor(offset, size, MemoryMappedFileAccess.ReadWrite);
         }
 
-        [SecurityCritical]
         public MemoryMappedViewAccessor CreateViewAccessor(long offset, long size, MemoryMappedFileAccess access)
         {
             if (offset < 0)
@@ -471,7 +462,6 @@ namespace System.IO.MemoryMappedFiles
             GC.SuppressFinalize(this);
         }
 
-        [SecuritySafeCritical]
         protected virtual void Dispose(bool disposing)
         {
             try
@@ -492,13 +482,12 @@ namespace System.IO.MemoryMappedFiles
 
         public SafeMemoryMappedFileHandle SafeMemoryMappedFileHandle
         {
-            [SecurityCritical]
             get { return _handle; }
         }
 
-        // This converts a MemoryMappedFileAccess to a FileAccess. MemoryMappedViewStream and 
-        // MemoryMappedViewAccessor subclass UnmanagedMemoryStream and UnmanagedMemoryAccessor, which both use 
-        // FileAccess to determine whether they are writable and/or readable.  
+        // This converts a MemoryMappedFileAccess to a FileAccess. MemoryMappedViewStream and
+        // MemoryMappedViewAccessor subclass UnmanagedMemoryStream and UnmanagedMemoryAccessor, which both use
+        // FileAccess to determine whether they are writable and/or readable.
         internal static FileAccess GetFileAccess(MemoryMappedFileAccess access)
         {
             switch (access)
@@ -506,7 +495,7 @@ namespace System.IO.MemoryMappedFiles
                 case MemoryMappedFileAccess.Read:
                 case MemoryMappedFileAccess.ReadExecute:
                     return FileAccess.Read;
-                
+
                 case MemoryMappedFileAccess.ReadWrite:
                 case MemoryMappedFileAccess.CopyOnWrite:
                 case MemoryMappedFileAccess.ReadWriteExecute:

@@ -2,7 +2,11 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+#if USE_MDT_EVENTSOURCE
+using Microsoft.Diagnostics.Tracing;
+#else
 using System.Diagnostics.Tracing;
+#endif
 using Xunit;
 using System;
 
@@ -31,12 +35,12 @@ namespace BasicEventSourceTests
             TestUtilities.CheckNoEventSourcesRunning("Start");
             using (var mySource = new ContractEventSourceWithTraits())
             {
-                // By default we are self-describing.  
-                Assert.Equal(mySource.Settings, EventSourceSettings.EtwSelfDescribingEventFormat);
-                Assert.Equal(mySource.GetTrait("MyTrait"), "MyTraitValue");
-                Assert.Equal(mySource.GetTrait("ETW_GROUP"), "{4f50731a-89cf-4782-b3e0-dce8c90476ba}");
-                Assert.Equal(mySource.GetTrait("ETW_2"), "#01 02 03 04");
-                Assert.Equal(mySource.GetTrait("ETW_3"), "@Hello");
+                // By default we are self-describing.
+                Assert.Equal(EventSourceSettings.EtwSelfDescribingEventFormat, mySource.Settings);
+                Assert.Equal("MyTraitValue", mySource.GetTrait("MyTrait"));
+                Assert.Equal("{4f50731a-89cf-4782-b3e0-dce8c90476ba}", mySource.GetTrait("ETW_GROUP"));
+                Assert.Equal("#01 02 03 04", mySource.GetTrait("ETW_2"));
+                Assert.Equal("@Hello", mySource.GetTrait("ETW_3"));
             }
             TestUtilities.CheckNoEventSourcesRunning("Stop");
         }
@@ -49,10 +53,10 @@ namespace BasicEventSourceTests
                 "MyTrait", "MyTraitValue",
                 "ETW_GROUP", "{4f50731a-89cf-4782-b3e0-dce8c90476ba}"))
             {
-                // By default we are self-describing.  
-                Assert.Equal(mySource.Settings, EventSourceSettings.EtwSelfDescribingEventFormat);
-                Assert.Equal(mySource.GetTrait("MyTrait"), "MyTraitValue");
-                Assert.Equal(mySource.GetTrait("ETW_GROUP"), "{4f50731a-89cf-4782-b3e0-dce8c90476ba}");
+                // By default we are self-describing.
+                Assert.Equal(EventSourceSettings.EtwSelfDescribingEventFormat, mySource.Settings);
+                Assert.Equal("MyTraitValue", mySource.GetTrait("MyTrait"));
+                Assert.Equal("{4f50731a-89cf-4782-b3e0-dce8c90476ba}", mySource.GetTrait("ETW_GROUP"));
             }
             TestUtilities.CheckNoEventSourcesRunning("Stop");
         }

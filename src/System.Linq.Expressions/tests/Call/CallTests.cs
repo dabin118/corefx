@@ -84,6 +84,18 @@ namespace System.Linq.Expressions.Tests
 
         [Theory]
         [ClassData(typeof(CompilationTypes))]
+        public static void EnumArgAndReturn(bool useInterpreter)
+        {
+            ParameterExpression p = Expression.Parameter(typeof(NonGenericClass.E1));
+            MethodCallExpression call = Expression.Call(typeof(NonGenericClass).GetMethod("FooEnum"), p);
+            Func<NonGenericClass.E1, NonGenericClass.E2> lambda = Expression.Lambda<Func<NonGenericClass.E1, NonGenericClass.E2>>(call, p).Compile(useInterpreter);
+
+            Assert.Equal(NonGenericClass.E2.One, lambda(NonGenericClass.E1.One));
+            Assert.Equal(NonGenericClass.E2.Two, lambda(NonGenericClass.E1.Two));
+        }
+
+        [Theory]
+        [ClassData(typeof(CompilationTypes))]
         public static void MultiRankArrayWriteBack(bool useInterpreter)
         {
             ParameterExpression p = Expression.Parameter(typeof(Mutable[,]));
@@ -214,6 +226,20 @@ namespace System.Linq.Expressions.Tests
         [Theory]
         [ClassData(typeof(CompilationTypes))]
         public static void CallByRefMutableStructIndexWriteBack(bool useInterpreter)
+        {
+            // Should not produce tail-call, but should still succeed
+            ParameterExpression p = Expression.Parameter(typeof(Mutable));
+            IndexExpression x = Expression.MakeIndex(p, typeof(Mutable).GetProperty("Item"), new[] { Expression.Constant(0) });
+            MethodCallExpression call = Expression.Call(typeof(Methods).GetMethod("ByRef"), x);
+            Action<Mutable> act = Expression.Lambda<Action<Mutable>>(call, true, p).Compile(useInterpreter);
+
+            Mutable m = new Mutable { X = 41 };
+            act(m);
+        }
+
+        [Theory]
+        [ClassData(typeof(CompilationTypes))]
+        public static void CallByRefAttemptTailCall(bool useInterpreter)
         {
             ParameterExpression p = Expression.Parameter(typeof(Mutable));
             IndexExpression x = Expression.MakeIndex(p, typeof(Mutable).GetProperty("Item"), new[] { Expression.Constant(0) });
@@ -433,10 +459,7 @@ namespace System.Linq.Expressions.Tests
         private static void AssertArgumentException(Action action, Type exceptionType, string paramName)
         {
             ArgumentException ex = (ArgumentException)Assert.Throws(exceptionType, action);
-            if (!PlatformDetection.IsNetNative) // The .NET Native toolchain optimizes away exception ParamNames
-            {
-                Assert.Equal(paramName, ex.ParamName);
-            }
+            Assert.Equal(paramName, ex.ParamName);
         }
 
         [Theory]
@@ -642,6 +665,62 @@ namespace System.Linq.Expressions.Tests
             }
         }
 
+        [Theory]
+        [ClassData(typeof(CompilationTypes))]
+        public static void EnumReturnType0(bool useInterpreter)
+        {
+            Expression<Func<DayOfWeek[]>> expr = () => new[] { ToDayOfWeek0() };
+            Assert.Equal(DayOfWeek.Monday, expr.Compile(useInterpreter)()[0]);
+        }
+
+        [Theory]
+        [ClassData(typeof(CompilationTypes))]
+        public static void EnumReturnType1(bool useInterpreter)
+        {
+            Expression<Func<DayOfWeek[]>> expr = () => new[] { ToDayOfWeek1(1) };
+            Assert.Equal(DayOfWeek.Monday, expr.Compile(useInterpreter)()[0]);
+        }
+
+        [Theory]
+        [ClassData(typeof(CompilationTypes))]
+        public static void EnumReturnType2(bool useInterpreter)
+        {
+            Expression<Func<DayOfWeek[]>> expr = () => new[] { ToDayOfWeek2(0, 1) };
+            Assert.Equal(DayOfWeek.Monday, expr.Compile(useInterpreter)()[0]);
+        }
+
+        private static DayOfWeek ToDayOfWeek0() => DayOfWeek.Monday;
+        private static DayOfWeek ToDayOfWeek1(int i) => (DayOfWeek)i;
+        private static DayOfWeek ToDayOfWeek2(int i, int j) => (DayOfWeek)(i + j);
+
+        [Theory]
+        [ClassData(typeof(CompilationTypes))]
+        public static void NullableEnumReturnType0(bool useInterpreter)
+        {
+            Expression<Func<DayOfWeek?[]>> expr = () => new[] { ToDayOfWeekOpt0() };
+            Assert.Equal(DayOfWeek.Monday, expr.Compile(useInterpreter)()[0].Value);
+        }
+
+        [Theory]
+        [ClassData(typeof(CompilationTypes))]
+        public static void NullableEnumReturnType1(bool useInterpreter)
+        {
+            Expression<Func<DayOfWeek?[]>> expr = () => new[] { ToDayOfWeekOpt1(1) };
+            Assert.Equal(DayOfWeek.Monday, expr.Compile(useInterpreter)()[0].Value);
+        }
+
+        [Theory]
+        [ClassData(typeof(CompilationTypes))]
+        public static void NullableEnumReturnType2(bool useInterpreter)
+        {
+            Expression<Func<DayOfWeek?[]>> expr = () => new[] { ToDayOfWeekOpt2(0, 1) };
+            Assert.Equal(DayOfWeek.Monday, expr.Compile(useInterpreter)()[0].Value);
+        }
+
+        private static DayOfWeek? ToDayOfWeekOpt0() => DayOfWeek.Monday;
+        private static DayOfWeek? ToDayOfWeekOpt1(int i) => (DayOfWeek)i;
+        private static DayOfWeek? ToDayOfWeekOpt2(int i, int j) => (DayOfWeek)(i + j);
+
         public class GenericClass<T>
         {
             public static void NonGenericMethod() { }
@@ -685,6 +764,23 @@ namespace System.Linq.Expressions.Tests
             public void InstanceMethod3(int i1, int i2, int i3) { }
             public void InstanceMethod4(int i1, int i2, int i3, int i4) { }
             public static void StaticMethod1(int i1) { }
+
+            public enum E1 : byte
+            {
+                One,
+                Two
+            }
+
+            public enum E2 : int
+            {
+                One,
+                Two
+            }
+
+            public static E2 FooEnum(E1 arg)
+            {
+                return (E2)arg;
+            }
         }
 
         public interface Interface1

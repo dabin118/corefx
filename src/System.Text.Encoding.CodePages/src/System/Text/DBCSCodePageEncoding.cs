@@ -5,10 +5,10 @@
 using System;
 using System.IO;
 using System.Diagnostics;
-using System.Diagnostics.Contracts;
 using System.Text;
 using System.Threading;
 using System.Security;
+using System.Runtime.CompilerServices;
 
 namespace System.Text
 {
@@ -17,9 +17,7 @@ namespace System.Text
     internal class DBCSCodePageEncoding : BaseCodePageEncoding
     {
         // Pointers to our memory section parts
-        [SecurityCritical]
         protected unsafe char* mapBytesToUnicode = null;      // char 65536
-        [SecurityCritical]
         protected unsafe ushort* mapUnicodeToBytes = null;      // byte 65536
 
         protected const char UNKNOWN_CHAR_FLAG = (char)0x0;
@@ -32,17 +30,14 @@ namespace System.Text
         private int _byteCountUnknown;
         protected char charUnknown = (char)0;
 
-        [System.Security.SecurityCritical]  // auto-generated
         public DBCSCodePageEncoding(int codePage) : this(codePage, codePage)
         {
         }
 
-        [System.Security.SecurityCritical]  // auto-generated
         internal DBCSCodePageEncoding(int codePage, int dataCodePage) : base(codePage, dataCodePage)
         {
         }
 
-        [System.Security.SecurityCritical]  // auto-generated
         internal DBCSCodePageEncoding(int codePage, int dataCodePage, EncoderFallback enc, DecoderFallback dec) : base(codePage, dataCodePage, enc, dec)
         {
         }
@@ -75,12 +70,11 @@ namespace System.Text
         //               correspond to those unicode code points.
         // We have a managed code page entry, so load our tables
         //
-        [System.Security.SecurityCritical]  // auto-generated
         protected override unsafe void LoadManagedCodePage()
         {
             Debug.Assert(m_codePageHeader?.Length > 0);
 
-            fixed (byte* pBytes = &m_codePageHeader[0])
+            fixed (byte* pBytes = &m_codePageHeader![0])
             {
                 CodePageHeader* pCodePage = (CodePageHeader*)pBytes;
 
@@ -112,7 +106,9 @@ namespace System.Text
 
                 // Get our mapped section (bytes to allocate = 2 bytes per 65536 Unicode chars + 2 bytes per 65536 DBCS chars)
                 // Plus 4 byte to remember CP # when done loading it. (Don't want to get IA64 or anything out of alignment)
-                byte* pNativeMemory = GetNativeMemory(65536 * 2 * 2 + 4 + iExtraBytes);
+                int sizeToAllocate = 65536 * 2 * 2 + 4 + iExtraBytes;
+                byte* pNativeMemory = GetNativeMemory(sizeToAllocate);
+                Unsafe.InitBlockUnaligned(pNativeMemory, 0, (uint)sizeToAllocate);
 
                 mapBytesToUnicode = (char*)pNativeMemory;
                 mapUnicodeToBytes = (ushort*)(pNativeMemory + 65536 * 2);
@@ -211,28 +207,26 @@ namespace System.Text
         }
 
         // Any special processing for this code page
-        [System.Security.SecurityCritical]  // auto-generated
         protected virtual unsafe void CleanUpEndBytes(char* chars)
         {
         }
 
         // Private object for locking instead of locking on a public type for SQL reliability work.
-        private static Object s_InternalSyncObject;
-        private static Object InternalSyncObject
+        private static object? s_InternalSyncObject;
+        private static object InternalSyncObject
         {
             get
             {
                 if (s_InternalSyncObject == null)
                 {
-                    Object o = new Object();
-                    Interlocked.CompareExchange<Object>(ref s_InternalSyncObject, o, null);
+                    object o = new object();
+                    Interlocked.CompareExchange<object?>(ref s_InternalSyncObject, o, null);
                 }
                 return s_InternalSyncObject;
             }
         }
 
         // Read in our best fit table
-        [System.Security.SecurityCritical]  // auto-generated
         protected unsafe override void ReadBestFitTable()
         {
             // Lock so we don't confuse ourselves.
@@ -511,8 +505,7 @@ namespace System.Text
         // GetByteCount
         // Note: We start by assuming that the output will be the same as count.  Having
         // an encoder or fallback may change that assumption
-        [System.Security.SecurityCritical]  // auto-generated
-        public override unsafe int GetByteCount(char* chars, int count, EncoderNLS encoder)
+        public override unsafe int GetByteCount(char* chars, int count, EncoderNLS? encoder)
         {
             // Just need to ASSERT, this is called by something else internal that checked parameters already
             Debug.Assert(count >= 0, "[DBCSCodePageEncoding.GetByteCount]count is negative");
@@ -539,20 +532,20 @@ namespace System.Text
             char* charEnd = chars + count;
 
             // For fallback we will need a fallback buffer
-            EncoderFallbackBuffer fallbackBuffer = null;
+            EncoderFallbackBuffer? fallbackBuffer = null;
 
             EncoderFallbackBufferHelper fallbackHelper = new EncoderFallbackBufferHelper(fallbackBuffer);
 
             // We may have a left over character from last time, try and process it.
             if (charLeftOver > 0)
             {
-                Debug.Assert(Char.IsHighSurrogate(charLeftOver), "[DBCSCodePageEncoding.GetByteCount]leftover character should be high surrogate");
+                Debug.Assert(char.IsHighSurrogate(charLeftOver), "[DBCSCodePageEncoding.GetByteCount]leftover character should be high surrogate");
                 Debug.Assert(encoder != null,
                     "[DBCSCodePageEncoding.GetByteCount]Expect to have encoder if we have a charLeftOver");
 
                 // Since left over char was a surrogate, it'll have to be fallen back.
                 // Get Fallback
-                fallbackBuffer = encoder.FallbackBuffer;
+                fallbackBuffer = encoder!.FallbackBuffer;
                 fallbackHelper = new EncoderFallbackBufferHelper(fallbackBuffer);
                 fallbackHelper.InternalInitialize(chars, charEnd, encoder, false);
                 // This will fallback a pair if *chars is a low surrogate
@@ -584,7 +577,7 @@ namespace System.Text
                     {
                         // Initialize the buffer
                         if (encoder == null)
-                            fallbackBuffer = EncoderFallback.CreateFallbackBuffer();
+                            fallbackBuffer = EncoderFallback!.CreateFallbackBuffer();
                         else
                             fallbackBuffer = encoder.FallbackBuffer;
 
@@ -607,9 +600,8 @@ namespace System.Text
             return (int)byteCount;
         }
 
-        [System.Security.SecurityCritical]  // auto-generated
         public override unsafe int GetBytes(char* chars, int charCount,
-                                                byte* bytes, int byteCount, EncoderNLS encoder)
+                                                byte* bytes, int byteCount, EncoderNLS? encoder)
         {
             // Just need to ASSERT, this is called by something else internal that checked parameters already
             Debug.Assert(bytes != null, "[DBCSCodePageEncoding.GetBytes]bytes is null");
@@ -623,7 +615,7 @@ namespace System.Text
             CheckMemorySection();
 
             // For fallback we will need a fallback buffer
-            EncoderFallbackBuffer fallbackBuffer = null;
+            EncoderFallbackBuffer? fallbackBuffer = null;
 
             // prepare our end
             char* charEnd = chars + charCount;
@@ -638,7 +630,7 @@ namespace System.Text
             if (encoder != null)
             {
                 charLeftOver = encoder.charLeftOver;
-                Debug.Assert(charLeftOver == 0 || Char.IsHighSurrogate(charLeftOver),
+                Debug.Assert(charLeftOver == 0 || char.IsHighSurrogate(charLeftOver),
                     "[DBCSCodePageEncoding.GetBytes]leftover character should be high surrogate");
 
                 // Go ahead and get the fallback buffer (need leftover fallback if converting)
@@ -688,7 +680,7 @@ namespace System.Text
                         // Initialize the buffer
                         Debug.Assert(encoder == null,
                             "[DBCSCodePageEncoding.GetBytes]Expected delayed create fallback only if no encoder.");
-                        fallbackBuffer = EncoderFallback.CreateFallbackBuffer();
+                        fallbackBuffer = EncoderFallback!.CreateFallbackBuffer();
                         fallbackHelper = new EncoderFallbackBufferHelper(fallbackBuffer);
                         fallbackHelper.InternalInitialize(charEnd - charCount, charEnd, encoder, true);
                     }
@@ -758,8 +750,7 @@ namespace System.Text
         }
 
         // This is internal and called by something else,
-        [System.Security.SecurityCritical]  // auto-generated
-        public override unsafe int GetCharCount(byte* bytes, int count, DecoderNLS baseDecoder)
+        public override unsafe int GetCharCount(byte* bytes, int count, DecoderNLS? baseDecoder)
         {
             // Just assert, we're called internally so these should be safe, checked already
             Debug.Assert(bytes != null, "[DBCSCodePageEncoding.GetCharCount]bytes is null");
@@ -768,10 +759,10 @@ namespace System.Text
             CheckMemorySection();
 
             // Fix our decoder
-            DBCSDecoder decoder = (DBCSDecoder)baseDecoder;
+            DBCSDecoder? decoder = (DBCSDecoder?)baseDecoder;
 
             // Get our fallback
-            DecoderFallbackBuffer fallbackBuffer = null;
+            DecoderFallbackBuffer? fallbackBuffer = null;
 
             // We'll need to know where the end is
             byte* byteEnd = bytes + count;
@@ -891,11 +882,9 @@ namespace System.Text
 
                     // Do fallback
                     charCount--;    // Get rid of preallocated extra char
-                    byte[] byteBuffer = null;
-                    if (iBytes < 0x100)
-                        byteBuffer = new byte[] { unchecked((byte)iBytes) };
-                    else
-                        byteBuffer = new byte[] { unchecked((byte)(iBytes >> 8)), unchecked((byte)iBytes) };
+                    byte[] byteBuffer = iBytes < 0x100 ?
+                        new byte[] { unchecked((byte)iBytes) } :
+                        new byte[] { unchecked((byte)(iBytes >> 8)), unchecked((byte)iBytes) };
                     charCount += fallbackHelper.InternalFallback(byteBuffer, bytes);
                 }
             }
@@ -909,9 +898,8 @@ namespace System.Text
             return charCount;
         }
 
-        [System.Security.SecurityCritical]  // auto-generated
         public override unsafe int GetChars(byte* bytes, int byteCount,
-                                                char* chars, int charCount, DecoderNLS baseDecoder)
+                                                char* chars, int charCount, DecoderNLS? baseDecoder)
         {
             // Just need to ASSERT, this is called by something else internal that checked parameters already
             Debug.Assert(bytes != null, "[DBCSCodePageEncoding.GetChars]bytes is null");
@@ -922,7 +910,7 @@ namespace System.Text
             CheckMemorySection();
 
             // Fix our decoder
-            DBCSDecoder decoder = (DBCSDecoder)baseDecoder;
+            DBCSDecoder? decoder = (DBCSDecoder?)baseDecoder;
 
             // We'll need to know where the end is
             byte* byteStart = bytes;
@@ -932,7 +920,7 @@ namespace System.Text
             bool bUsedDecoder = false;
 
             // Get our fallback
-            DecoderFallbackBuffer fallbackBuffer = null;
+            DecoderFallbackBuffer? fallbackBuffer = null;
 
             // Shouldn't have anything in fallback buffer for GetChars
             Debug.Assert(decoder == null || !decoder.m_throwOnOverflow ||
@@ -1054,11 +1042,9 @@ namespace System.Text
                     }
 
                     // Do fallback
-                    byte[] byteBuffer = null;
-                    if (iBytes < 0x100)
-                        byteBuffer = new byte[] { unchecked((byte)iBytes) };
-                    else
-                        byteBuffer = new byte[] { unchecked((byte)(iBytes >> 8)), unchecked((byte)iBytes) };
+                    byte[] byteBuffer = iBytes < 0x100 ?
+                        new byte[] { unchecked((byte)iBytes) } :
+                        new byte[] { unchecked((byte)(iBytes >> 8)), unchecked((byte)iBytes) };
                     if (!fallbackHelper.InternalFallback(byteBuffer, bytes, ref chars))
                     {
                         // May or may not throw, but we didn't get these byte(s)
@@ -1119,7 +1105,6 @@ namespace System.Text
         {
             if (charCount < 0)
                 throw new ArgumentOutOfRangeException(nameof(charCount), SR.ArgumentOutOfRange_NeedNonNegNum);
-            Contract.EndContractBlock();
 
             // Characters would be # of characters + 1 in case high surrogate is ? * max fallback
             long byteCount = (long)charCount + 1;
@@ -1140,7 +1125,6 @@ namespace System.Text
         {
             if (byteCount < 0)
                 throw new ArgumentOutOfRangeException(nameof(byteCount), SR.ArgumentOutOfRange_NeedNonNegNum);
-            Contract.EndContractBlock();
 
             // DBCS is pretty much the same, but could have hanging high byte making extra ? and fallback for unknown
             long charCount = ((long)byteCount + 1);
@@ -1188,4 +1172,3 @@ namespace System.Text
         }
     }
 }
-

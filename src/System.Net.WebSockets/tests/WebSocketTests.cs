@@ -2,15 +2,12 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using System;
 using System.IO;
-using System.Threading;
-using System.Threading.Tasks;
 using Xunit;
 
 namespace System.Net.WebSockets.Tests
 {
-    public sealed class WebSocketTests
+    public sealed partial class WebSocketTests
     {
         [Fact]
         public static void DefaultKeepAliveInterval_ValidValue()
@@ -88,14 +85,13 @@ namespace System.Net.WebSockets.Tests
                 new MemoryStream(), "subProtocol", 16480, 9856, TimeSpan.FromSeconds(-2), false, WebSocket.CreateClientBuffer(16480, 9856)));
         }
 
-        [SkipOnTargetFramework(TargetFrameworkMonikers.NetFramework)]
         [Fact]
         public static void RegisterPrefixes_Unsupported()
         {
             Assert.Throws<PlatformNotSupportedException>(() => WebSocket.RegisterPrefixes());
         }
 
-#if netcoreapp
+#if NETCOREAPP
         [Fact]
         public static void IsApplicationTargeting45_AlwaysTrue()
         {
@@ -103,7 +99,7 @@ namespace System.Net.WebSockets.Tests
             Assert.True(WebSocket.IsApplicationTargeting45());
 #pragma warning restore 0618
         }
-#endif // netcoreapp 
+#endif
 
         [Theory]
         [InlineData(WebSocketState.None)]
@@ -132,7 +128,11 @@ namespace System.Net.WebSockets.Tests
         [InlineData(WebSocketState.Open, new WebSocketState[] { WebSocketState.Aborted, WebSocketState.CloseSent })]
         public static void ThrowOnInvalidState_ThrowsIfNotInValidList(WebSocketState state, WebSocketState[] validStates)
         {
-            Assert.Throws<WebSocketException>(() => ExposeProtectedWebSocket.ThrowOnInvalidState(state, validStates));
+            WebSocketException wse = Assert.Throws<WebSocketException>(() => ExposeProtectedWebSocket.ThrowOnInvalidState(state, validStates));
+            if (PlatformDetection.IsNetCore) // bug fix in netcoreapp: https://github.com/dotnet/corefx/pull/35960
+            {
+                Assert.Equal(WebSocketError.InvalidState, wse.WebSocketErrorCode);
+            }
         }
 
         [Theory]
@@ -147,9 +147,9 @@ namespace System.Net.WebSockets.Tests
 
         public abstract class ExposeProtectedWebSocket : WebSocket
         {
-            public new static bool IsStateTerminal(WebSocketState state) => 
+            public static new bool IsStateTerminal(WebSocketState state) =>
                 WebSocket.IsStateTerminal(state);
-            public new static void ThrowOnInvalidState(WebSocketState state, params WebSocketState[] validStates) =>
+            public static new void ThrowOnInvalidState(WebSocketState state, params WebSocketState[] validStates) =>
                 WebSocket.ThrowOnInvalidState(state, validStates);
         }
     }

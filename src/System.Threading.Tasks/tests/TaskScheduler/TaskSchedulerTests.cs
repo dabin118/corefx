@@ -26,12 +26,12 @@ namespace System.Threading.Tasks.Tests
 
             ManualResetEvent mre = new ManualResetEvent(false);
 
-            // we need to run this test in a local task scheduler, because it needs to perform 
+            // we need to run this test in a local task scheduler, because it needs to perform
             // the verification based on a known number of initially available threads.
             //
             //
             // @TODO: When we reach the _planB branch we need to add a trick here using ThreadPool.SetMaxThread
-            //        to bring down the TP worker count. This is because previous activity in the test process might have 
+            //        to bring down the TP worker count. This is because previous activity in the test process might have
             //        injected workers.
             TaskScheduler tm = TaskScheduler.Default;
 
@@ -246,7 +246,7 @@ namespace System.Threading.Tasks.Tests
             Assert.True(sideEffect, "Task appears not to have run");
             Assert.True(newSC.PostCount == 1, "Expected exactly one post to underlying SynchronizationContext");
 
-            // 
+            //
             // Run a Task synchronously on scTS, make sure that it completes
             //
             sideEffect = false;
@@ -291,7 +291,6 @@ namespace System.Threading.Tasks.Tests
         }
 
         [Fact]
-        [SkipOnTargetFramework(TargetFrameworkMonikers.UapAot, "Uses reflection to access an internal method of the TaskScheduler class.")]
         public static void GetTaskSchedulersForDebugger_ReturnsDefaultScheduler()
         {
             MethodInfo getTaskSchedulersForDebuggerMethod = typeof(TaskScheduler).GetTypeInfo().GetDeclaredMethod("GetTaskSchedulersForDebugger");
@@ -301,7 +300,6 @@ namespace System.Threading.Tasks.Tests
         }
 
         [ConditionalFact(nameof(DebuggerIsAttached))]
-        [SkipOnTargetFramework(TargetFrameworkMonikers.UapAot, "Uses reflection to access an internal method of the TaskScheduler class.")]
         public static void GetTaskSchedulersForDebugger_DebuggerAttached_ReturnsAllSchedulers()
         {
             MethodInfo getTaskSchedulersForDebuggerMethod = typeof(TaskScheduler).GetTypeInfo().GetDeclaredMethod("GetTaskSchedulersForDebugger");
@@ -317,7 +315,6 @@ namespace System.Threading.Tasks.Tests
         }
 
         [ConditionalFact(nameof(DebuggerIsAttached))]
-        [SkipOnTargetFramework(TargetFrameworkMonikers.UapAot, "Uses reflection to access an internal method of the TaskScheduler class.")]
         public static void GetScheduledTasksForDebugger_DebuggerAttached_ReturnsTasksFromCustomSchedulers()
         {
             var nonExecutingScheduler = new BuggyTaskScheduler(faultQueues: false);
@@ -339,13 +336,11 @@ namespace System.Threading.Tasks.Tests
 
         // Buggy task scheduler to make sure that we handle QueueTask()/TryExecuteTaskInline()
         // exceptions correctly.  Used in RunBuggySchedulerTests() below.
-        [SecuritySafeCritical]
         public class BuggyTaskScheduler : TaskScheduler
         {
             private readonly ConcurrentQueue<Task> _tasks = new ConcurrentQueue<Task>();
 
             private bool _faultQueues;
-            [SecurityCritical]
             protected override void QueueTask(Task task)
             {
                 if (_faultQueues)
@@ -354,13 +349,11 @@ namespace System.Threading.Tasks.Tests
                 _tasks.Enqueue(task);
             }
 
-            [SecurityCritical]
             protected override bool TryExecuteTaskInline(Task task, bool taskWasPreviouslyQueued)
             {
                 throw new ArgumentException("I am your worst nightmare!");
             }
 
-            [SecurityCritical]
             protected override IEnumerable<Task> GetScheduledTasks()
             {
                 return _tasks;

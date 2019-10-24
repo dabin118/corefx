@@ -15,7 +15,7 @@ namespace System.Drawing.Internal
     /// and compatibility issues found in GDI+ Graphics class.
     ///
     /// Note: WindowsGraphics is a stateful component, DC properties are persisted from method calls, as opposed to
-    /// Graphics (GDI+) which performs attomic operations and always restores the hdc. The underlying hdc is always
+    /// Graphics (GDI+) which performs atomic operations and always restores the hdc. The underlying hdc is always
     /// saved and restored on dispose so external HDCs won't be modified by WindowsGraphics. So we don't need to
     /// restore previous objects into the dc in method calls.
     ///</summary>
@@ -46,7 +46,7 @@ namespace System.Drawing.Internal
             // we create it, we dispose it.
             return new WindowsGraphics(dc)
             {
-                _disposeDc = true 
+                _disposeDc = true
             };
         }
 
@@ -105,7 +105,7 @@ namespace System.Drawing.Internal
                 using (wr)
                 {
                     // If the Graphics object was created from a native DC the actual clipping region is the intersection
-                    // beteween the original DC clip region and the GDI+ one - for display Graphics it is the same as 
+                    // beteween the original DC clip region and the GDI+ one - for display Graphics it is the same as
                     // Graphics.VisibleClipBounds.
                     wg.DeviceContext.IntersectClip(wr);
                 }
@@ -125,7 +125,7 @@ namespace System.Drawing.Internal
         public DeviceContext DeviceContext => _dc;
 
         // Okay to suppress.
-        // "WindowsGraphics object does not own the Graphics object.  For instance in a control’s Paint event we pass
+        // "WindowsGraphics object does not own the Graphics object.  For instance in a control's Paint event we pass
         // the GraphicsContainer object to TextRenderer, which uses WindowsGraphics; if the Graphics object is disposed
         // then further painting will be broken."
         public void Dispose()

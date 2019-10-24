@@ -25,7 +25,7 @@ namespace System.Data.Odbc
     //  still obtains data for fixed lenght types.
 
     //  So simple code like:
-    //      if(!rReader.IsDBNull(i))
+    //      if (!rReader.IsDBNull(i))
     //          rReader.GetInt32(i)
     //
     //  Would fail, unless we cache on the IsDBNull call, and return the cached
@@ -39,10 +39,10 @@ namespace System.Data.Odbc
     {
         //Data
 
-        private bool[] _isBadValue;
+        private readonly bool[] _isBadValue;
         private DbSchemaInfo[] _schema;
-        private object[] _values;
-        private OdbcDataReader _record;
+        private readonly object[] _values;
+        private readonly OdbcDataReader _record;
         internal int _count;
         internal bool _randomaccess = true;
 
@@ -103,7 +103,7 @@ namespace System.Data.Odbc
             //something as simple as the following code would take two hits.  It's nice not to
             //have to take the hit when you know what your doing.
             //
-            //  if(cache[i] == null)
+            //  if (cache[i] == null)
             //      ....
             //  return cache[i];
 
@@ -112,7 +112,7 @@ namespace System.Data.Odbc
             {
                 //Random
                 //Means that the user can ask for the values int any order (ie: out of order).
-                //  In order to acheive this on a forward only stream, we need to actually
+                //  In order to achieve this on a forward only stream, we need to actually
                 //  retreive all the value in between so they can go back to values they've skipped
                 for (int c = 0; c < i; c++)
                 {

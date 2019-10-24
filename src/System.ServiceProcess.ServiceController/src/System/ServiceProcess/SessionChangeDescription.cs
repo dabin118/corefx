@@ -4,7 +4,7 @@
 
 namespace System.ServiceProcess
 {
-    public struct SessionChangeDescription
+    public readonly struct SessionChangeDescription
     {
         private readonly SessionChangeReason _reason;
         private readonly int _id;
@@ -64,4 +64,3 @@ namespace System.ServiceProcess
         }
     }
 }
-

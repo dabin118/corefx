@@ -72,7 +72,7 @@ namespace Internal.Cryptography.Pal.Native
             }
             else
             {
-                Interop.crypt32.CertFreeCertificateContext(handle);
+                Interop.Crypt32.CertFreeCertificateContext(handle);
             }
 
             SetHandle(IntPtr.Zero);
@@ -185,7 +185,7 @@ namespace Internal.Cryptography.Pal.Native
                     {
                         CryptAcquireContextFlags flags = (pProvInfo->dwFlags & CryptAcquireContextFlags.CRYPT_MACHINE_KEYSET) | CryptAcquireContextFlags.CRYPT_DELETEKEYSET;
                         IntPtr hProv;
-                        bool success = Interop.cryptoapi.CryptAcquireContext(out hProv, pProvInfo->pwszContainerName, pProvInfo->pwszProvName, pProvInfo->dwProvType, flags);
+                        _ = Interop.cryptoapi.CryptAcquireContext(out hProv, pProvInfo->pwszContainerName, pProvInfo->pwszProvName, pProvInfo->dwProvType, flags);
 
                         // Called CryptAcquireContext solely for the side effect of deleting the key containers. When called with these flags, no actual
                         // hProv is returned (so there's nothing to clean up.)
@@ -203,7 +203,7 @@ namespace Internal.Cryptography.Pal.Native
     {
         protected sealed override bool ReleaseHandle()
         {
-            bool success = Interop.crypt32.CertCloseStore(handle, 0);
+            bool success = Interop.Crypt32.CertCloseStore(handle, 0);
             return success;
         }
     }
@@ -215,7 +215,7 @@ namespace Internal.Cryptography.Pal.Native
     {
         protected sealed override bool ReleaseHandle()
         {
-            bool success = Interop.crypt32.CryptMsgClose(handle);
+            bool success = Interop.Crypt32.CryptMsgClose(handle);
             return success;
         }
     }
@@ -236,6 +236,41 @@ namespace Internal.Cryptography.Pal.Native
         {
             Marshal.FreeHGlobal(handle);
             return true;
+        }
+    }
+
+    internal sealed class SafeChainEngineHandle : SafeHandleZeroOrMinusOneIsInvalid
+    {
+        public SafeChainEngineHandle()
+            : base(true)
+        {
+        }
+
+        private SafeChainEngineHandle(IntPtr handle)
+            : base(true)
+        {
+            SetHandle(handle);
+        }
+
+        public static readonly SafeChainEngineHandle MachineChainEngine =
+            new SafeChainEngineHandle((IntPtr)ChainEngine.HCCE_LOCAL_MACHINE);
+
+        public static readonly SafeChainEngineHandle UserChainEngine =
+            new SafeChainEngineHandle((IntPtr)ChainEngine.HCCE_CURRENT_USER);
+
+        protected sealed override bool ReleaseHandle()
+        {
+            Interop.crypt32.CertFreeCertificateChainEngine(handle);
+            SetHandle(IntPtr.Zero);
+            return true;
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (this != UserChainEngine && this != MachineChainEngine)
+            {
+                base.Dispose(disposing);
+            }
         }
     }
 }

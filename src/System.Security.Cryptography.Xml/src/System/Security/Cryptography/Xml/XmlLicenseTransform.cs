@@ -2,22 +2,15 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using System;
-using System.Collections;
 using System.IO;
-using System.Runtime.InteropServices;
-using System.Security;
-using System.Text;
 using System.Xml;
-using System.Xml.XPath;
-using System.Xml.Xsl;
 
 namespace System.Security.Cryptography.Xml
 {
     public class XmlLicenseTransform : Transform
     {
-        private Type[] _inputTypes = { typeof(XmlDocument) };
-        private Type[] _outputTypes = { typeof(XmlDocument) };
+        private readonly Type[] _inputTypes = { typeof(XmlDocument) };
+        private readonly Type[] _outputTypes = { typeof(XmlDocument) };
         private XmlNamespaceManager _namespaceManager = null;
         private XmlDocument _license = null;
         private IRelDecryptor _relDecryptor = null;
@@ -132,7 +125,11 @@ namespace System.Security.Cryptography.Xml
         }
 
         // License transform has no inner XML elements
-        public override void LoadInnerXml(XmlNodeList nodeList) { }
+        public override void LoadInnerXml(XmlNodeList nodeList)
+        {
+            if (nodeList != null && nodeList.Count > 0)
+                throw new CryptographicException(SR.Cryptography_Xml_UnknownTransform);
+        }
 
         public override void LoadInput(object obj)
         {

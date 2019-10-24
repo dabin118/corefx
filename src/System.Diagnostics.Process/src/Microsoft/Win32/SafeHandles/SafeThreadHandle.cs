@@ -4,12 +4,12 @@
 
 /*============================================================
 **
-** Class:  SafeThreadHandle 
+** Class:  SafeThreadHandle
 **
 **
 ** A wrapper for a thread handle
 **
-** 
+**
 ===========================================================*/
 
 using System;
@@ -34,7 +34,6 @@ namespace Microsoft.Win32.SafeHandles
 
         public override bool IsInvalid
         {
-            [SecurityCritical]
             get { return handle == IntPtr.Zero || handle == new IntPtr(-1); }
         }
 

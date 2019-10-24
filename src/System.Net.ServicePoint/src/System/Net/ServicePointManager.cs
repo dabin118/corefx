@@ -36,7 +36,7 @@ namespace System.Net
 
         private static void ValidateSecurityProtocol(SecurityProtocolType value)
         {
-            SecurityProtocolType allowed = SecurityProtocolType.Tls | SecurityProtocolType.Tls11 | SecurityProtocolType.Tls12;
+            SecurityProtocolType allowed = SecurityProtocolType.Tls | SecurityProtocolType.Tls11 | SecurityProtocolType.Tls12 | SecurityProtocolType.Tls13;
             if ((value & ~allowed) != 0)
             {
                 throw new NotSupportedException(SR.net_securityprotocolnotsupported);
@@ -137,22 +137,20 @@ namespace System.Net
                 // to scavenge the table looking for entries that have lost their service point and removing them.
                 foreach (KeyValuePair<string, WeakReference<ServicePoint>> entry in s_servicePointTable)
                 {
-                    ServicePoint ignored;
-                    if (!entry.Value.TryGetTarget(out ignored))
+                    if (!entry.Value.TryGetTarget(out _))
                     {
-                        // We use the IDictionary.Remove method rather than TryRemove as it will only
-                        // remove the entry from the table if both the key/value in the pair match.
+                        // Remove the entry from the table if both the key/value in the pair match.
                         // This avoids a race condition where another thread concurrently sets a new
                         // weak reference value for the same key, and is why when adding the new
                         // service point below, we don't use any weak reference object we may already
                         // have from the initial retrieval above.
-                        ((IDictionary<string, WeakReference<ServicePoint>>)s_servicePointTable).Remove(entry);
+                        s_servicePointTable.TryRemove(entry);
                     }
                 }
 
                 // There wasn't a service point in the table.  Create a new one, and then store
                 // it back into the table.  We create a new weak reference object even if we were
-                // able to get one above so that when we scavenge the table, we can rely on 
+                // able to get one above so that when we scavenge the table, we can rely on
                 // weak reference reference equality to know whether we're removing the same
                 // weak reference we saw when we enumerated.
                 sp = new ServicePoint(address)
@@ -176,16 +174,27 @@ namespace System.Net
         {
             if (proxy != null && !address.IsLoopback)
             {
-                Uri proxyAddress = proxy.GetProxy(address);
-                if (proxyAddress != null)
+                try
                 {
-                    if (proxyAddress.Scheme != Uri.UriSchemeHttp)
+                    Uri proxyAddress = proxy.GetProxy(address);
+                    if (proxyAddress != null)
                     {
-                        throw new NotSupportedException(SR.Format(SR.net_proxyschemenotsupported, address.Scheme));
-                    }
+                        if (proxyAddress.Scheme != Uri.UriSchemeHttp)
+                        {
+                            throw new NotSupportedException(SR.Format(SR.net_proxyschemenotsupported, address.Scheme));
+                        }
 
-                    address = proxyAddress;
-                    return true;
+                        address = proxyAddress;
+                        return true;
+                    }
+                }
+                catch (PlatformNotSupportedException)
+                {
+                    // HttpWebRequest has a dummy SystemWebProxy that's used as a sentinel
+                    // and whose GetProxy method throws a PlatformNotSupportedException.
+                    // For the purposes of this stand-in ServicePointManager implementation,
+                    // we ignore this default "system" proxy for the purposes of mapping
+                    // to a particular ServicePoint instance.
                 }
             }
 

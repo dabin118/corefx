@@ -2,21 +2,17 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using System;
 using System.Collections;
 using System.Globalization;
 using System.Numerics;
-using System.Runtime.InteropServices;
-using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
-using System.Text;
 using System.Xml;
 
 namespace System.Security.Cryptography.Xml
 {
     public class KeyInfoX509Data : KeyInfoClause
     {
-        // An array of certificates representing the certificate chain 
+        // An array of certificates representing the certificate chain
         private ArrayList _certificates = null;
         // An array of issuer serial structs
         private ArrayList _issuerSerials = null;
@@ -66,7 +62,7 @@ namespace System.Security.Cryptography.Xml
                         throw new CryptographicException(SR.Cryptography_Partial_Chain);
                     }
 
-                elements = (X509ChainElementCollection)chain.ChainElements;
+                    elements = (X509ChainElementCollection)chain.ChainElements;
                     for (int index = 0; index < (Utils.IsSelfSigned(chain) ? 1 : elements.Count - 1); index++)
                     {
                         AddCertificate(elements[index].Certificate);
@@ -167,7 +163,7 @@ namespace System.Security.Cryptography.Xml
 
             if (_issuerSerials == null)
                 _issuerSerials = new ArrayList();
-            _issuerSerials.Add(new X509IssuerSerial(issuerName, h.ToString()));
+            _issuerSerials.Add(Utils.CreateX509IssuerSerial(issuerName, h.ToString()));
         }
 
         // When we load an X509Data from Xml, we know the serial number is in decimal representation.
@@ -175,7 +171,7 @@ namespace System.Security.Cryptography.Xml
         {
             if (_issuerSerials == null)
                 _issuerSerials = new ArrayList();
-            _issuerSerials.Add(new X509IssuerSerial(issuerName, serialNumber));
+            _issuerSerials.Add(Utils.CreateX509IssuerSerial(issuerName, serialNumber));
         }
 
         public byte[] CRL

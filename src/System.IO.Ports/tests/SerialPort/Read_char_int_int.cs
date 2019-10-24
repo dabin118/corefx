@@ -7,6 +7,7 @@ using System.IO.PortsTests;
 using System.Linq;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 using Legacy.Support;
 using Xunit;
 
@@ -21,16 +22,16 @@ namespace System.IO.Ports.Tests
         private const int largeNumRndCharsToRead = 2048;
 
         //When we test Read and do not care about actually reading anything we must still
-        //create an byte array to pass into the method the following is the size of the 
+        //create an byte array to pass into the method the following is the size of the
         //byte array used in this situation
         private const int defaultCharArraySize = 1;
         private const int defaultCharOffset = 0;
         private const int defaultCharCount = 1;
 
-        //The maximum buffer size when a exception occurs
+        //The maximum buffer size when an exception occurs
         private const int maxBufferSizeForException = 255;
 
-        //The maximum buffer size when a exception is not expected
+        //The maximum buffer size when an exception is not expected
         private const int maxBufferSize = 8;
 
         public enum ReadDataFromEnum { NonBuffered, Buffered, BufferedAndNonBuffered };
@@ -336,7 +337,7 @@ namespace System.IO.Ports.Tests
                 TCSupport.WaitForReadBufferToLoad(com1, byteXmitBuffer.Length);
 
                 //Read Every Byte except the last one. The last bye should be left in the last position of SerialPort's
-                //internal buffer. When we try to read this char as UTF32 the buffer should have to be resized so 
+                //internal buffer. When we try to read this char as UTF32 the buffer should have to be resized so
                 //the other 3 bytes of the ut32 encoded char can be in the buffer
                 com1.Read(new char[1023], 0, 1023);
                 Assert.Equal(1, com1.BytesToRead);
@@ -380,7 +381,7 @@ namespace System.IO.Ports.Tests
                 char[] charXmitBuffer = TCSupport.GetRandomChars(512, TCSupport.CharacterOptions.None);
                 char[] charRcvBuffer = new char[charXmitBuffer.Length];
                 ASyncRead asyncRead = new ASyncRead(com1, charRcvBuffer, 0, charRcvBuffer.Length);
-                Thread asyncReadThread = new Thread(asyncRead.Read);
+                var asyncReadTask = new Task(asyncRead.Read);
 
 
                 Debug.WriteLine(
@@ -395,7 +396,7 @@ namespace System.IO.Ports.Tests
                 if (!com2.IsOpen) //This is necessary since com1 and com2 might be the same port if we are using a loopback
                     com2.Open();
 
-                asyncReadThread.Start();
+                asyncReadTask.Start();
                 asyncRead.ReadStartedEvent.WaitOne();
                 // The WaitOne only tells us that the thread has started to execute code in the method
                 Thread.Sleep(2000); // We need to wait to guarantee that we are executing code in SerialPort
@@ -419,6 +420,8 @@ namespace System.IO.Ports.Tests
                     Assert.Equal(charXmitBuffer.Length, receivedLength);
                     Assert.Equal(charXmitBuffer, charRcvBuffer);
                 }
+
+                TCSupport.WaitForTaskCompletion(asyncReadTask);
             }
         }
 
@@ -431,7 +434,7 @@ namespace System.IO.Ports.Tests
                 char[] charXmitBuffer = TCSupport.GetRandomChars(1023, TCSupport.CharacterOptions.ASCII);
                 int readResult;
 
-                Debug.WriteLine("Verifying that Read(char[], int, int) will compact data in the buffer buffer");
+                Debug.WriteLine("Verifying that Read(char[], int, int) will compact data in the buffer");
 
                 com1.Encoding = Encoding.ASCII;
                 com2.Encoding = Encoding.ASCII;
@@ -534,8 +537,8 @@ namespace System.IO.Ports.Tests
 
                 com2.Write(byteXmitBuffer, 3, byteXmitBuffer.Length - 3);
 
-                //		retValue &= TCSupport.WaitForPredicate(delegate() {return com1.BytesToRead == byteXmitBuffer.Length; }, 
-                //			5000, "Err_91818aheid Expected BytesToRead={0} actual={1}", byteXmitBuffer.Length, com1.BytesToRead);
+                //        retValue &= TCSupport.WaitForPredicate(delegate() {return com1.BytesToRead == byteXmitBuffer.Length; },
+                //            5000, "Err_91818aheid Expected BytesToRead={0} actual={1}", byteXmitBuffer.Length, com1.BytesToRead);
 
                 TCSupport.WaitForExpected(() => com1.BytesToRead, byteXmitBuffer.Length,
                     5000, "Err_91818aheid BytesToRead");
@@ -809,7 +812,7 @@ namespace System.IO.Ports.Tests
             com2.Write(bytesToWrite, 0, bytesToWrite.Length);
             com1.ReadTimeout = 500;
 
-            //This is pretty lame but we will have to live with if for now becuase we can not 
+            //This is pretty silly but we will have to live with if for now becuase we can not
             //gaurentee the number of bytes Write will add
             Thread.Sleep((int)(((bytesToWrite.Length * 10.0) / com1.BaudRate) * 1000) + 250);
 
@@ -949,7 +952,7 @@ namespace System.IO.Ports.Tests
 
                 if (encoding.EncodingName == Encoding.UTF7.EncodingName)
                 {
-                    //If UTF7Encoding is being used we we might leave a - in the stream
+                    //If UTF7Encoding is being used we might leave a - in the stream
                     if (com1.BytesToRead == xmitByteBuffer.Length + 1)
                     {
                         int byteRead;
@@ -977,14 +980,14 @@ namespace System.IO.Ports.Tests
                 Assert.Equal(0, com1.BytesToRead);
 
                 /*DEBUG DEBUG DEBUG DEBUG DEBUG DEBUG DEBUG DEBUG DEBUG
-            if(!retValue) {
-                for(int i=0; i<xmitCharBuffer.Length; ++i) {
+            if (!retValue) {
+                for (int i=0; i<xmitCharBuffer.Length; ++i) {
                     Debug.WriteLine("(char){0}, ", (int)xmitCharBuffer[i]);
                 }
-    
-                for(int i=0; i<xmitCharBuffer.Length; ++i) {
+
+                for (int i=0; i<xmitCharBuffer.Length; ++i) {
                     Debug.WriteLine("{0}, ", (int)xmitByteBuffer[i]);
-                }			
+                }
             }*/
             }
         }

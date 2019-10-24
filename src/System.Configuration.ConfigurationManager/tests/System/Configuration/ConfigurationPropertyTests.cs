@@ -34,10 +34,10 @@ namespace System.ConfigurationTests
             AssertExtensions.Throws<ArgumentException>("name", () => new ConfigurationProperty("", typeof(string)));
         }
 
-        [Theory
-            InlineData("lock")
-            InlineData("locks")
-            InlineData("config")
+        [Theory,
+            InlineData("lock"),
+            InlineData("locks"),
+            InlineData("config"),
             InlineData("configuration")
             ]
         public void ReservedNameThrows(string name)
@@ -45,11 +45,11 @@ namespace System.ConfigurationTests
             AssertExtensions.Throws<ArgumentException>(null, () => new ConfigurationProperty(name, typeof(string)));
         }
 
-        [Theory
-            InlineData("Lock")
-            InlineData("ilock")
-            InlineData("LOCKS")
-            InlineData("CoNfig")
+        [Theory,
+            InlineData("Lock"),
+            InlineData("ilock"),
+            InlineData("LOCKS"),
+            InlineData("CoNfig"),
             InlineData("conFIGuration")
             ]
         public void ReservedNameOrdinallyCompared(string name)
@@ -138,6 +138,16 @@ namespace System.ConfigurationTests
             Assert.IsType<DummyCanConverter>(property.Converter);
         }
 
+        [Fact]
+        [SkipOnTargetFramework(TargetFrameworkMonikers.NetFramework, "Full framework does not have the fix #41873")]
+        public void DescriptionValueIsExposed()
+        {
+            FooFailsValidator validator = new FooFailsValidator();
+            DummyCanConverter converter = new DummyCanConverter();
+            ConfigurationProperty property = new ConfigurationProperty("foo", typeof(MyConvertableClass), null, converter, validator, ConfigurationPropertyOptions.None, "bar");
+            Assert.Equal("bar", property.Description);
+        }
+
         [TypeConverter(typeof(DummyCantConverter))]
         public class MyUnconvertableClass
         {
@@ -164,8 +174,8 @@ namespace System.ConfigurationTests
             Assert.IsType<GenericEnumConverter>(property.Converter);
         }
 
-        [Theory
-            InlineData(typeof(string), typeof(StringConverter))
+        [Theory,
+            InlineData(typeof(string), typeof(StringConverter)),
             InlineData(typeof(int), typeof(Int32Converter))
             ]
         public void FindConverterForBuiltInTypes(Type type, Type converterType)

@@ -10,7 +10,7 @@ namespace System.Data.SqlClient.ManualTesting.Tests
 {
     public static class DataReaderTest
     {
-        [CheckConnStrSetupFact]
+        [ConditionalFact(typeof(DataTestUtility),nameof(DataTestUtility.AreConnStringsSetup))]
         public static void LoadReaderIntoDataTableToTestGetSchemaTable()
         {
             using (SqlConnection connection = new SqlConnection(DataTestUtility.TcpConnStr))
@@ -32,7 +32,7 @@ namespace System.Data.SqlClient.ManualTesting.Tests
             }
         }
 
-        [CheckConnStrSetupFact]
+        [ConditionalFact(typeof(DataTestUtility),nameof(DataTestUtility.AreConnStringsSetup))]
         public static void MultiQuerySchema()
         {
             SqlConnectionStringBuilder builder = new SqlConnectionStringBuilder(DataTestUtility.TcpConnStr);
@@ -57,8 +57,8 @@ namespace System.Data.SqlClient.ManualTesting.Tests
 
                         } while (reader.NextResult());
 
-                        Assert.True(columnNames.Contains("ColInteger"));
-                        Assert.True(columnNames.Contains("ColString"));
+                        Assert.Contains("ColInteger", columnNames);
+                        Assert.Contains("ColString", columnNames);
                     }
                 }
             }
@@ -66,7 +66,7 @@ namespace System.Data.SqlClient.ManualTesting.Tests
 
 
         // Checks for the IsColumnSet bit in the GetSchemaTable for Sparse columns
-        [CheckConnStrSetupFact]
+        [ConditionalFact(typeof(DataTestUtility),nameof(DataTestUtility.AreConnStringsSetup))]
         public static void CheckSparseColumnBit()
         {
             const int sparseColumns = 4095;

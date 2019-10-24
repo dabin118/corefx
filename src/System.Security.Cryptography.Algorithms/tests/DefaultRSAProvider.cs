@@ -14,17 +14,11 @@ namespace System.Security.Cryptography.Rsa.Tests
 
         public RSA Create(int keySize)
         {
-#if netcoreapp
+#if NETCOREAPP
             return RSA.Create(keySize);
 #else
             RSA rsa = Create();
 
-            if (PlatformDetection.IsFullFramework && rsa is RSACryptoServiceProvider)
-            {
-                rsa.Dispose();
-                return new RSACryptoServiceProvider(keySize);
-            }
-            
             rsa.KeySize = keySize;
             return rsa;
 #endif
@@ -45,13 +39,11 @@ namespace System.Security.Cryptography.Rsa.Tests
             }
         }
 
-        public bool SupportsSha2Oaep
-        {
-            // Currently only RSACng does, which is the default provider on Windows.
-            get { return RuntimeInformation.IsOSPlatform(OSPlatform.Windows) && !(Create() is RSACryptoServiceProvider); }
-        }
+        public bool SupportsLargeExponent => true;
 
-        public bool SupportsDecryptingIntoExactSpaceRequired => RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
+        public bool SupportsSha2Oaep { get; } = true;
+
+        public bool SupportsPss { get; } = true;
     }
 
     public partial class RSAFactory

@@ -3,20 +3,27 @@
 // See the LICENSE file in the project root for more information.
 
 using System.Collections;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Security;
+using Microsoft.DotNet.RemoteExecutor;
 using Xunit;
 
 namespace System.Tests
 {
     public class SetEnvironmentVariable
     {
-        private const int MAX_VAR_LENGTH_ALLOWED = 32767;
         private const string NullString = "\u0000";
 
         internal static bool IsSupportedTarget(EnvironmentVariableTarget target)
         {
-            return target == EnvironmentVariableTarget.Process || (RuntimeInformation.IsOSPlatform(OSPlatform.Windows) && !PlatformDetection.IsUap);
+            // [ActiveIssue(40226)]
+            if (target == EnvironmentVariableTarget.User && PlatformDetection.IsWindowsNanoServer)
+            {
+                return false;
+            }
+
+            return target == EnvironmentVariableTarget.Process || RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
         }
 
         [Fact]
@@ -31,9 +38,112 @@ namespace System.Tests
             AssertExtensions.Throws<ArgumentException>("variable", () => Environment.SetEnvironmentVariable(string.Empty, "test"));
             AssertExtensions.Throws<ArgumentException>("variable", () => Environment.SetEnvironmentVariable(NullString, "test"));
             AssertExtensions.Throws<ArgumentException>("variable", null, () => Environment.SetEnvironmentVariable("Variable=Something", "test"));
+        }
 
-            string varWithLenLongerThanAllowed = new string('c', MAX_VAR_LENGTH_ALLOWED + 1);
-            AssertExtensions.Throws<ArgumentException>("variable", null, () => Environment.SetEnvironmentVariable(varWithLenLongerThanAllowed, "test"));
+        [Fact]
+        public void AllowAnyVariableLengths()
+        {
+            // longer than 32767
+            string longVar = new string('c', 40000);
+            string val = "test";
+
+            try
+            {
+                Environment.SetEnvironmentVariable(longVar, val);
+                Assert.Equal(val, Environment.GetEnvironmentVariable(longVar));
+            }
+            finally
+            {
+                Environment.SetEnvironmentVariable(longVar, null);
+            }
+        }
+
+        [Fact]
+        public void AllowAnyVariableValueLengths()
+        {
+            string var = "Test_SetEnvironmentVariable_AllowAnyVariableValueLengths";
+            // longer than 32767
+            string longVal = new string('c', 40000);
+
+            try
+            {
+                Environment.SetEnvironmentVariable(var, longVal);
+                Assert.Equal(longVal, Environment.GetEnvironmentVariable(var));
+            }
+            finally
+            {
+                Environment.SetEnvironmentVariable(var, null);
+            }
+        }
+
+        [Fact]
+        [PlatformSpecific(TestPlatforms.Windows)]
+        public void EnvironmentVariableTooLarge_Throws()
+        {
+            RemoteExecutor.Invoke(() =>
+            {
+                string longVar;
+                string val = "Test_SetEnvironmentVariable_EnvironmentVariableTooLarge_Throws";
+
+                try
+                {
+                    // string slightly less than 2 GiB (1 GiB for x86) so the constructor doesn't fail
+                    var count = (Environment.Is64BitProcess ? 1024 * 1024 * 1024 : 512 * 1024 * 1024) - 64;
+                    longVar = new string('c', count);
+                }
+                catch (OutOfMemoryException)
+                {
+                    // not enough memory to allocate a string at test time
+                    return RemoteExecutor.SuccessExitCode;
+                }
+
+                try
+                {
+                    Environment.SetEnvironmentVariable(longVar, val);
+                    // no exception is ok since we cannot construct an argument long enough to break the function
+                    // in that particular environment
+                }
+                catch (OutOfMemoryException)
+                {
+                    // expected
+                }
+                return RemoteExecutor.SuccessExitCode;
+            }).Dispose();
+        }
+
+        [Fact]
+        [PlatformSpecific(TestPlatforms.Windows)]
+        public void EnvironmentVariableValueTooLarge_Throws()
+        {
+            RemoteExecutor.Invoke(() =>
+            {
+                string var = "Test_SetEnvironmentVariable_EnvironmentVariableValueTooLarge_Throws";
+                string longVal;
+
+                try
+                {
+                    // string slightly less than 2 GiB (1 GiB for x86) so the constructor doesn't fail
+                    var count = (Environment.Is64BitProcess ? 1024 * 1024 * 1024 : 512 * 1024 * 1024) - 64;
+                    longVal = new string('c', count);
+                }
+                catch (OutOfMemoryException)
+                {
+                    // not enough memory to allocate a string at test time
+                    return RemoteExecutor.SuccessExitCode;
+                }
+
+                try
+                {
+                    Environment.SetEnvironmentVariable(var, longVal);
+                    // no exception is ok since we cannot construct an argument long enough to break the function
+                    // in that particular environment
+                }
+                catch (OutOfMemoryException)
+                {
+                    // expected
+                }
+                return RemoteExecutor.SuccessExitCode;
+            }).Dispose();
         }
 
         private static void ExecuteAgainstTarget(
@@ -49,8 +159,7 @@ namespace System.Tests
             catch (SecurityException)
             {
                 shouldCleanUp = false;
-                Assert.True(target == EnvironmentVariableTarget.Machine || (target == EnvironmentVariableTarget.User && PlatformDetection.IsUap),
-                            "only machine target, or user when in uap, should have access issues");
+                Assert.True(target == EnvironmentVariableTarget.Machine, "only machine target should have access issues");
                 Assert.True(PlatformDetection.IsWindows, "and it should be Windows");
                 Assert.False(PlatformDetection.IsWindowsAndElevated, "and we shouldn't be elevated");
             }
@@ -154,15 +263,15 @@ namespace System.Tests
                 // First set the value to something and then ensure that it can be deleted.
                 Environment.SetEnvironmentVariable(varName, value);
                 Environment.SetEnvironmentVariable(varName, string.Empty);
-                Assert.Equal(null, Environment.GetEnvironmentVariable(varName));
+                Assert.Null(Environment.GetEnvironmentVariable(varName));
 
                 Environment.SetEnvironmentVariable(varName, value);
                 Environment.SetEnvironmentVariable(varName, null);
-                Assert.Equal(null, Environment.GetEnvironmentVariable(varName));
+                Assert.Null(Environment.GetEnvironmentVariable(varName));
 
                 Environment.SetEnvironmentVariable(varName, value);
                 Environment.SetEnvironmentVariable(varName, NullString);
-                Assert.Equal(null, Environment.GetEnvironmentVariable(varName));
+                Assert.Null(Environment.GetEnvironmentVariable(varName));
             });
         }
 
@@ -178,8 +287,8 @@ namespace System.Tests
             {
                 Environment.SetEnvironmentVariable(varName, value);
                 Environment.SetEnvironmentVariable(varName, null);
-                Assert.Equal(Environment.GetEnvironmentVariable(varName), null);
-                Assert.Equal(Environment.GetEnvironmentVariable(varNamePrefix), null);
+                Assert.Null(Environment.GetEnvironmentVariable(varName));
+                Assert.Null(Environment.GetEnvironmentVariable(varNamePrefix));
             }
             finally
             {
@@ -197,11 +306,11 @@ namespace System.Tests
             try
             {
                 Environment.SetEnvironmentVariable(varName, value);
-                Assert.Equal(null, Environment.GetEnvironmentVariable(varName));
+                Assert.Null(Environment.GetEnvironmentVariable(varName));
             }
             finally
             {
-                Environment.SetEnvironmentVariable(varName, String.Empty);
+                Environment.SetEnvironmentVariable(varName, string.Empty);
             }
         }
 
@@ -221,8 +330,8 @@ namespace System.Tests
             }
             finally
             {
-                Environment.SetEnvironmentVariable(varName, String.Empty);
-                Environment.SetEnvironmentVariable(varNamePrefix, String.Empty);
+                Environment.SetEnvironmentVariable(varName, string.Empty);
+                Environment.SetEnvironmentVariable(varNamePrefix, string.Empty);
             }
         }
 
@@ -241,7 +350,7 @@ namespace System.Tests
             }
             finally
             {
-                Environment.SetEnvironmentVariable(varName, String.Empty);
+                Environment.SetEnvironmentVariable(varName, string.Empty);
             }
         }
 
@@ -255,7 +364,7 @@ namespace System.Tests
                 Environment.SetEnvironmentVariable(varName, null);
             }
 
-            Environment.SetEnvironmentVariable("TestDeletingNonExistingEnvironmentVariable", String.Empty);
+            Environment.SetEnvironmentVariable("TestDeletingNonExistingEnvironmentVariable", string.Empty);
         }
     }
 }

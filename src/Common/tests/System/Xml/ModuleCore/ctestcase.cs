@@ -3,7 +3,7 @@
 // See the LICENSE file in the project root for more information.
 
 using System;
-using System.Collections.Generic;		//StackTrace
+using System.Collections.Generic;
 using System.Diagnostics;
 
 namespace OLEDB.Test.ModuleCore
@@ -101,6 +101,44 @@ namespace OLEDB.Test.ModuleCore
             return tagVARIATION_STATUS.eVariationStatusPassed;
         }
 
+        public override IEnumerable<XunitTestCase> TestCases()
+        {
+            List<object> children = Children;
+            if (children != null && children.Count > 0)
+            {
+                foreach (object child in children)
+                {
+                    CTestCase childTc = child as CTestCase;
+                    if (childTc != null)
+                    {
+                        childTc.Init();
+
+                        foreach (XunitTestCase testCase in childTc.TestCases())
+                        {
+                            yield return testCase;
+                        }
+
+                        continue;
+                    }
+
+                    CVariation var = child as CVariation;
+                    if (var != null && CModInfo.IsVariationSelected(var.Desc))
+                    {
+                        foreach (var testCase in var.TestCases())
+                        {
+                            Func<tagVARIATION_STATUS> test = testCase.Test;
+                            testCase.Test = () => {
+                                CurVariation = var;
+                                return test();
+                            };
+
+                            yield return testCase;
+                        }
+                    }
+                }
+            }
+        }
+
         public void RunVariation(dlgtTestVariation testmethod, Variation curVar)
         {
             if (!CModInfo.IsVariationSelected(curVar.Desc))
@@ -177,8 +215,8 @@ namespace OLEDB.Test.ModuleCore
         public CVariation CurVariation
         {
             //Return the current variation:
-            //Note: We do this so that within the variation the user can have access to all the 
-            //attributes of that particular method.  Unlike the TestModule/TestCase which are objects 
+            //Note: We do this so that within the variation the user can have access to all the
+            //attributes of that particular method.  Unlike the TestModule/TestCase which are objects
             //and have properties to reference, the variations are function and don't.  Each variation
             //could also have multiple attributes (repeats), so we can't simply use the StackFrame
             //to determine this info...
@@ -218,7 +256,7 @@ namespace OLEDB.Test.ModuleCore
                 result = ExecuteVariation(index, _curvariation.Param);
             }
 
-            //Before exiting make sure we reset our CurVariation to null, to prevent 
+            //Before exiting make sure we reset our CurVariation to null, to prevent
             //incorrect uses of CurVariation within the TestCase, but not actually a running
             //variation.  This will only be valid within a function with a //[Variation] attribute...
             _curvariation = null;
@@ -247,10 +285,10 @@ namespace OLEDB.Test.ModuleCore
         {
             //Default - no sort
             bool bSort = false;
-            //Normally the reflection Type.GetMethods() api returns the methods in order 
-            //of how they appear in the code.  But it will change that order depending 
+            //Normally the reflection Type.GetMethods() api returns the methods in order
+            //of how they appear in the code.  But it will change that order depending
             //upon if there are virtual functions, which are returned first before other
-            //non-virtual functions.  Then there are also inherited classes where the 
+            //non-virtual functions.  Then there are also inherited classes where the
             //derived classes methods are returned before the inherited class.  So we have
             //added the support of specifying an id=x, as an attribute so you can have
             //then sorted and displayed however your see fit.

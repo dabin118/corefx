@@ -1,4 +1,4 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // See the LICENSE file in the project root for more information.
 //
 // DataTableExtensionsTest.cs
@@ -17,10 +17,10 @@
 // distribute, sublicense, and/or sell copies of the Software, and to
 // permit persons to whom the Software is furnished to do so, subject to
 // the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be
 // included in all copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
 // EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
 // MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
@@ -40,6 +40,8 @@ namespace MonoTests.System.Data
 {
     public class DataTableExtensionsTest
     {
+        private string _testDataSet = "Mono/testdataset1.xml";
+
         [Fact]
         public void CopyToDataTableNoArgNoRows()
         {
@@ -77,7 +79,7 @@ namespace MonoTests.System.Data
         public void AsEnumerable()
         {
             DataSet ds = new DataSet();
-            ds.ReadXml("Mono/testdataset1.xml");
+            ds.ReadXml(_testDataSet);
             DataTable dt = ds.Tables[0];
             Assert.Equal("ScoreList", dt.TableName);
             var dv = dt.AsEnumerable();

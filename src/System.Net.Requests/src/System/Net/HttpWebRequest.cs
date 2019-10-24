@@ -26,10 +26,10 @@ namespace System.Net
 
         private WebHeaderCollection _webHeaderCollection = new WebHeaderCollection();
 
-        private Uri _requestUri;
+        private readonly Uri _requestUri;
         private string _originVerb = HttpMethod.Get.Method;
 
-        // We allow getting and setting this (to preserve app-compat). But we don't do anything with it 
+        // We allow getting and setting this (to preserve app-compat). But we don't do anything with it
         // as the underlying System.Net.Http API doesn't support it.
         private int _continueTimeout = DefaultContinueTimeout;
 
@@ -73,6 +73,10 @@ namespace System.Net
         private bool _preAuthenticate;
         private DecompressionMethods _automaticDecompression = HttpHandlerDefaults.DefaultAutomaticDecompression;
 
+        private static readonly object s_syncRoot = new object();
+        private static volatile HttpClient s_cachedHttpClient;
+        private static HttpClientParameters s_cachedHttpClientParameters;
+
         //these should be safe.
         [Flags]
         private enum Booleans : uint
@@ -91,16 +95,77 @@ namespace System.Net
             IsWebSocketRequest = 0x00000800,
             Default = AllowAutoRedirect | AllowWriteStreamBuffering | ExpectContinue
         }
+
+        private class HttpClientParameters
+        {
+            public readonly DecompressionMethods AutomaticDecompression;
+            public readonly bool AllowAutoRedirect;
+            public readonly int MaximumAutomaticRedirections;
+            public readonly int MaximumResponseHeadersLength;
+            public readonly bool PreAuthenticate;
+            public readonly TimeSpan Timeout;
+            public readonly SecurityProtocolType SslProtocols;
+            public readonly bool CheckCertificateRevocationList;
+            public readonly ICredentials Credentials;
+            public readonly IWebProxy Proxy;
+            public readonly RemoteCertificateValidationCallback ServerCertificateValidationCallback;
+            public readonly X509CertificateCollection ClientCertificates;
+            public readonly CookieContainer CookieContainer;
+
+            public HttpClientParameters(HttpWebRequest webRequest)
+            {
+                AutomaticDecompression = webRequest.AutomaticDecompression;
+                AllowAutoRedirect = webRequest.AllowAutoRedirect;
+                MaximumAutomaticRedirections = webRequest.MaximumAutomaticRedirections;
+                MaximumResponseHeadersLength = webRequest.MaximumResponseHeadersLength;
+                PreAuthenticate = webRequest.PreAuthenticate;
+                Timeout = webRequest.Timeout == Threading.Timeout.Infinite
+                    ? Threading.Timeout.InfiniteTimeSpan
+                    : TimeSpan.FromMilliseconds(webRequest.Timeout);
+                SslProtocols = ServicePointManager.SecurityProtocol;
+                CheckCertificateRevocationList = ServicePointManager.CheckCertificateRevocationList;
+                Credentials = webRequest._credentials;
+                Proxy = webRequest._proxy;
+                ServerCertificateValidationCallback = webRequest.ServerCertificateValidationCallback ?? ServicePointManager.ServerCertificateValidationCallback;
+                ClientCertificates = webRequest._clientCertificates;
+                CookieContainer = webRequest._cookieContainer;
+            }
+
+            public bool Matches(HttpClientParameters requestParameters)
+            {
+                return AutomaticDecompression == requestParameters.AutomaticDecompression
+                    && AllowAutoRedirect == requestParameters.AllowAutoRedirect
+                    && MaximumAutomaticRedirections == requestParameters.MaximumAutomaticRedirections
+                    && MaximumResponseHeadersLength == requestParameters.MaximumResponseHeadersLength
+                    && PreAuthenticate == requestParameters.PreAuthenticate
+                    && Timeout == requestParameters.Timeout
+                    && SslProtocols == requestParameters.SslProtocols
+                    && CheckCertificateRevocationList == requestParameters.CheckCertificateRevocationList
+                    && ReferenceEquals(Credentials, requestParameters.Credentials)
+                    && ReferenceEquals(Proxy, requestParameters.Proxy)
+                    && ReferenceEquals(ServerCertificateValidationCallback, requestParameters.ServerCertificateValidationCallback)
+                    && ReferenceEquals(ClientCertificates, requestParameters.ClientCertificates)
+                    && ReferenceEquals(CookieContainer, requestParameters.CookieContainer);
+            }
+
+            public bool AreParametersAcceptableForCaching()
+            {
+                return Credentials == null
+                    && ReferenceEquals(Proxy, DefaultWebProxy)
+                    && ServerCertificateValidationCallback == null
+                    && ClientCertificates == null
+                    && CookieContainer == null;
+            }
+        }
+
         private const string ContinueHeader = "100-continue";
         private const string ChunkedHeader = "chunked";
-        private const string GZipHeader = "gzip";
-        private const string DeflateHeader = "deflate";
 
         public HttpWebRequest()
         {
         }
 
-        [Obsolete("Serialization is obsoleted for this type.  http://go.microsoft.com/fwlink/?linkid=14202")]
+        [Obsolete("Serialization is obsoleted for this type.  https://go.microsoft.com/fwlink/?linkid=14202")]
         protected HttpWebRequest(SerializationInfo serializationInfo, StreamingContext streamingContext) : base(serializationInfo, streamingContext)
         {
             throw new PlatformNotSupportedException();
@@ -187,7 +252,7 @@ namespace System.Net
             }
         }
 
-        public override String ContentType
+        public override string ContentType
         {
             get
             {
@@ -252,7 +317,7 @@ namespace System.Net
                 }
                 if (value < 0)
                 {
-                    throw new ArgumentOutOfRangeException(nameof(value), SR.net_io_timeout_use_ge_zero);
+                    throw new ArgumentOutOfRangeException(nameof(value), SR.net_clsmall);
                 }
                 SetSpecialHeaders(HttpKnownHeaderNames.ContentLength, value.ToString());
             }
@@ -299,7 +364,7 @@ namespace System.Net
                 }
 
                 Uri hostUri;
-                if ((value.IndexOf('/') != -1) || (!TryGetHostUri(value, out hostUri)))
+                if ((value.Contains('/')) || (!TryGetHostUri(value, out hostUri)))
                 {
                     throw new ArgumentException(SR.net_invalid_host, nameof(value));
                 }
@@ -311,7 +376,7 @@ namespace System.Net
                 {
                     _hostHasPort = true;
                 }
-                else if (value.IndexOf(':') == -1)
+                else if (!value.Contains(':'))
                 {
                     _hostHasPort = false;
                 }
@@ -394,8 +459,7 @@ namespace System.Net
                     //
                     // if not check if the user is trying to set chunked:
                     //
-                    string newValue = value.ToLower();
-                    fChunked = (newValue.IndexOf(ChunkedHeader) != -1);
+                    fChunked = (value.IndexOf(ChunkedHeader, StringComparison.OrdinalIgnoreCase) != -1);
 
                     //
                     // prevent them from adding chunked, or from adding an Encoding without
@@ -421,7 +485,6 @@ namespace System.Net
             }
         }
 
-
         public bool KeepAlive { get; set; } = true;
 
         public bool UnsafeAuthenticatedConnectionSharing
@@ -442,7 +505,6 @@ namespace System.Net
                 }
             }
         }
-
 
         public DecompressionMethods AutomaticDecompression
         {
@@ -541,10 +603,8 @@ namespace System.Net
                         return;
                     }
 
-                    string newValue = value.ToLower();
-
-                    fKeepAlive = (newValue.IndexOf("keep-alive") != -1);
-                    fClose = (newValue.IndexOf("close") != -1);
+                    fKeepAlive = (value.IndexOf("keep-alive", StringComparison.OrdinalIgnoreCase) != -1);
+                    fClose = (value.IndexOf("close", StringComparison.OrdinalIgnoreCase) != -1);
 
                     //
                     // Prevent keep-alive and close from being added
@@ -565,7 +625,6 @@ namespace System.Net
 #endif
             }
         }
-
 
         /*
             Accessor:   Expect
@@ -606,9 +665,7 @@ namespace System.Net
                     // Prevent 100-continues from being added
                     //
 
-                    string newValue = value.ToLower();
-
-                    fContinue100 = (newValue.IndexOf(ContinueHeader) != -1);
+                    fContinue100 = (value.IndexOf(ContinueHeader, StringComparison.OrdinalIgnoreCase) != -1);
 
                     if (fContinue100)
                     {
@@ -652,7 +709,6 @@ namespace System.Net
         }
 
         public static new RequestCachePolicy DefaultCachePolicy { get; set; } = new RequestCachePolicy(RequestCacheLevel.BypassCache);
-
 
         public DateTime IfModifiedSince
         {
@@ -756,7 +812,6 @@ namespace System.Net
                 _clientCertificates = value;
             }
         }
-
 
         // HTTP Version
         /// <devdoc>
@@ -863,7 +918,7 @@ namespace System.Net
                 // Handle the case where their object tries to change
                 //  name, value pairs after they call set, so therefore,
                 //  we need to clone their headers.
-                foreach (String headerName in webHeaders.AllKeys)
+                foreach (string headerName in webHeaders.AllKeys)
                 {
                     newWebHeaders[headerName] = webHeaders[headerName];
                 }
@@ -1056,7 +1111,7 @@ namespace System.Net
             return GetRequestStream();
         }
 
-        public override IAsyncResult BeginGetRequestStream(AsyncCallback callback, Object state)
+        public override IAsyncResult BeginGetRequestStream(AsyncCallback callback, object state)
         {
             CheckAbort();
 
@@ -1105,65 +1160,22 @@ namespace System.Net
                 throw new InvalidOperationException(SR.net_reqsubmitted);
             }
 
-            var handler = new HttpClientHandler();
             var request = new HttpRequestMessage(new HttpMethod(_originVerb), _requestUri);
 
-            using (var client = new HttpClient(handler))
+            bool disposeRequired = false;
+            HttpClient client = null;
+            try
             {
+                client = GetCachedOrCreateHttpClient(out disposeRequired);
                 if (_requestStream != null)
                 {
                     ArraySegment<byte> bytes = _requestStream.GetBuffer();
                     request.Content = new ByteArrayContent(bytes.Array, bytes.Offset, bytes.Count);
                 }
 
-                handler.AutomaticDecompression = AutomaticDecompression;
-                handler.Credentials = _credentials;
-                handler.AllowAutoRedirect = AllowAutoRedirect;
-                handler.MaxAutomaticRedirections = MaximumAutomaticRedirections;
-                handler.MaxResponseHeadersLength = MaximumResponseHeadersLength;
-                handler.PreAuthenticate = PreAuthenticate;
-                client.Timeout = Timeout == Threading.Timeout.Infinite ?
-                    Threading.Timeout.InfiniteTimeSpan :
-                    TimeSpan.FromMilliseconds(Timeout);
-
-                if (_cookieContainer != null)
-                {
-                    handler.CookieContainer = _cookieContainer;
-                    Debug.Assert(handler.UseCookies); // Default of handler.UseCookies is true.
-                }
-                else
-                {
-                    handler.UseCookies = false;
-                }
-
-                Debug.Assert(handler.UseProxy); // Default of handler.UseProxy is true.
-                Debug.Assert(handler.Proxy == null); // Default of handler.Proxy is null.
-                if (_proxy == null)
-                {
-                    handler.UseProxy = false;
-                }
-                else
-                {
-                    handler.Proxy = _proxy;
-                }
-
-                handler.ClientCertificates.AddRange(ClientCertificates);
-
-                // Set relevant properties from ServicePointManager
-                handler.SslProtocols = (SslProtocols)ServicePointManager.SecurityProtocol;
-                handler.CheckCertificateRevocationList = ServicePointManager.CheckCertificateRevocationList;
-                RemoteCertificateValidationCallback rcvc = ServerCertificateValidationCallback != null ?
-                                                ServerCertificateValidationCallback :
-                                                ServicePointManager.ServerCertificateValidationCallback;
-                if (rcvc != null)
-                {
-                    RemoteCertificateValidationCallback localRcvc = rcvc;
-                    handler.ServerCertificateCustomValidationCallback = (message, cert, chain, errors) => localRcvc(this, cert, chain, errors);
-                }
-
                 if (_hostUri != null)
                 {
-                    request.Headers.Host = _hostUri.Host;
+                    request.Headers.Host = Host;
                 }
 
                 // Copy the HttpWebRequest request headers from the WebHeaderCollection into HttpRequestMessage.Headers and
@@ -1200,6 +1212,8 @@ namespace System.Net
                     request.Headers.ConnectionClose = true;
                 }
 
+                request.Version = ProtocolVersion;
+
                 _sendRequestTask = client.SendAsync(
                     request,
                     _allowReadStreamBuffering ? HttpCompletionOption.ResponseContentRead : HttpCompletionOption.ResponseHeadersRead,
@@ -1218,6 +1232,13 @@ namespace System.Net
                 }
 
                 return response;
+            }
+            finally
+            {
+                if (disposeRequired)
+                {
+                    client?.Dispose();
+                }
             }
         }
 
@@ -1319,7 +1340,6 @@ namespace System.Net
 
         public void AddRange(string rangeSpecifier, long from, long to)
         {
-
             //
             // Do some range checking before assembling the header
             //
@@ -1369,7 +1389,6 @@ namespace System.Net
 
         private bool AddRange(string rangeSpecifier, string from, string to)
         {
-
             string curRange = _webHeaderCollection[HttpKnownHeaderNames.Range];
 
             if ((curRange == null) || (curRange.Length == 0))
@@ -1378,7 +1397,7 @@ namespace System.Net
             }
             else
             {
-                if (String.Compare(curRange.Substring(0, curRange.IndexOf('=')), rangeSpecifier, StringComparison.OrdinalIgnoreCase) != 0)
+                if (!string.Equals(curRange.Substring(0, curRange.IndexOf('=')), rangeSpecifier, StringComparison.OrdinalIgnoreCase))
                 {
                     return false;
                 }
@@ -1392,7 +1411,6 @@ namespace System.Net
             _webHeaderCollection[HttpKnownHeaderNames.Range] = curRange;
             return true;
         }
-
 
         private bool RequestSubmitted
         {
@@ -1448,7 +1466,14 @@ namespace System.Net
                 {
                     return DateTime.MinValue; // MinValue means header is not present
                 }
-                return StringToDate(headerValue);
+                if (HttpDateParser.TryStringToDate(headerValue, out DateTimeOffset dateTimeOffset))
+                {
+                    return dateTimeOffset.LocalDateTime;
+                }
+                else
+                {
+                    throw new ProtocolViolationException(SR.net_baddate);
+                }
 #if DEBUG
             }
 #endif
@@ -1463,37 +1488,124 @@ namespace System.Net
                 if (dateTime == DateTime.MinValue)
                     SetSpecialHeaders(headerName, null); // remove header
                 else
-                    SetSpecialHeaders(headerName, DateToString(dateTime));
+                    SetSpecialHeaders(headerName, HttpDateParser.DateToString(dateTime.ToUniversalTime()));
 #if DEBUG
             }
 #endif
-        }
-
-        // parse String to DateTime format.
-        private static DateTime StringToDate(String S)
-        {
-            DateTime dtOut;
-            if (HttpDateParse.ParseHttpDate(S, out dtOut))
-            {
-                return dtOut;
-            }
-            else
-            {
-                throw new ProtocolViolationException(SR.net_baddate);
-            }
-        }
-
-        // convert Date to String using RFC 1123 pattern
-        private static string DateToString(DateTime D)
-        {
-            DateTimeFormatInfo dateFormat = new DateTimeFormatInfo();
-            return D.ToUniversalTime().ToString("R", dateFormat);
         }
 
         private bool TryGetHostUri(string hostName, out Uri hostUri)
         {
             string s = Address.Scheme + "://" + hostName + Address.PathAndQuery;
             return Uri.TryCreate(s, UriKind.Absolute, out hostUri);
+        }
+
+        private HttpClient GetCachedOrCreateHttpClient(out bool disposeRequired)
+        {
+            var parameters = new HttpClientParameters(this);
+            if (parameters.AreParametersAcceptableForCaching())
+            {
+                disposeRequired = false;
+                if (s_cachedHttpClient == null)
+                {
+                    lock (s_syncRoot)
+                    {
+                        if (s_cachedHttpClient == null)
+                        {
+                            s_cachedHttpClientParameters = parameters;
+                            s_cachedHttpClient = CreateHttpClient(parameters, null);
+                            return s_cachedHttpClient;
+                        }
+                    }
+                }
+
+                if (s_cachedHttpClientParameters.Matches(parameters))
+                {
+                    return s_cachedHttpClient;
+                }
+            }
+
+            disposeRequired = true;
+            return CreateHttpClient(parameters, this);
+        }
+
+        private static HttpClient CreateHttpClient(HttpClientParameters parameters, HttpWebRequest request)
+        {
+            HttpClient client = null;
+            try
+            {
+                var handler = new HttpClientHandler();
+                client = new HttpClient(handler);
+                handler.AutomaticDecompression = parameters.AutomaticDecompression;
+                handler.Credentials = parameters.Credentials;
+                handler.AllowAutoRedirect = parameters.AllowAutoRedirect;
+                handler.MaxAutomaticRedirections = parameters.MaximumAutomaticRedirections;
+                handler.MaxResponseHeadersLength = parameters.MaximumResponseHeadersLength;
+                handler.PreAuthenticate = parameters.PreAuthenticate;
+                client.Timeout = parameters.Timeout;
+
+                if (parameters.CookieContainer != null)
+                {
+                    handler.CookieContainer = parameters.CookieContainer;
+                    Debug.Assert(handler.UseCookies); // Default of handler.UseCookies is true.
+                }
+                else
+                {
+                    handler.UseCookies = false;
+                }
+
+                Debug.Assert(handler.UseProxy); // Default of handler.UseProxy is true.
+                Debug.Assert(handler.Proxy == null); // Default of handler.Proxy is null.
+
+                // HttpClientHandler default is to use a proxy which is the system proxy.
+                // This is indicated by the properties 'UseProxy == true' and 'Proxy == null'.
+                //
+                // However, HttpWebRequest doesn't have a separate 'UseProxy' property. Instead,
+                // the default of the 'Proxy' property is a non-null IWebProxy object which is the
+                // system default proxy object. If the 'Proxy' property were actually null, then
+                // that means don't use any proxy.
+                //
+                // So, we need to map the desired HttpWebRequest proxy settings to equivalent
+                // HttpClientHandler settings.
+                if (parameters.Proxy == null)
+                {
+                    handler.UseProxy = false;
+                }
+                else if (!object.ReferenceEquals(parameters.Proxy, WebRequest.GetSystemWebProxy()))
+                {
+                    handler.Proxy = parameters.Proxy;
+                }
+                else
+                {
+                    // Since this HttpWebRequest is using the default system proxy, we need to
+                    // pass any proxy credentials that the developer might have set via the
+                    // WebRequest.DefaultWebProxy.Credentials property.
+                    handler.DefaultProxyCredentials = parameters.Proxy.Credentials;
+                }
+
+                if (parameters.ClientCertificates != null)
+                {
+                    handler.ClientCertificates.AddRange(parameters.ClientCertificates);
+                }
+
+                // Set relevant properties from ServicePointManager
+                handler.SslProtocols = (SslProtocols)parameters.SslProtocols;
+                handler.CheckCertificateRevocationList = parameters.CheckCertificateRevocationList;
+                RemoteCertificateValidationCallback rcvc = parameters.ServerCertificateValidationCallback;
+                if (rcvc != null)
+                {
+                    RemoteCertificateValidationCallback localRcvc = rcvc;
+                    HttpWebRequest localRequest = request;
+                    handler.ServerCertificateCustomValidationCallback = (message, cert, chain, errors) => localRcvc(localRequest, cert, chain, errors);
+                }
+
+                return client;
+            }
+            catch
+            {
+                client?.Dispose();
+                throw;
+            }
         }
     }
 }

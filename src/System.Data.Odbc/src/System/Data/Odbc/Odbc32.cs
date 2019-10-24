@@ -44,12 +44,12 @@ namespace System.Data.Odbc
             {
                 case CommandType.Text:
                 case CommandType.StoredProcedure:
-                    Debug.Assert(false, "valid CommandType " + value.ToString());
+                    Debug.Fail("valid CommandType " + value.ToString());
                     break;
                 case CommandType.TableDirect:
                     break;
                 default:
-                    Debug.Assert(false, "invalid CommandType " + value.ToString());
+                    Debug.Fail("invalid CommandType " + value.ToString());
                     break;
             }
 #endif
@@ -66,12 +66,12 @@ namespace System.Data.Odbc
                 case IsolationLevel.RepeatableRead:
                 case IsolationLevel.Serializable:
                 case IsolationLevel.Snapshot:
-                    Debug.Assert(false, "valid IsolationLevel " + value.ToString());
+                    Debug.Fail("valid IsolationLevel " + value.ToString());
                     break;
                 case IsolationLevel.Chaos:
                     break;
                 default:
-                    Debug.Assert(false, "invalid IsolationLevel " + value.ToString());
+                    Debug.Fail("invalid IsolationLevel " + value.ToString());
                     break;
             }
 #endif
@@ -123,8 +123,9 @@ namespace System.Data.Odbc
         }
     }
 
-
-    internal static class ODBC32
+    // Class needs to be public to support serialization with type forwarding from Desktop to Core.
+    [System.Runtime.CompilerServices.TypeForwardedFrom("System.Data, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089")]
+    public static class ODBC32
     {
         internal enum SQL_HANDLE : short
         {
@@ -136,6 +137,7 @@ namespace System.Data.Odbc
 
         // from .\public\sdk\inc\sqlext.h: and .\public\sdk\inc\sql.h
         // must be public because it is serialized by OdbcException
+        [System.Runtime.CompilerServices.TypeForwardedFrom("System.Data, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089")]
         public enum RETCODE : int
         { // must be int instead of short for Everett OdbcException Serializablity.
             SUCCESS = 0,
@@ -165,7 +167,7 @@ namespace System.Data.Odbc
                 case RetCode.INVALID_HANDLE: return "INVALID_HANDLE";
                 case RetCode.NO_DATA: return "NO_DATA";
                 default:
-                    Debug.Assert(false, "Unknown enumerator passed to RetcodeToString method");
+                    Debug.Fail("Unknown enumerator passed to RetcodeToString method");
                     goto case RetCode.ERROR;
             }
         }
@@ -282,8 +284,8 @@ namespace System.Data.Odbc
             NOBROWSETABLE = BASE + 3,       // Set NOBROWSETABLE option
         }
 
-        internal const Int16 SQL_COMMIT = 0;      //Commit
-        internal const Int16 SQL_ROLLBACK = 1;      //Abort
+        internal const short SQL_COMMIT = 0;      //Commit
+        internal const short SQL_ROLLBACK = 1;      //Abort
 
         internal static readonly IntPtr SQL_AUTOCOMMIT_OFF = ADP.PtrZero;
         internal static readonly IntPtr SQL_AUTOCOMMIT_ON = new IntPtr(1);
@@ -514,8 +516,8 @@ namespace System.Data.Odbc
         // private constants
         // to define data types (see below)
         //
-        private const Int32 SIGNED_OFFSET = -20;    // SQL_SIGNED_OFFSET
-        private const Int32 UNSIGNED_OFFSET = -22;    // SQL_UNSIGNED_OFFSET
+        private const int SIGNED_OFFSET = -20;    // SQL_SIGNED_OFFSET
+        private const int UNSIGNED_OFFSET = -22;    // SQL_UNSIGNED_OFFSET
 
         //C Data Types - used when getting data (SQLGetData)
         internal enum SQL_C : short
@@ -589,23 +591,23 @@ namespace System.Data.Odbc
             SS_TIME_EX = -154,
         }
 
-        internal const Int16 SQL_ALL_TYPES = 0;
+        internal const short SQL_ALL_TYPES = 0;
         internal static readonly IntPtr SQL_HANDLE_NULL = ADP.PtrZero;
-        internal const Int32 SQL_NULL_DATA = -1;   // sql.h
-        internal const Int32 SQL_NO_TOTAL = -4;   // sqlext.h
+        internal const int SQL_NULL_DATA = -1;   // sql.h
+        internal const int SQL_NO_TOTAL = -4;   // sqlext.h
 
-        internal const Int32 SQL_DEFAULT_PARAM = -5;
+        internal const int SQL_DEFAULT_PARAM = -5;
         //      internal const Int32  SQL_IGNORE         = -6;
 
         // column ordinals for SQLProcedureColumns result set
         // this column ordinals are not defined in any c/c++ header but in the ODBC Programmer's Reference under SQLProcedureColumns
         //
-        internal const Int32 COLUMN_NAME = 4;
-        internal const Int32 COLUMN_TYPE = 5;
-        internal const Int32 DATA_TYPE = 6;
-        internal const Int32 COLUMN_SIZE = 8;
-        internal const Int32 DECIMAL_DIGITS = 10;
-        internal const Int32 NUM_PREC_RADIX = 11;
+        internal const int COLUMN_NAME = 4;
+        internal const int COLUMN_TYPE = 5;
+        internal const int DATA_TYPE = 6;
+        internal const int COLUMN_SIZE = 8;
+        internal const int DECIMAL_DIGITS = 10;
+        internal const int NUM_PREC_RADIX = 11;
 
         internal enum SQL_ATTR
         {
@@ -654,7 +656,7 @@ namespace System.Data.Odbc
         }
 
         internal static readonly IntPtr SQL_OV_ODBC3 = new IntPtr(3);
-        internal const Int32 SQL_NTS = -3;       //flags for null-terminated string
+        internal const int SQL_NTS = -3;       //flags for null-terminated string
 
         //Pooling
         internal static readonly IntPtr SQL_CP_OFF = new IntPtr(0);       //Connection Pooling disabled
@@ -662,12 +664,12 @@ namespace System.Data.Odbc
         internal static readonly IntPtr SQL_CP_ONE_PER_HENV = new IntPtr(2);       //One pool per environment
 
         /* values for SQL_ATTR_CONNECTION_DEAD */
-        internal const Int32 SQL_CD_TRUE = 1;
-        internal const Int32 SQL_CD_FALSE = 0;
+        internal const int SQL_CD_TRUE = 1;
+        internal const int SQL_CD_FALSE = 0;
 
-        internal const Int32 SQL_DTC_DONE = 0;
-        internal const Int32 SQL_IS_POINTER = -4;
-        internal const Int32 SQL_IS_PTR = 1;
+        internal const int SQL_DTC_DONE = 0;
+        internal const int SQL_IS_POINTER = -4;
+        internal const int SQL_IS_PTR = 1;
 
         internal enum SQL_DRIVER
         {
@@ -681,62 +683,48 @@ namespace System.Data.Odbc
         // internal const. not odbc specific
         //
         // Connection string max length
-        internal const Int32 MAX_CONNECTION_STRING_LENGTH = 1024;
+        internal const int MAX_CONNECTION_STRING_LENGTH = 1024;
 
         // Column set for SQLPrimaryKeys
         internal enum SQL_PRIMARYKEYS : short
         {
-/*
-            CATALOGNAME         = 1,                    // TABLE_CAT
-            SCHEMANAME          = 2,                    // TABLE_SCHEM
-            TABLENAME           = 3,                    // TABLE_NAME
-*/
+            // CATALOGNAME = 1,                // TABLE_CAT
+            // SCHEMANAME = 2,                 // TABLE_SCHEM
+            // TABLENAME = 3,                  // TABLE_NAME
             COLUMNNAME = 4,                    // COLUMN_NAME
-/*
-            KEY_SEQ             = 5,                    // KEY_SEQ
-            PKNAME              = 6,                    // PK_NAME
-*/
+            // KEY_SEQ = 5,                    // KEY_SEQ
+            // PKNAME = 6,                     // PK_NAME
         }
 
         // Column set for SQLStatistics
         internal enum SQL_STATISTICS : short
         {
-/*
-            CATALOGNAME         = 1,                    // TABLE_CAT
-            SCHEMANAME          = 2,                    // TABLE_SCHEM
-            TABLENAME           = 3,                    // TABLE_NAME
-            NONUNIQUE           = 4,                    // NON_UNIQUE
-            INDEXQUALIFIER      = 5,                    // INDEX_QUALIFIER
-*/
+            // CATALOGNAME = 1,               // TABLE_CAT
+            // SCHEMANAME = 2,                // TABLE_SCHEM
+            // TABLENAME = 3,                 // TABLE_NAME
+            // NONUNIQUE = 4,                 // NON_UNIQUE
+            // INDEXQUALIFIER = 5,            // INDEX_QUALIFIER
             INDEXNAME = 6,                    // INDEX_NAME
-/*
-            TYPE                = 7,                    // TYPE
-*/
-            ORDINAL_POSITION = 8,                    // ORDINAL_POSITION
-            COLUMN_NAME = 9,                    // COLUMN_NAME
-/*
-            ASC_OR_DESC         = 10,                   // ASC_OR_DESC
-            CARDINALITY         = 11,                   // CARDINALITY
-            PAGES               = 12,                   // PAGES
-            FILTER_CONDITION    = 13,                   // FILTER_CONDITION
-*/
+            // TYPE = 7,                      // TYPE
+            ORDINAL_POSITION = 8,             // ORDINAL_POSITION
+            COLUMN_NAME = 9,                  // COLUMN_NAME
+            // ASC_OR_DESC = 10,              // ASC_OR_DESC
+            // CARDINALITY = 11,              // CARDINALITY
+            // PAGES = 12,                    // PAGES
+            // FILTER_CONDITION = 13,         // FILTER_CONDITION
         }
 
         // Column set for SQLSpecialColumns
         internal enum SQL_SPECIALCOLUMNSET : short
         {
-/*
-            SCOPE               = 1,                    // SCOPE
-*/
+            // SCOPE = 1,                       // SCOPE
             COLUMN_NAME = 2,                    // COLUMN_NAME
-/*
-            DATA_TYPE           = 3,                    // DATA_TYPE
-            TYPE_NAME           = 4,                    // TYPE_NAME
-            COLUMN_SIZE         = 5,                    // COLUMN_SIZE
-            BUFFER_LENGTH       = 6,                    // BUFFER_LENGTH
-            DECIMAL_DIGITS      = 7,                    // DECIMAL_DIGITS
-            PSEUDO_COLUMN       = 8,                    // PSEUDO_COLUMN
-*/
+            // DATA_TYPE           = 3,         // DATA_TYPE
+            // TYPE_NAME           = 4,         // TYPE_NAME
+            // COLUMN_SIZE         = 5,         // COLUMN_SIZE
+            // BUFFER_LENGTH       = 6,         // BUFFER_LENGTH
+            // DECIMAL_DIGITS      = 7,         // DECIMAL_DIGITS
+            // PSEUDO_COLUMN       = 8,         // PSEUDO_COLUMN
         }
 
         internal const short SQL_DIAG_SQLSTATE = 4;
@@ -755,9 +743,9 @@ namespace System.Data.Odbc
             Debug.Assert(retcode != ODBC32.RetCode.INVALID_HANDLE, "retcode must never be ODBC32.RetCode.INVALID_HANDLE");
             if (RetCode.SUCCESS != retcode)
             {
-                Int32 NativeError;
-                Int16 iRec = 0;
-                Int16 cchActual = 0;
+                int NativeError;
+                short iRec = 0;
+                short cchActual = 0;
 
                 StringBuilder message = new StringBuilder(1024);
                 string sqlState;
@@ -796,34 +784,34 @@ namespace System.Data.Odbc
     { // MDAC 68988
       //      private TypeMap                                           (OdbcType odbcType,         DbType dbType,                Type type,        ODBC32.SQL_TYPE sql_type,       ODBC32.SQL_C sql_c,          ODBC32.SQL_C param_sql_c,   int bsize, int csize, bool signType)
       //      ---------------                                            ------------------         --------------                ----------        -------------------------       -------------------          -------------------------   -----------------------
-        private static readonly TypeMap s_bigInt = new TypeMap(OdbcType.BigInt, DbType.Int64, typeof(Int64), ODBC32.SQL_TYPE.BIGINT, ODBC32.SQL_C.SBIGINT, ODBC32.SQL_C.SBIGINT, 8, 20, true);
+        private static readonly TypeMap s_bigInt = new TypeMap(OdbcType.BigInt, DbType.Int64, typeof(long), ODBC32.SQL_TYPE.BIGINT, ODBC32.SQL_C.SBIGINT, ODBC32.SQL_C.SBIGINT, 8, 20, true);
         private static readonly TypeMap s_binary = new TypeMap(OdbcType.Binary, DbType.Binary, typeof(byte[]), ODBC32.SQL_TYPE.BINARY, ODBC32.SQL_C.BINARY, ODBC32.SQL_C.BINARY, -1, -1, false);
-        private static readonly TypeMap s_bit = new TypeMap(OdbcType.Bit, DbType.Boolean, typeof(Boolean), ODBC32.SQL_TYPE.BIT, ODBC32.SQL_C.BIT, ODBC32.SQL_C.BIT, 1, 1, false);
-        internal static readonly TypeMap _Char = new TypeMap(OdbcType.Char, DbType.AnsiStringFixedLength, typeof(String), ODBC32.SQL_TYPE.CHAR, ODBC32.SQL_C.WCHAR, ODBC32.SQL_C.CHAR, -1, -1, false);
+        private static readonly TypeMap s_bit = new TypeMap(OdbcType.Bit, DbType.Boolean, typeof(bool), ODBC32.SQL_TYPE.BIT, ODBC32.SQL_C.BIT, ODBC32.SQL_C.BIT, 1, 1, false);
+        internal static readonly TypeMap _Char = new TypeMap(OdbcType.Char, DbType.AnsiStringFixedLength, typeof(string), ODBC32.SQL_TYPE.CHAR, ODBC32.SQL_C.WCHAR, ODBC32.SQL_C.CHAR, -1, -1, false);
         private static readonly TypeMap s_dateTime = new TypeMap(OdbcType.DateTime, DbType.DateTime, typeof(DateTime), ODBC32.SQL_TYPE.TYPE_TIMESTAMP, ODBC32.SQL_C.TYPE_TIMESTAMP, ODBC32.SQL_C.TYPE_TIMESTAMP, 16, 23, false);
         private static readonly TypeMap s_date = new TypeMap(OdbcType.Date, DbType.Date, typeof(DateTime), ODBC32.SQL_TYPE.TYPE_DATE, ODBC32.SQL_C.TYPE_DATE, ODBC32.SQL_C.TYPE_DATE, 6, 10, false);
         private static readonly TypeMap s_time = new TypeMap(OdbcType.Time, DbType.Time, typeof(TimeSpan), ODBC32.SQL_TYPE.TYPE_TIME, ODBC32.SQL_C.TYPE_TIME, ODBC32.SQL_C.TYPE_TIME, 6, 12, false);
-        private static readonly TypeMap s_decimal = new TypeMap(OdbcType.Decimal, DbType.Decimal, typeof(Decimal), ODBC32.SQL_TYPE.DECIMAL, ODBC32.SQL_C.NUMERIC, ODBC32.SQL_C.NUMERIC, 19, ADP.DecimalMaxPrecision28, false);
-        //        static private  readonly TypeMap _Currency   = new TypeMap(OdbcType.Decimal,          DbType.Currency,              typeof(Decimal),  ODBC32.SQL_TYPE.DECIMAL,        ODBC32.SQL_C.NUMERIC,        ODBC32.SQL_C.NUMERIC,        19, ADP.DecimalMaxPrecision28, false);
-        private static readonly TypeMap s_double = new TypeMap(OdbcType.Double, DbType.Double, typeof(Double), ODBC32.SQL_TYPE.DOUBLE, ODBC32.SQL_C.DOUBLE, ODBC32.SQL_C.DOUBLE, 8, 15, false);
-        internal static readonly TypeMap _Image = new TypeMap(OdbcType.Image, DbType.Binary, typeof(Byte[]), ODBC32.SQL_TYPE.LONGVARBINARY, ODBC32.SQL_C.BINARY, ODBC32.SQL_C.BINARY, -1, -1, false);
-        private static readonly TypeMap s_int = new TypeMap(OdbcType.Int, DbType.Int32, typeof(Int32), ODBC32.SQL_TYPE.INTEGER, ODBC32.SQL_C.SLONG, ODBC32.SQL_C.SLONG, 4, 10, true);
-        private static readonly TypeMap s_NChar = new TypeMap(OdbcType.NChar, DbType.StringFixedLength, typeof(String), ODBC32.SQL_TYPE.WCHAR, ODBC32.SQL_C.WCHAR, ODBC32.SQL_C.WCHAR, -1, -1, false);
-        internal static readonly TypeMap _NText = new TypeMap(OdbcType.NText, DbType.String, typeof(String), ODBC32.SQL_TYPE.WLONGVARCHAR, ODBC32.SQL_C.WCHAR, ODBC32.SQL_C.WCHAR, -1, -1, false);
-        private static readonly TypeMap s_numeric = new TypeMap(OdbcType.Numeric, DbType.Decimal, typeof(Decimal), ODBC32.SQL_TYPE.NUMERIC, ODBC32.SQL_C.NUMERIC, ODBC32.SQL_C.NUMERIC, 19, ADP.DecimalMaxPrecision28, false);
-        internal static readonly TypeMap _NVarChar = new TypeMap(OdbcType.NVarChar, DbType.String, typeof(String), ODBC32.SQL_TYPE.WVARCHAR, ODBC32.SQL_C.WCHAR, ODBC32.SQL_C.WCHAR, -1, -1, false);
-        private static readonly TypeMap s_real = new TypeMap(OdbcType.Real, DbType.Single, typeof(Single), ODBC32.SQL_TYPE.REAL, ODBC32.SQL_C.REAL, ODBC32.SQL_C.REAL, 4, 7, false);
+        private static readonly TypeMap s_decimal = new TypeMap(OdbcType.Decimal, DbType.Decimal, typeof(decimal), ODBC32.SQL_TYPE.DECIMAL, ODBC32.SQL_C.NUMERIC, ODBC32.SQL_C.NUMERIC, 19, ADP.DecimalMaxPrecision28, false);
+        //        private static  readonly TypeMap _Currency   = new TypeMap(OdbcType.Decimal,          DbType.Currency,              typeof(Decimal),  ODBC32.SQL_TYPE.DECIMAL,        ODBC32.SQL_C.NUMERIC,        ODBC32.SQL_C.NUMERIC,        19, ADP.DecimalMaxPrecision28, false);
+        private static readonly TypeMap s_double = new TypeMap(OdbcType.Double, DbType.Double, typeof(double), ODBC32.SQL_TYPE.DOUBLE, ODBC32.SQL_C.DOUBLE, ODBC32.SQL_C.DOUBLE, 8, 15, false);
+        internal static readonly TypeMap _Image = new TypeMap(OdbcType.Image, DbType.Binary, typeof(byte[]), ODBC32.SQL_TYPE.LONGVARBINARY, ODBC32.SQL_C.BINARY, ODBC32.SQL_C.BINARY, -1, -1, false);
+        private static readonly TypeMap s_int = new TypeMap(OdbcType.Int, DbType.Int32, typeof(int), ODBC32.SQL_TYPE.INTEGER, ODBC32.SQL_C.SLONG, ODBC32.SQL_C.SLONG, 4, 10, true);
+        private static readonly TypeMap s_NChar = new TypeMap(OdbcType.NChar, DbType.StringFixedLength, typeof(string), ODBC32.SQL_TYPE.WCHAR, ODBC32.SQL_C.WCHAR, ODBC32.SQL_C.WCHAR, -1, -1, false);
+        internal static readonly TypeMap _NText = new TypeMap(OdbcType.NText, DbType.String, typeof(string), ODBC32.SQL_TYPE.WLONGVARCHAR, ODBC32.SQL_C.WCHAR, ODBC32.SQL_C.WCHAR, -1, -1, false);
+        private static readonly TypeMap s_numeric = new TypeMap(OdbcType.Numeric, DbType.Decimal, typeof(decimal), ODBC32.SQL_TYPE.NUMERIC, ODBC32.SQL_C.NUMERIC, ODBC32.SQL_C.NUMERIC, 19, ADP.DecimalMaxPrecision28, false);
+        internal static readonly TypeMap _NVarChar = new TypeMap(OdbcType.NVarChar, DbType.String, typeof(string), ODBC32.SQL_TYPE.WVARCHAR, ODBC32.SQL_C.WCHAR, ODBC32.SQL_C.WCHAR, -1, -1, false);
+        private static readonly TypeMap s_real = new TypeMap(OdbcType.Real, DbType.Single, typeof(float), ODBC32.SQL_TYPE.REAL, ODBC32.SQL_C.REAL, ODBC32.SQL_C.REAL, 4, 7, false);
         private static readonly TypeMap s_uniqueId = new TypeMap(OdbcType.UniqueIdentifier, DbType.Guid, typeof(Guid), ODBC32.SQL_TYPE.GUID, ODBC32.SQL_C.GUID, ODBC32.SQL_C.GUID, 16, 36, false);
         private static readonly TypeMap s_smallDT = new TypeMap(OdbcType.SmallDateTime, DbType.DateTime, typeof(DateTime), ODBC32.SQL_TYPE.TYPE_TIMESTAMP, ODBC32.SQL_C.TYPE_TIMESTAMP, ODBC32.SQL_C.TYPE_TIMESTAMP, 16, 23, false);
-        private static readonly TypeMap s_smallInt = new TypeMap(OdbcType.SmallInt, DbType.Int16, typeof(Int16), ODBC32.SQL_TYPE.SMALLINT, ODBC32.SQL_C.SSHORT, ODBC32.SQL_C.SSHORT, 2, 5, true);
-        internal static readonly TypeMap _Text = new TypeMap(OdbcType.Text, DbType.AnsiString, typeof(String), ODBC32.SQL_TYPE.LONGVARCHAR, ODBC32.SQL_C.WCHAR, ODBC32.SQL_C.CHAR, -1, -1, false);
-        private static readonly TypeMap s_timestamp = new TypeMap(OdbcType.Timestamp, DbType.Binary, typeof(Byte[]), ODBC32.SQL_TYPE.BINARY, ODBC32.SQL_C.BINARY, ODBC32.SQL_C.BINARY, -1, -1, false);
-        private static readonly TypeMap s_tinyInt = new TypeMap(OdbcType.TinyInt, DbType.Byte, typeof(Byte), ODBC32.SQL_TYPE.TINYINT, ODBC32.SQL_C.UTINYINT, ODBC32.SQL_C.UTINYINT, 1, 3, true);
-        private static readonly TypeMap s_varBinary = new TypeMap(OdbcType.VarBinary, DbType.Binary, typeof(Byte[]), ODBC32.SQL_TYPE.VARBINARY, ODBC32.SQL_C.BINARY, ODBC32.SQL_C.BINARY, -1, -1, false);
-        internal static readonly TypeMap _VarChar = new TypeMap(OdbcType.VarChar, DbType.AnsiString, typeof(String), ODBC32.SQL_TYPE.VARCHAR, ODBC32.SQL_C.WCHAR, ODBC32.SQL_C.CHAR, -1, -1, false);
+        private static readonly TypeMap s_smallInt = new TypeMap(OdbcType.SmallInt, DbType.Int16, typeof(short), ODBC32.SQL_TYPE.SMALLINT, ODBC32.SQL_C.SSHORT, ODBC32.SQL_C.SSHORT, 2, 5, true);
+        internal static readonly TypeMap _Text = new TypeMap(OdbcType.Text, DbType.AnsiString, typeof(string), ODBC32.SQL_TYPE.LONGVARCHAR, ODBC32.SQL_C.WCHAR, ODBC32.SQL_C.CHAR, -1, -1, false);
+        private static readonly TypeMap s_timestamp = new TypeMap(OdbcType.Timestamp, DbType.Binary, typeof(byte[]), ODBC32.SQL_TYPE.BINARY, ODBC32.SQL_C.BINARY, ODBC32.SQL_C.BINARY, -1, -1, false);
+        private static readonly TypeMap s_tinyInt = new TypeMap(OdbcType.TinyInt, DbType.Byte, typeof(byte), ODBC32.SQL_TYPE.TINYINT, ODBC32.SQL_C.UTINYINT, ODBC32.SQL_C.UTINYINT, 1, 3, true);
+        private static readonly TypeMap s_varBinary = new TypeMap(OdbcType.VarBinary, DbType.Binary, typeof(byte[]), ODBC32.SQL_TYPE.VARBINARY, ODBC32.SQL_C.BINARY, ODBC32.SQL_C.BINARY, -1, -1, false);
+        internal static readonly TypeMap _VarChar = new TypeMap(OdbcType.VarChar, DbType.AnsiString, typeof(string), ODBC32.SQL_TYPE.VARCHAR, ODBC32.SQL_C.WCHAR, ODBC32.SQL_C.CHAR, -1, -1, false);
         private static readonly TypeMap s_variant = new TypeMap(OdbcType.Binary, DbType.Binary, typeof(object), ODBC32.SQL_TYPE.SS_VARIANT, ODBC32.SQL_C.BINARY, ODBC32.SQL_C.BINARY, -1, -1, false);
         private static readonly TypeMap s_UDT = new TypeMap(OdbcType.Binary, DbType.Binary, typeof(object), ODBC32.SQL_TYPE.SS_UDT, ODBC32.SQL_C.BINARY, ODBC32.SQL_C.BINARY, -1, -1, false);
-        private static readonly TypeMap s_XML = new TypeMap(OdbcType.Text, DbType.AnsiString, typeof(String), ODBC32.SQL_TYPE.LONGVARCHAR, ODBC32.SQL_C.WCHAR, ODBC32.SQL_C.CHAR, -1, -1, false);
+        private static readonly TypeMap s_XML = new TypeMap(OdbcType.Text, DbType.AnsiString, typeof(string), ODBC32.SQL_TYPE.LONGVARCHAR, ODBC32.SQL_C.WCHAR, ODBC32.SQL_C.CHAR, -1, -1, false);
 
         internal readonly OdbcType _odbcType;
         internal readonly DbType _dbType;
@@ -853,37 +841,35 @@ namespace System.Data.Odbc
             _signType = signType;
         }
 
-        internal static TypeMap FromOdbcType(OdbcType odbcType)
-        {
-            switch (odbcType)
+        internal static TypeMap FromOdbcType(OdbcType odbcType) =>
+            odbcType switch
             {
-                case OdbcType.BigInt: return s_bigInt;
-                case OdbcType.Binary: return s_binary;
-                case OdbcType.Bit: return s_bit;
-                case OdbcType.Char: return _Char;
-                case OdbcType.DateTime: return s_dateTime;
-                case OdbcType.Date: return s_date;
-                case OdbcType.Time: return s_time;
-                case OdbcType.Double: return s_double;
-                case OdbcType.Decimal: return s_decimal;
-                case OdbcType.Image: return _Image;
-                case OdbcType.Int: return s_int;
-                case OdbcType.NChar: return s_NChar;
-                case OdbcType.NText: return _NText;
-                case OdbcType.Numeric: return s_numeric;
-                case OdbcType.NVarChar: return _NVarChar;
-                case OdbcType.Real: return s_real;
-                case OdbcType.UniqueIdentifier: return s_uniqueId;
-                case OdbcType.SmallDateTime: return s_smallDT;
-                case OdbcType.SmallInt: return s_smallInt;
-                case OdbcType.Text: return _Text;
-                case OdbcType.Timestamp: return s_timestamp;
-                case OdbcType.TinyInt: return s_tinyInt;
-                case OdbcType.VarBinary: return s_varBinary;
-                case OdbcType.VarChar: return _VarChar;
-                default: throw ODBC.UnknownOdbcType(odbcType);
-            }
-        }
+                OdbcType.BigInt => s_bigInt,
+                OdbcType.Binary => s_binary,
+                OdbcType.Bit => s_bit,
+                OdbcType.Char => _Char,
+                OdbcType.DateTime => s_dateTime,
+                OdbcType.Date => s_date,
+                OdbcType.Time => s_time,
+                OdbcType.Double => s_double,
+                OdbcType.Decimal => s_decimal,
+                OdbcType.Image => _Image,
+                OdbcType.Int => s_int,
+                OdbcType.NChar => s_NChar,
+                OdbcType.NText => _NText,
+                OdbcType.Numeric => s_numeric,
+                OdbcType.NVarChar => _NVarChar,
+                OdbcType.Real => s_real,
+                OdbcType.UniqueIdentifier => s_uniqueId,
+                OdbcType.SmallDateTime => s_smallDT,
+                OdbcType.SmallInt => s_smallInt,
+                OdbcType.Text => _Text,
+                OdbcType.Timestamp => s_timestamp,
+                OdbcType.TinyInt => s_tinyInt,
+                OdbcType.VarBinary => s_varBinary,
+                OdbcType.VarChar => _VarChar,
+                _ => throw ODBC.UnknownOdbcType(odbcType),
+            };
 
         internal static TypeMap FromDbType(DbType dbType)
         {
@@ -924,7 +910,7 @@ namespace System.Data.Odbc
             {
                 case TypeCode.Empty: throw ADP.InvalidDataType(TypeCode.Empty);
                 case TypeCode.Object:
-                    if (dataType == typeof(System.Byte[]))
+                    if (dataType == typeof(byte[]))
                     {
                         return s_varBinary;
                     }
@@ -936,7 +922,7 @@ namespace System.Data.Odbc
                     {
                         return s_time;
                     }
-                    else if (dataType == typeof(System.Char[]))
+                    else if (dataType == typeof(char[]))
                     {
                         return _NVarChar;
                     }
@@ -1016,27 +1002,21 @@ namespace System.Data.Odbc
             //
             if (unsigned == true)
             {
-                switch (typeMap._dbType)
+                return typeMap._dbType switch
                 {
-                    case DbType.Int64:
-                        return s_decimal;        // upgrade to decimal
-                    case DbType.Int32:
-                        return s_bigInt;         // upgrade to 64 bit
-                    case DbType.Int16:
-                        return s_int;            // upgrade to 32 bit
-                    default:
-                        return typeMap;
-                } // end switch
+                    DbType.Int64 => s_decimal,        // upgrade to decimal
+                    DbType.Int32 => s_bigInt,         // upgrade to 64 bit
+                    DbType.Int16 => s_int,            // upgrade to 32 bit
+                    _ => typeMap,
+                };
             }
             else
             {
-                switch (typeMap._dbType)
+                return typeMap._dbType switch
                 {
-                    case DbType.Byte:
-                        return s_smallInt;       // upgrade to 16 bit
-                    default:
-                        return typeMap;
-                } // end switch
+                    DbType.Byte => s_smallInt,       // upgrade to 16 bit
+                    _ => typeMap,
+                };
             }
         } // end UpgradeSignedType
     }

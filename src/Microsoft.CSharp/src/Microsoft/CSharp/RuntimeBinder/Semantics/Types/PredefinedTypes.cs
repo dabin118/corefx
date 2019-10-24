@@ -9,23 +9,15 @@ using Microsoft.CSharp.RuntimeBinder.Syntax;
 
 namespace Microsoft.CSharp.RuntimeBinder.Semantics
 {
-    internal sealed class PredefinedTypes
+    internal static class PredefinedTypes
     {
-        private SymbolTable _runtimeBinderSymbolTable;
-        private readonly BSYMMGR _symbolManager;
-        private AggregateSymbol[] _predefSyms;    // array of predefined symbol types.
-
-        public PredefinedTypes(BSYMMGR symbolManager)
-        {
-            _symbolManager = symbolManager;
-            _runtimeBinderSymbolTable = null;
-        }
+        private static readonly AggregateSymbol[] s_predefSymbols = new AggregateSymbol[(int)PredefinedType.PT_COUNT];
 
         // We want to delay load the predefined symbols as needed.
-        private AggregateSymbol DelayLoadPredefSym(PredefinedType pt)
+        private static AggregateSymbol DelayLoadPredefSym(PredefinedType pt)
         {
-            CType type = _runtimeBinderSymbolTable.GetCTypeFromType(PredefinedTypeFacts.GetAssociatedSystemType(pt));
-            AggregateSymbol sym = type.getAggregate();
+            AggregateType type = (AggregateType)SymbolTable.GetCTypeFromType(PredefinedTypeFacts.GetAssociatedSystemType(pt));
+            AggregateSymbol sym = type.OwningAggregate;
             return InitializePredefinedType(sym, pt);
         }
 
@@ -38,35 +30,22 @@ namespace Microsoft.CSharp.RuntimeBinder.Semantics
             return sym;
         }
 
-        public void Init(SymbolTable symtable)
-        {
-            _runtimeBinderSymbolTable = symtable;
-            Debug.Assert(_symbolManager != null);
-            Debug.Assert(_predefSyms == null);
-
-            _predefSyms = new AggregateSymbol[(int)PredefinedType.PT_COUNT];
-        }
-
-        public AggregateSymbol GetPredefinedAggregate(PredefinedType pt) =>
-            _predefSyms[(int)pt] ?? (_predefSyms[(int)pt] = DelayLoadPredefSym(pt));
+        public static AggregateSymbol GetPredefinedAggregate(PredefinedType pt) =>
+            s_predefSymbols[(int)pt] ?? (s_predefSymbols[(int)pt] = DelayLoadPredefSym(pt));
 
         ////////////////////////////////////////////////////////////////////////////////
         // Some of the predefined types have built-in names, like "int" or "string" or
-        // "object". This return the nice name if one exists; otherwise null is 
+        // "object". This return the nice name if one exists; otherwise null is
         // returned.
 
         private static string GetNiceName(PredefinedType pt) => PredefinedTypeFacts.GetNiceName(pt);
 
         public static string GetNiceName(AggregateSymbol type) =>
             type.IsPredefined() ? GetNiceName(type.GetPredefType()) : null;
-
-        public static string GetFullName(PredefinedType pt) => PredefinedTypeFacts.GetName(pt);
     }
 
     internal static class PredefinedTypeFacts
     {
-        internal static string GetName(PredefinedType type) => s_types[(int)type].Name;
-
         internal static FUNDTYPE GetFundType(PredefinedType type) => s_types[(int)type].FundType;
 
         internal static Type GetAssociatedSystemType(PredefinedType type) => s_types[(int)type].AssociatedSystemType;
@@ -94,44 +73,26 @@ namespace Microsoft.CSharp.RuntimeBinder.Semantics
             }
         }
 
-        internal static string GetNiceName(PredefinedType type)
-        {
-            switch (type)
+        internal static string GetNiceName(PredefinedType type) =>
+            type switch
             {
-                case PredefinedType.PT_BYTE:
-                    return "byte";
-                case PredefinedType.PT_SHORT:
-                    return "short";
-                case PredefinedType.PT_INT:
-                    return "int";
-                case PredefinedType.PT_LONG:
-                    return "long";
-                case PredefinedType.PT_FLOAT:
-                    return "float";
-                case PredefinedType.PT_DOUBLE:
-                    return "double";
-                case PredefinedType.PT_DECIMAL:
-                    return "decimal";
-                case PredefinedType.PT_CHAR:
-                    return "char";
-                case PredefinedType.PT_BOOL:
-                    return "bool";
-                case PredefinedType.PT_SBYTE:
-                    return "sbyte";
-                case PredefinedType.PT_USHORT:
-                    return "ushort";
-                case PredefinedType.PT_UINT:
-                    return "uint";
-                case PredefinedType.PT_ULONG:
-                    return "ulong";
-                case PredefinedType.PT_OBJECT:
-                    return "object";
-                case PredefinedType.PT_STRING:
-                    return "string";
-                default:
-                    return null;
-            }
-        }
+                PredefinedType.PT_BYTE => "byte",
+                PredefinedType.PT_SHORT => "short",
+                PredefinedType.PT_INT => "int",
+                PredefinedType.PT_LONG => "long",
+                PredefinedType.PT_FLOAT => "float",
+                PredefinedType.PT_DOUBLE => "double",
+                PredefinedType.PT_DECIMAL => "decimal",
+                PredefinedType.PT_CHAR => "char",
+                PredefinedType.PT_BOOL => "bool",
+                PredefinedType.PT_SBYTE => "sbyte",
+                PredefinedType.PT_USHORT => "ushort",
+                PredefinedType.PT_UINT => "uint",
+                PredefinedType.PT_ULONG => "ulong",
+                PredefinedType.PT_OBJECT => "object",
+                PredefinedType.PT_STRING => "string",
+                _ => null,
+            };
 
         public static PredefinedType TryGetPredefTypeIndex(string name) =>
             s_typesByName.TryGetValue(name, out PredefinedType type) ? type : PredefinedType.PT_UNDEFINEDINDEX;
@@ -210,6 +171,7 @@ namespace Microsoft.CSharp.RuntimeBinder.Semantics
             new PredefinedTypeInfo(PredefinedType.PT_MISSING, typeof(System.Reflection.Missing), "System.Reflection.Missing"),
             new PredefinedTypeInfo(PredefinedType.PT_G_IREADONLYLIST, typeof(IReadOnlyList<>), "System.Collections.Generic.IReadOnlyList`1"),
             new PredefinedTypeInfo(PredefinedType.PT_G_IREADONLYCOLLECTION, typeof(IReadOnlyCollection<>), "System.Collections.Generic.IReadOnlyCollection`1"),
+            new PredefinedTypeInfo(PredefinedType.PT_FUNC, typeof(Func<>), "System.Func`1")
         };
 
         private static readonly Dictionary<string, PredefinedType> s_typesByName = CreatePredefinedTypeFacts();

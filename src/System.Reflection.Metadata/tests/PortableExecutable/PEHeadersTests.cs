@@ -24,6 +24,9 @@ namespace System.Reflection.PortableExecutable.Tests
             Assert.Equal(128 + 4 + 20 + 224 + 16, new PEHeaderBuilder(Machine.Amd64).ComputeSizeOfPEHeaders(0));
             Assert.Equal(128 + 4 + 20 + 224 + 16 + 40 * 1, new PEHeaderBuilder(Machine.Amd64).ComputeSizeOfPEHeaders(1));
             Assert.Equal(128 + 4 + 20 + 224 + 16 + 40 * 2, new PEHeaderBuilder(Machine.Amd64).ComputeSizeOfPEHeaders(2));
+            Assert.Equal(128 + 4 + 20 + 224 + 16, new PEHeaderBuilder(Machine.Arm64).ComputeSizeOfPEHeaders(0));
+            Assert.Equal(128 + 4 + 20 + 224 + 16 + 40 * 1, new PEHeaderBuilder(Machine.Arm64).ComputeSizeOfPEHeaders(1));
+            Assert.Equal(128 + 4 + 20 + 224 + 16 + 40 * 2, new PEHeaderBuilder(Machine.Arm64).ComputeSizeOfPEHeaders(2));
         }
 
         [Fact]
@@ -85,7 +88,7 @@ namespace System.Reflection.PortableExecutable.Tests
         {
             var peHeaders = new PEReader(SynthesizedPeImages.Image1).PEHeaders;
             var dir = peHeaders.PEHeader.CopyrightTableDirectory;
-            
+
             Assert.Equal(0x400 + 5, dir.RelativeVirtualAddress);
             Assert.Equal(10, dir.Size);
 

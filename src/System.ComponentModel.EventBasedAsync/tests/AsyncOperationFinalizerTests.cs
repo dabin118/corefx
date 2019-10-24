@@ -4,23 +4,22 @@
 
 using System.Diagnostics;
 using System.Threading;
+using Microsoft.DotNet.RemoteExecutor;
 using Xunit;
 
 namespace System.ComponentModel.Tests
 {
-    public class AsyncOperationFinalizerTests : RemoteExecutorTestBase
+    public class AsyncOperationFinalizerTests
     {
         [Fact]
         public void Finalizer_OperationCompleted_DoesNotCallOperationCompleted()
         {
-            RemoteInvoke(() =>
+            RemoteExecutor.Invoke(() =>
             {
                 Completed();
 
                 GC.Collect();
                 GC.WaitForPendingFinalizers();
-
-                return SuccessExitCode;
             }).Dispose();
         }
 
@@ -39,7 +38,7 @@ namespace System.ComponentModel.Tests
         [Fact]
         public void Finalizer_OperationNotCompleted_CompletesOperation()
         {
-            RemoteInvoke(() =>
+            RemoteExecutor.Invoke(() =>
             {
                 var tracker = new OperationCompletedTracker();
                 NotCompleted(tracker);
@@ -48,8 +47,6 @@ namespace System.ComponentModel.Tests
                 GC.WaitForPendingFinalizers();
 
                 Assert.True(tracker.OperationDidComplete);
-
-                return SuccessExitCode;
             }).Dispose();
         }
 

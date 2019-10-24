@@ -15,6 +15,30 @@ namespace System.Security.Cryptography.Pkcs
         {
         }
 
+#if NETSTANDARD2_0
+        internal
+#else
+        public
+#endif
+        CmsRecipient(X509Certificate2 certificate, RSAEncryptionPadding rsaEncryptionPadding)
+            : this(certificate)
+        {
+            ValidateRSACertificate(certificate);
+            RSAEncryptionPadding = rsaEncryptionPadding ?? throw new ArgumentNullException(nameof(rsaEncryptionPadding));
+        }
+
+#if NETSTANDARD2_0
+        internal
+#else
+        public
+#endif
+        CmsRecipient(SubjectIdentifierType recipientIdentifierType, X509Certificate2 certificate, RSAEncryptionPadding rsaEncryptionPadding)
+            : this(recipientIdentifierType, certificate)
+        {
+            ValidateRSACertificate(certificate);
+            RSAEncryptionPadding = rsaEncryptionPadding ?? throw new ArgumentNullException(nameof(rsaEncryptionPadding));
+        }
+
         public CmsRecipient(SubjectIdentifierType recipientIdentifierType, X509Certificate2 certificate)
         {
             if (certificate == null)
@@ -37,7 +61,25 @@ namespace System.Security.Cryptography.Pkcs
             Certificate = certificate;
         }
 
+#if NETSTANDARD2_0
+        internal
+#else
+        public
+#endif
+        RSAEncryptionPadding RSAEncryptionPadding { get; }
         public SubjectIdentifierType RecipientIdentifierType { get; }
         public X509Certificate2 Certificate { get; }
+
+        private static void ValidateRSACertificate(X509Certificate2 certificate)
+        {
+            switch (certificate.GetKeyAlgorithm())
+            {
+                case Oids.Rsa:
+                case Oids.RsaOaep:
+                    break;
+                default:
+                    throw new CryptographicException(SR.Cryptography_Cms_Recipient_RSARequired_RSAPaddingModeSupplied);
+            }
+        }
     }
 }

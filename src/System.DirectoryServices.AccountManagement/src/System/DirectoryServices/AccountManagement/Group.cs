@@ -5,13 +5,9 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Security.Permissions;
 
 namespace System.DirectoryServices.AccountManagement
 {
-#pragma warning disable 618    // Have not migrated to v4 transparency yet
-    [System.Security.SecurityCritical(System.Security.SecurityCriticalScope.Everything)]
-#pragma warning restore 618
     [DirectoryRdnPrefix("CN")]
     public class GroupPrincipal : Principal
     {
@@ -81,7 +77,7 @@ namespace System.DirectoryServices.AccountManagement
 
                 // We don't want to let them set a null value.
                 if (!value.HasValue)
-                    throw new ArgumentNullException("value");
+                    throw new ArgumentNullException(nameof(value));
 
                 HandleSet<bool>(ref _isSecurityGroup, value.Value, ref _isSecurityGroupChanged, PropertyNames.GroupIsSecurityGroup);
             }
@@ -127,7 +123,7 @@ namespace System.DirectoryServices.AccountManagement
 
                 // We don't want to let them set a null value.
                 if (!value.HasValue)
-                    throw new ArgumentNullException("value");
+                    throw new ArgumentNullException(nameof(value));
 
                 HandleSet<GroupScope>(ref _groupScope, value.Value, ref _groupScopeChanged, PropertyNames.GroupGroupScope);
             }
@@ -242,7 +238,7 @@ namespace System.DirectoryServices.AccountManagement
         //
         // Internal "constructor": Used for constructing Groups returned by a query
         //
-        static internal GroupPrincipal MakeGroup(PrincipalContext ctx)
+        internal static GroupPrincipal MakeGroup(PrincipalContext ctx)
         {
             GroupPrincipal g = new GroupPrincipal(ctx);
             g.unpersisted = false;
@@ -321,20 +317,13 @@ namespace System.DirectoryServices.AccountManagement
         {
             GlobalDebug.WriteLineIf(GlobalDebug.Info, "Group", "GetValueForProperty: name=" + propertyName);
 
-            switch (propertyName)
+            return propertyName switch
             {
-                case PropertyNames.GroupIsSecurityGroup:
-                    return _isSecurityGroup;
-
-                case PropertyNames.GroupGroupScope:
-                    return _groupScope;
-
-                case PropertyNames.GroupMembers:
-                    return _members;
-
-                default:
-                    return base.GetValueForProperty(propertyName);
-            }
+                PropertyNames.GroupIsSecurityGroup => _isSecurityGroup,
+                PropertyNames.GroupGroupScope => _groupScope,
+                PropertyNames.GroupMembers => _members,
+                _ => base.GetValueForProperty(propertyName),
+            };
         }
 
         // Reset all change-tracking status for all properties on the object to "unchanged".
@@ -364,7 +353,7 @@ namespace System.DirectoryServices.AccountManagement
 
         /// <summary>
         ///  Finds if the group is "small", meaning that it has less than MaxValRange values (usually 1500)
-        ///  The property list for the searcher of a group has "member" attribute. if there are more results than MaxValRange, there will also be a "member;range=..." attribute               
+        ///  The property list for the searcher of a group has "member" attribute. if there are more results than MaxValRange, there will also be a "member;range=..." attribute
         ///  we can cache the result and don't fear from changes through Add/Remove/Save because the completed/pending lists are looked up before the actual values are
         /// </summary>
         internal bool IsSmallGroup()

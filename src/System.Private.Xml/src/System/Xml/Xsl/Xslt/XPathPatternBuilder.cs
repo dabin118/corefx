@@ -17,12 +17,12 @@ namespace System.Xml.Xsl.Xslt
 
     internal class XPathPatternBuilder : XPathPatternParser.IPatternBuilder
     {
-        private XPathPredicateEnvironment _predicateEnvironment;
-        private XPathBuilder _predicateBuilder;
+        private readonly XPathPredicateEnvironment _predicateEnvironment;
+        private readonly XPathBuilder _predicateBuilder;
         private bool _inTheBuild;
-        private XPathQilFactory _f;
-        private QilNode _fixupNode;
-        private IXPathEnvironment _environment;
+        private readonly XPathQilFactory _f;
+        private readonly QilNode _fixupNode;
+        private readonly IXPathEnvironment _environment;
 
         public XPathPatternBuilder(IXPathEnvironment environment)
         {
@@ -42,7 +42,7 @@ namespace System.Xml.Xsl.Xslt
 
         public virtual void StartBuild()
         {
-            Debug.Assert(!_inTheBuild, "XPathBuilder is buisy!");
+            Debug.Assert(!_inTheBuild, "XPathBuilder is busy!");
             _inTheBuild = true;
             return;
         }
@@ -225,7 +225,7 @@ namespace System.Xml.Xsl.Xslt
 
         QilNode IXPathBuilder<QilNode>.Predicate(QilNode node, QilNode condition, bool isReverseStep)
         {
-            Debug.Assert(false, "Should not call to this function.");
+            Debug.Fail("Should not call to this function.");
             return null;
         }
 
@@ -245,8 +245,8 @@ namespace System.Xml.Xsl.Xslt
             QilLoop nodeFilter = (QilLoop)nodeset;
             QilIterator current = nodeFilter.Variable;
 
-            //If no last() and position() in predicates, use nodeFilter.Variable to fixup current 
-            //because all the predicates only based on the input variable, no matter what other predicates are.           
+            //If no last() and position() in predicates, use nodeFilter.Variable to fixup current
+            //because all the predicates only based on the input variable, no matter what other predicates are.
             if (_predicateEnvironment.numFixupLast == 0 && _predicateEnvironment.numFixupPosition == 0)
             {
                 foreach (var predicate in convertedPredicates)
@@ -267,7 +267,7 @@ namespace System.Xml.Xsl.Xslt
                 siblingFilter.Variable.Binding = sibling;
                 siblingFilter = (QilLoop)_f.Loop(parentIter, siblingFilter);
 
-                //build predicates from left to right to get all the matching nodes 
+                //build predicates from left to right to get all the matching nodes
                 QilNode matchingSet = siblingFilter;
                 foreach (var predicate in convertedPredicates)
                 {
@@ -321,14 +321,15 @@ namespace System.Xml.Xsl.Xslt
         }
 
         public QilNode String(string value) { return _f.String(value); }     // As argument of id() or key() function
-        public QilNode Number(double value) { return UnexpectedToken("Literal number"); }
-        public QilNode Variable(string prefix, string name) { return UnexpectedToken("Variable"); }
-
-        private QilNode UnexpectedToken(string tokenName)
+        public QilNode Number(double value)
         {
-            string prompt = string.Format(CultureInfo.InvariantCulture, "Internal Error: {0} is not allowed in XSLT pattern outside of predicate.", tokenName);
-            Debug.Assert(false, prompt);
-            throw new Exception(prompt);
+            //Internal Error: Literal number is not allowed in XSLT pattern outside of predicate.
+            throw new XmlException(SR.Xml_InternalError);
+        }
+        public QilNode Variable(string prefix, string name)
+        {
+            //Internal Error: Variable is not allowed in XSLT pattern outside of predicate.
+            throw new XmlException(SR.Xml_InternalError);
         }
 
         // -------------------------------------- Priority / Parent ---------------------------------------
@@ -424,7 +425,7 @@ namespace System.Xml.Xsl.Xslt
 
         private class XsltFunctionFocus : IFocus
         {
-            private QilIterator _current;
+            private readonly QilIterator _current;
 
             public XsltFunctionFocus(QilIterator current)
             {

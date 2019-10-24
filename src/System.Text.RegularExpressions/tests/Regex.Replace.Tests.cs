@@ -3,6 +3,7 @@
 // See the LICENSE file in the project root for more information.
 
 using System.Collections.Generic;
+using System.Linq;
 using Xunit;
 
 namespace System.Text.RegularExpressions.Tests
@@ -21,7 +22,7 @@ namespace System.Text.RegularExpressions.Tests
             // Replace with group numbers
             yield return new object[] { "([a-z]([a-z]([a-z]([a-z]([a-z]([a-z]([a-z]([a-z]([a-z]([a-z]([a-z]([a-z]([a-z]([a-z]([a-z])))))))))))))))", "abcdefghiklmnop", "$15", RegexOptions.None, 15, 0, "p" };
             yield return new object[] { "([a-z]([a-z]([a-z]([a-z]([a-z]([a-z]([a-z]([a-z]([a-z]([a-z]([a-z]([a-z]([a-z]([a-z]([a-z])))))))))))))))", "abcdefghiklmnop", "$3", RegexOptions.None, 15, 0, "cdefghiklmnop" };
-            
+
             // Stress
             string pattern = string.Empty;
             for (int i = 0; i < 1000; i++)
@@ -109,6 +110,7 @@ namespace System.Text.RegularExpressions.Tests
 
         [Theory]
         [MemberData(nameof(Replace_String_TestData))]
+        [MemberData(nameof(RegexCompilationHelper.TransformRegexOptions), nameof(Replace_String_TestData), 3, MemberType = typeof(RegexCompilationHelper))]
         public void Replace(string pattern, string input, string replacement, RegexOptions options, int count, int start, string expected)
         {
             bool isDefaultStart = RegexHelpers.IsDefaultStart(input, options, start);
@@ -178,6 +180,7 @@ namespace System.Text.RegularExpressions.Tests
 
         [Theory]
         [MemberData(nameof(Replace_MatchEvaluator_TestData))]
+        [MemberData(nameof(RegexCompilationHelper.TransformRegexOptions), nameof(Replace_MatchEvaluator_TestData), 3, MemberType = typeof(RegexCompilationHelper))]
         public void Replace(string pattern, string input, MatchEvaluator evaluator, RegexOptions options, int count, int start, string expected)
         {
             bool isDefaultStart = RegexHelpers.IsDefaultStart(input, options, start);
@@ -219,6 +222,25 @@ namespace System.Text.RegularExpressions.Tests
             string input = "";
             Assert.Same(input, Regex.Replace(input, "no-match", "replacement"));
             Assert.Same(input, Regex.Replace(input, "no-match", new MatchEvaluator(MatchEvaluator1)));
+        }
+
+        [Theory]
+        [InlineData(RegexOptions.None)]
+        [InlineData(RegexOptions.RightToLeft)]
+        public void Replace_MatchEvaluatorReturnsNullOrEmpty(RegexOptions options)
+        {
+            string result = Regex.Replace("abcde", @"[abcd]", (Match match) => {
+                return match.Value switch
+                {
+                    "a" => "x",
+                    "b" => null,
+                    "c" => "",
+                    "d" => "y",
+                    _ => throw new InvalidOperationException()
+                };
+            }, options);
+
+            Assert.Equal("xye", result);
         }
 
         [Fact]
@@ -271,7 +293,7 @@ namespace System.Text.RegularExpressions.Tests
             // Start is invalid
             AssertExtensions.Throws<ArgumentOutOfRangeException>("startat", () => new Regex("pattern").Replace("input", "replacement", 0, -1));
             AssertExtensions.Throws<ArgumentOutOfRangeException>("startat", () => new Regex("pattern").Replace("input", new MatchEvaluator(MatchEvaluator1), 0, -1));
-            
+
             AssertExtensions.Throws<ArgumentOutOfRangeException>("startat", () => new Regex("pattern").Replace("input", "replacement", 0, 6));
             AssertExtensions.Throws<ArgumentOutOfRangeException>("startat", () => new Regex("pattern").Replace("input", new MatchEvaluator(MatchEvaluator1), 0, 6));
         }

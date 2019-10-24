@@ -32,6 +32,7 @@ namespace System.Linq.Expressions.Compiler
         internal static void EmitLoadArg(this ILGenerator il, int index)
         {
             Debug.Assert(index >= 0);
+            Debug.Assert(index < ushort.MaxValue);
 
             switch (index)
             {
@@ -54,7 +55,8 @@ namespace System.Linq.Expressions.Compiler
                     }
                     else
                     {
-                        il.Emit(OpCodes.Ldarg, index);
+                        // cast to short, result is correct ushort.
+                        il.Emit(OpCodes.Ldarg, (short)index);
                     }
                     break;
             }
@@ -63,6 +65,7 @@ namespace System.Linq.Expressions.Compiler
         internal static void EmitLoadArgAddress(this ILGenerator il, int index)
         {
             Debug.Assert(index >= 0);
+            Debug.Assert(index < ushort.MaxValue);
 
             if (index <= byte.MaxValue)
             {
@@ -70,13 +73,15 @@ namespace System.Linq.Expressions.Compiler
             }
             else
             {
-                il.Emit(OpCodes.Ldarga, index);
+                // cast to short, result is correct ushort.
+                il.Emit(OpCodes.Ldarga, (short)index);
             }
         }
 
         internal static void EmitStoreArg(this ILGenerator il, int index)
         {
             Debug.Assert(index >= 0);
+            Debug.Assert(index < ushort.MaxValue);
 
             if (index <= byte.MaxValue)
             {
@@ -84,7 +89,8 @@ namespace System.Linq.Expressions.Compiler
             }
             else
             {
-                il.Emit(OpCodes.Starg, index);
+                // cast to short, result is correct ushort.
+                il.Emit(OpCodes.Starg, (short)index);
             }
         }
 
@@ -665,9 +671,8 @@ namespace System.Linq.Expressions.Compiler
             {
                 il.EmitCastToType(typeFrom, typeTo);
             }
-            else if (typeFrom.IsArray && typeTo.IsArray)
+            else if (typeFrom.IsArray && typeTo.IsArray) // reference conversion from one array type to another via castclass
             {
-                // See DevDiv Bugs #94657.
                 il.EmitCastToType(typeFrom, typeTo);
             }
             else
@@ -733,23 +738,19 @@ namespace System.Linq.Expressions.Compiler
 
                     Debug.Assert(typeFrom != typeTo);
 
-                    MethodInfo method;
-
-                    switch (tf)
+                    MethodInfo method = tf switch
                     {
-                        case TypeCode.Byte:   method = Decimal_op_Implicit_Byte;   break;
-                        case TypeCode.SByte:  method = Decimal_op_Implicit_SByte;  break;
-                        case TypeCode.Int16:  method = Decimal_op_Implicit_Int16;  break;
-                        case TypeCode.UInt16: method = Decimal_op_Implicit_UInt16; break;
-                        case TypeCode.Int32:  method = Decimal_op_Implicit_Int32;  break;
-                        case TypeCode.UInt32: method = Decimal_op_Implicit_UInt32; break;
-                        case TypeCode.Int64:  method = Decimal_op_Implicit_Int64;  break;
-                        case TypeCode.UInt64: method = Decimal_op_Implicit_UInt64; break;
-                        case TypeCode.Char:   method = Decimal_op_Implicit_Char;   break;
-                        default:
-                            throw ContractUtils.Unreachable;
-                    }
-
+                        TypeCode.Byte => Decimal_op_Implicit_Byte,
+                        TypeCode.SByte => Decimal_op_Implicit_SByte,
+                        TypeCode.Int16 => Decimal_op_Implicit_Int16,
+                        TypeCode.UInt16 => Decimal_op_Implicit_UInt16,
+                        TypeCode.Int32 => Decimal_op_Implicit_Int32,
+                        TypeCode.UInt32 => Decimal_op_Implicit_UInt32,
+                        TypeCode.Int64 => Decimal_op_Implicit_Int64,
+                        TypeCode.UInt64 => Decimal_op_Implicit_UInt64,
+                        TypeCode.Char => Decimal_op_Implicit_Char,
+                        _ => throw ContractUtils.Unreachable,
+                    };
                     il.Emit(OpCodes.Call, method);
                     return;
                 case TypeCode.SByte:

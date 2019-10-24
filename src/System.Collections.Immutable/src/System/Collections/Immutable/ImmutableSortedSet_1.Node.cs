@@ -45,7 +45,7 @@ namespace System.Collections.Immutable
             /// The number of elements contained by this subtree starting at this node.
             /// </summary>
             /// <remarks>
-            /// If this node would benefit from saving 4 bytes, we could have only a few nodes 
+            /// If this node would benefit from saving 4 bytes, we could have only a few nodes
             /// scattered throughout the graph actually record the count of nodes beneath them.
             /// Those without the count could query their descendants, which would often short-circuit
             /// when they hit a node that *does* include a count field.
@@ -68,8 +68,8 @@ namespace System.Collections.Immutable
             /// </summary>
             private Node()
             {
-                Contract.Ensures(this.IsEmpty);
                 _frozen = true; // the empty node is *always* frozen.
+                Debug.Assert(this.IsEmpty);
             }
 
             /// <summary>
@@ -253,6 +253,30 @@ namespace System.Collections.Immutable
                 }
             }
 
+#if !NETSTANDARD1_0
+            /// <summary>
+            /// Gets a read-only reference to the element of the set at the given index.
+            /// </summary>
+            /// <param name="index">The 0-based index of the element in the set to return.</param>
+            /// <returns>A read-only reference to the element at the given position.</returns>
+            internal ref readonly T ItemRef(int index)
+            {
+                Requires.Range(index >= 0 && index < this.Count, nameof(index));
+
+                if (index < _left._count)
+                {
+                    return ref _left.ItemRef(index);
+                }
+
+                if (index > _left._count)
+                {
+                    return ref _right.ItemRef(index - _left._count - 1);
+                }
+
+                return ref _key;
+            }
+#endif
+
             #region IEnumerable<T> Members
 
             /// <summary>
@@ -404,7 +428,7 @@ namespace System.Collections.Immutable
                         // We have a match.
                         mutated = true;
 
-                        // If this is a leaf, just remove it 
+                        // If this is a leaf, just remove it
                         // by returning Empty.  If we have only one child,
                         // replace the node with the child.
                         if (_right.IsEmpty && _left.IsEmpty)
@@ -588,7 +612,6 @@ namespace System.Collections.Immutable
             {
                 Requires.NotNull(tree, nameof(tree));
                 Debug.Assert(!tree.IsEmpty);
-                Contract.Ensures(Contract.Result<Node>() != null);
 
                 if (tree._right.IsEmpty)
                 {
@@ -608,7 +631,6 @@ namespace System.Collections.Immutable
             {
                 Requires.NotNull(tree, nameof(tree));
                 Debug.Assert(!tree.IsEmpty);
-                Contract.Ensures(Contract.Result<Node>() != null);
 
                 if (tree._left.IsEmpty)
                 {
@@ -628,7 +650,6 @@ namespace System.Collections.Immutable
             {
                 Requires.NotNull(tree, nameof(tree));
                 Debug.Assert(!tree.IsEmpty);
-                Contract.Ensures(Contract.Result<Node>() != null);
 
                 if (tree._right.IsEmpty)
                 {
@@ -648,7 +669,6 @@ namespace System.Collections.Immutable
             {
                 Requires.NotNull(tree, nameof(tree));
                 Debug.Assert(!tree.IsEmpty);
-                Contract.Ensures(Contract.Result<Node>() != null);
 
                 if (tree._left.IsEmpty)
                 {
@@ -709,7 +729,6 @@ namespace System.Collections.Immutable
             {
                 Requires.NotNull(tree, nameof(tree));
                 Debug.Assert(!tree.IsEmpty);
-                Contract.Ensures(Contract.Result<Node>() != null);
 
                 if (IsRightHeavy(tree))
                 {

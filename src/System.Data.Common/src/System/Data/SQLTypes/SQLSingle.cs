@@ -31,11 +31,7 @@ namespace System.Data.SqlTypes
 
         public SqlSingle(float value)
         {
-#if !netfx
             if (!float.IsFinite(value))
-#else
-            if (float.IsInfinity(value) || float.IsNaN(value))
-#endif
             {
                 throw new OverflowException(SQLResource.ArithOverflowMessage);
             }
@@ -75,7 +71,7 @@ namespace System.Data.SqlTypes
         }
 
         // Explicit conversion from SqlSingle to float. Throw exception if x is Null.
-        public static explicit operator float (SqlSingle x)
+        public static explicit operator float(SqlSingle x)
         {
             return x.Value;
         }

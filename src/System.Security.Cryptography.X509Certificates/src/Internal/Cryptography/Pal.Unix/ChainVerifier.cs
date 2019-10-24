@@ -44,7 +44,7 @@ namespace Internal.Cryptography.Pal
 
                 // The Windows certificate store API only checks the time error for a "peer trust" certificate,
                 // but we don't have a concept for that in Unix.  If we did, we'd need to do that logic that here.
-                // Note also that that logic is skipped if CERT_CHAIN_POLICY_IGNORE_PEER_TRUST_FLAG is set.
+                // Note also that the logic is skipped if CERT_CHAIN_POLICY_IGNORE_PEER_TRUST_FLAG is set.
 
                 X509VerificationFlags? suppressionFlag;
 
@@ -62,6 +62,11 @@ namespace Internal.Cryptography.Pal
                     {
                         suppressionFlag = X509VerificationFlags.IgnoreCertificateAuthorityRevocationUnknown;
                     }
+                }
+                else if (status.Status == X509ChainStatusFlags.OfflineRevocation)
+                {
+                    // This is mainly a warning code, it's redundant to RevocationStatusUnknown
+                    continue;
                 }
                 else
                 {

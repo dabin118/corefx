@@ -9,11 +9,12 @@ using System.Runtime.Serialization;
 
 namespace System.Data
 {
+    [Serializable]
+    [System.Runtime.CompilerServices.TypeForwardedFrom("System.Data, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089")]
     public class DataException : SystemException
     {
         protected DataException(SerializationInfo info, StreamingContext context) : base(info, context)
         {
-            throw new PlatformNotSupportedException();
         }
 
         public DataException() : base(SR.DataSet_DefaultDataException)
@@ -29,11 +30,12 @@ namespace System.Data
         public DataException(string s, Exception innerException) : base(s, innerException) { }
     };
 
+    [Serializable]
+    [System.Runtime.CompilerServices.TypeForwardedFrom("System.Data, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089")]
     public class ConstraintException : DataException
     {
         protected ConstraintException(SerializationInfo info, StreamingContext context) : base(info, context)
         {
-            throw new PlatformNotSupportedException();
         }
 
         public ConstraintException() : base(SR.DataSet_DefaultConstraintException)
@@ -52,11 +54,12 @@ namespace System.Data
         }
     }
 
+    [Serializable]
+    [System.Runtime.CompilerServices.TypeForwardedFrom("System.Data, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089")]
     public class DeletedRowInaccessibleException : DataException
     {
         protected DeletedRowInaccessibleException(SerializationInfo info, StreamingContext context) : base(info, context)
         {
-            throw new PlatformNotSupportedException();
         }
 
         /// <summary>
@@ -81,11 +84,12 @@ namespace System.Data
         }
     }
 
+    [Serializable]
+    [System.Runtime.CompilerServices.TypeForwardedFrom("System.Data, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089")]
     public class DuplicateNameException : DataException
     {
         protected DuplicateNameException(SerializationInfo info, StreamingContext context) : base(info, context)
         {
-            throw new PlatformNotSupportedException();
         }
 
         public DuplicateNameException() : base(SR.DataSet_DefaultDuplicateNameException)
@@ -104,11 +108,12 @@ namespace System.Data
         }
     }
 
+    [Serializable]
+    [System.Runtime.CompilerServices.TypeForwardedFrom("System.Data, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089")]
     public class InRowChangingEventException : DataException
     {
         protected InRowChangingEventException(SerializationInfo info, StreamingContext context) : base(info, context)
         {
-            throw new PlatformNotSupportedException();
         }
 
         public InRowChangingEventException() : base(SR.DataSet_DefaultInRowChangingEventException)
@@ -127,11 +132,12 @@ namespace System.Data
         }
     }
 
+    [Serializable]
+    [System.Runtime.CompilerServices.TypeForwardedFrom("System.Data, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089")]
     public class InvalidConstraintException : DataException
     {
         protected InvalidConstraintException(SerializationInfo info, StreamingContext context) : base(info, context)
         {
-            throw new PlatformNotSupportedException();
         }
 
         public InvalidConstraintException() : base(SR.DataSet_DefaultInvalidConstraintException)
@@ -150,11 +156,12 @@ namespace System.Data
         }
     }
 
+    [Serializable]
+    [System.Runtime.CompilerServices.TypeForwardedFrom("System.Data, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089")]
     public class MissingPrimaryKeyException : DataException
     {
         protected MissingPrimaryKeyException(SerializationInfo info, StreamingContext context) : base(info, context)
         {
-            throw new PlatformNotSupportedException();
         }
 
         public MissingPrimaryKeyException() : base(SR.DataSet_DefaultMissingPrimaryKeyException)
@@ -173,11 +180,12 @@ namespace System.Data
         }
     }
 
+    [Serializable]
+    [System.Runtime.CompilerServices.TypeForwardedFrom("System.Data, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089")]
     public class NoNullAllowedException : DataException
     {
         protected NoNullAllowedException(SerializationInfo info, StreamingContext context) : base(info, context)
         {
-            throw new PlatformNotSupportedException();
         }
 
         public NoNullAllowedException() : base(SR.DataSet_DefaultNoNullAllowedException)
@@ -196,11 +204,12 @@ namespace System.Data
         }
     }
 
+    [Serializable]
+    [System.Runtime.CompilerServices.TypeForwardedFrom("System.Data, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089")]
     public class ReadOnlyException : DataException
     {
         protected ReadOnlyException(SerializationInfo info, StreamingContext context) : base(info, context)
         {
-            throw new PlatformNotSupportedException();
         }
 
         public ReadOnlyException() : base(SR.DataSet_DefaultReadOnlyException)
@@ -219,11 +228,12 @@ namespace System.Data
         }
     }
 
+    [Serializable]
+    [System.Runtime.CompilerServices.TypeForwardedFrom("System.Data, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089")]
     public class RowNotInTableException : DataException
     {
         protected RowNotInTableException(SerializationInfo info, StreamingContext context) : base(info, context)
         {
-            throw new PlatformNotSupportedException();
         }
 
         public RowNotInTableException() : base(SR.DataSet_DefaultRowNotInTableException)
@@ -242,11 +252,12 @@ namespace System.Data
         }
     }
 
+    [Serializable]
+    [System.Runtime.CompilerServices.TypeForwardedFrom("System.Data, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089")]
     public class VersionNotFoundException : DataException
     {
         protected VersionNotFoundException(SerializationInfo info, StreamingContext context) : base(info, context)
         {
-            throw new PlatformNotSupportedException();
         }
 
         public VersionNotFoundException() : base(SR.DataSet_DefaultVersionNotFoundException)
@@ -632,7 +643,7 @@ namespace System.Data
         //
         // Storage
         //
-        public static Exception AggregateException(AggregateType aggregateType, Type type) => _Data(SR.Format(SR.DataStorage_AggregateException, aggregateType.ToString(), type.Name));
+        public static Exception AggregateException(AggregateType aggregateType, Type type) => _Data(SR.Format(SR.DataStorage_AggregateException, aggregateType, type.Name));
         public static Exception InvalidStorageType(TypeCode typecode) => _Data(SR.Format(SR.DataStorage_InvalidStorageType, typecode.ToString()));
         public static Exception RangeArgument(int min, int max) => _Argument(SR.Format(SR.Range_Argument, (min).ToString(CultureInfo.InvariantCulture), (max).ToString(CultureInfo.InvariantCulture)));
         public static Exception NullRange() => _Data(SR.Range_NullRange);
@@ -662,16 +673,15 @@ namespace System.Data
         public static Exception CircularComplexType(string name) => _Data(SR.Format(SR.Xml_CircularComplexType, name));
         public static Exception CannotInstantiateAbstract(string name) => _Data(SR.Format(SR.Xml_CannotInstantiateAbstract, name));
         public static Exception InvalidKey(string name) => _Data(SR.Format(SR.Xml_InvalidKey, name));
-        public static Exception DiffgramMissingTable(string name) => _Data(SR.Format(SR.Xml_MissingTable, name));
         public static Exception DiffgramMissingSQL() => _Data(SR.Xml_MissingSQL);
         public static Exception DuplicateConstraintRead(string str) => _Data(SR.Format(SR.Xml_DuplicateConstraint, str));
         public static Exception ColumnTypeConflict(string name) => _Data(SR.Format(SR.Xml_ColumnConflict, name));
         public static Exception CannotConvert(string name, string type) => _Data(SR.Format(SR.Xml_CannotConvert, name, type));
         public static Exception MissingRefer(string name) => _Data(SR.Format(SR.Xml_MissingRefer, Keywords.REFER, Keywords.XSD_KEYREF, name));
-        public static Exception InvalidPrefix(string name) => _Data(SR.Format(SR.Xml_InvalidPrefix, name));
+        public static Exception InvalidPrefix(string name) => _Data(SR.Format(SR.Xml_InvalidPrefix_SpecialCharacters, name));
         public static Exception CanNotDeserializeObjectType() => _InvalidOperation(SR.Xml_CanNotDeserializeObjectType);
         public static Exception IsDataSetAttributeMissingInSchema() => _Data(SR.Xml_IsDataSetAttributeMissingInSchema);
-        public static Exception TooManyIsDataSetAtributeInSchema() => _Data(SR.Xml_TooManyIsDataSetAtributeInSchema);
+        public static Exception TooManyIsDataSetAttributesInSchema() => _Data(SR.Xml_TooManyIsDataSetAttributesInSchema);
 
         // XML save
         public static Exception NestedCircular(string name) => _Data(SR.Format(SR.Xml_NestedCircular, name));

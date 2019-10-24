@@ -13,9 +13,6 @@ using System.Runtime.InteropServices;
 
 namespace System.DirectoryServices.AccountManagement
 {
-#pragma warning disable 618    // Have not migrated to v4 transparency yet
-    [System.Security.SecurityCritical(System.Security.SecurityCriticalScope.Everything)]
-#pragma warning restore 618
     internal class SAMGroupsSet : ResultSet
     {
         internal SAMGroupsSet(UnsafeNativeMethods.IADsMembers iADsMembers, SAMStoreCtx storeCtx, DirectoryEntry ctxBase)
@@ -30,7 +27,7 @@ namespace System.DirectoryServices.AccountManagement
 
         // Return the principal we're positioned at as a Principal object.
         // Need to use our StoreCtx's GetAsPrincipal to convert the native object to a Principal
-        override internal object CurrentAsPrincipal
+        internal override object CurrentAsPrincipal
         {
             get
             {
@@ -45,7 +42,7 @@ namespace System.DirectoryServices.AccountManagement
         // Advance the enumerator to the next principal in the result set, pulling in additional pages
         // of results (or ranges of attribute values) as needed.
         // Returns true if successful, false if no more results to return.
-        override internal bool MoveNext()
+        internal override bool MoveNext()
         {
             GlobalDebug.WriteLineIf(GlobalDebug.Info, "SAMGroupsSet", "MoveNext");
 
@@ -62,7 +59,7 @@ namespace System.DirectoryServices.AccountManagement
                 // We do this, rather than using the DirectoryEntry constructor that takes a native IADs object,
                 // is so the credentials get transferred to the new DirectoryEntry.  If we just use the native
                 // object constructor, the native object will have the right credentials, but the DirectoryEntry
-                // will have default (null) credentials, which it'll use anytime it needs to use credentials.                
+                // will have default (null) credentials, which it'll use anytime it needs to use credentials.
                 DirectoryEntry de = SDSUtils.BuildDirectoryEntry(
                                                 nativeMember.ADsPath,
                                                 _storeCtx.Credentials,
@@ -78,7 +75,7 @@ namespace System.DirectoryServices.AccountManagement
         // operation, e.g., if doing a paged search, may need to re-retrieve the first page of results.
         // As a special case, if the ResultSet is already at the very beginning, this is guaranteed to be
         // a no-op.
-        override internal void Reset()
+        internal override void Reset()
         {
             GlobalDebug.WriteLineIf(GlobalDebug.Info, "SAMGroupsSet", "Reset");
 
@@ -95,9 +92,9 @@ namespace System.DirectoryServices.AccountManagement
         // Private fields
         //
 
-        private IEnumerator _groupsEnumerator;
-        private SAMStoreCtx _storeCtx;
-        private DirectoryEntry _ctxBase;
+        private readonly IEnumerator _groupsEnumerator;
+        private readonly SAMStoreCtx _storeCtx;
+        private readonly DirectoryEntry _ctxBase;
 
         private bool _atBeginning = true;
 

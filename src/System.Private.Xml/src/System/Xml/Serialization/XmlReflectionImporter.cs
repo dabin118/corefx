@@ -2,11 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-#if XMLSERIALIZERGENERATOR
-namespace Microsoft.XmlSerializer.Generator
-#else
 namespace System.Xml.Serialization
-#endif
 {
     using System.Reflection;
     using System;
@@ -16,7 +12,6 @@ namespace System.Xml.Serialization
     using System.Globalization;
     using System.Threading;
     using System.Diagnostics;
-    using System.Linq;
     using System.Collections.Generic;
     using System.Xml.Extensions;
     using System.Xml;
@@ -28,21 +23,19 @@ namespace System.Xml.Serialization
     /// </devdoc>
     public class XmlReflectionImporter
     {
-        private TypeScope _typeScope;
-        private XmlAttributeOverrides _attributeOverrides;
-        private XmlAttributes _defaultAttributes = new XmlAttributes();
-        private NameTable _types = new NameTable();      // xmltypename + xmlns -> Mapping
-        private NameTable _nullables = new NameTable();  // xmltypename + xmlns -> NullableMapping
-        private NameTable _elements = new NameTable();   // xmlelementname + xmlns -> ElementAccessor
+        private readonly TypeScope _typeScope;
+        private readonly XmlAttributeOverrides _attributeOverrides;
+        private readonly XmlAttributes _defaultAttributes = new XmlAttributes();
+        private readonly NameTable _types = new NameTable();      // xmltypename + xmlns -> Mapping
+        private readonly NameTable _nullables = new NameTable();  // xmltypename + xmlns -> NullableMapping
+        private readonly NameTable _elements = new NameTable();   // xmlelementname + xmlns -> ElementAccessor
         private NameTable _xsdAttributes;   // xmlattributetname + xmlns -> AttributeAccessor
         private Hashtable _specials;   // type -> SpecialMapping
-        private Hashtable _anonymous = new Hashtable();   // type -> AnonymousMapping
-#if !XMLSERIALIZERGENERATOR
+        private readonly Hashtable _anonymous = new Hashtable();   // type -> AnonymousMapping
         private NameTable _serializables;  // type name --> new SerializableMapping
-#endif
         private StructMapping _root;
-        private string _defaultNs;
-        private ModelScope _modelScope;
+        private readonly string _defaultNs;
+        private readonly ModelScope _modelScope;
         private int _arrayNestingLevel;
         private XmlArrayItemAttributes _savedArrayItemAttributes;
         private string _savedArrayNamespace;
@@ -82,7 +75,7 @@ namespace System.Xml.Serialization
         public XmlReflectionImporter(XmlAttributeOverrides attributeOverrides, string defaultNamespace)
         {
             if (defaultNamespace == null)
-                defaultNamespace = String.Empty;
+                defaultNamespace = string.Empty;
             if (attributeOverrides == null)
                 attributeOverrides = new XmlAttributeOverrides();
             _attributeOverrides = attributeOverrides;
@@ -193,7 +186,7 @@ namespace System.Xml.Serialization
         /// <devdoc>
         ///    <para>[To be supplied.]</para>
         /// </devdoc>
-        /// 
+        ///
         public XmlMembersMapping ImportMembersMapping(string elementName, string ns, XmlReflectionMember[] members, bool hasWrapperElement, bool rpc, bool openModel)
         {
             return ImportMembersMapping(elementName, ns, members, hasWrapperElement, rpc, openModel, XmlMappingAccess.Read | XmlMappingAccess.Write);
@@ -202,7 +195,7 @@ namespace System.Xml.Serialization
         /// <devdoc>
         ///    <para>[To be supplied.]</para>
         /// </devdoc>
-        /// 
+        ///
         public XmlMembersMapping ImportMembersMapping(string elementName, string ns, XmlReflectionMember[] members, bool hasWrapperElement, bool rpc, bool openModel, XmlMappingAccess access)
         {
             ElementAccessor element = new ElementAccessor();
@@ -518,7 +511,6 @@ namespace System.Xml.Serialization
                     XmlQualifiedName qname = serializableMapping.XsiType;
                     if (qname != null && !qname.IsEmpty)
                     {
-#if !XMLSERIALIZERGENERATOR
                         if (_serializables == null)
                             _serializables = new NameTable();
                         SerializableMapping existingMapping = (SerializableMapping)_serializables[qname];
@@ -543,7 +535,6 @@ namespace System.Xml.Serialization
                             _serializables[qname] = serializableMapping;
                         }
 
-#endif
                         serializableMapping.TypeName = qname.Name;
                         serializableMapping.Namespace = qname.Namespace;
                     }
@@ -571,7 +562,6 @@ namespace System.Xml.Serialization
             return mapping;
         }
 
-#if !XMLSERIALIZERGENERATOR
         internal void SetBase(SerializableMapping mapping, XmlQualifiedName baseQname)
         {
             if (baseQname.IsEmpty) return;
@@ -600,19 +590,15 @@ namespace System.Xml.Serialization
             }
             mapping.SetBaseMapping((SerializableMapping)_serializables[baseQname]);
         }
-#endif
 
-        private static string GetContextName(ImportContext context)
-        {
-            switch (context)
+        private static string GetContextName(ImportContext context) =>
+            context switch
             {
-                case ImportContext.Element: return "element";
-                case ImportContext.Attribute: return "attribute";
-                case ImportContext.Text: return "text";
-                default:
-                    throw new ArgumentException(SR.XmlInternalError, nameof(context));
-            }
-        }
+                ImportContext.Element => "element",
+                ImportContext.Attribute => "attribute",
+                ImportContext.Text => "text",
+                _ => throw new ArgumentException(SR.XmlInternalError, nameof(context)),
+            };
 
         private static Exception InvalidAttributeUseException(Type type)
         {
@@ -956,7 +942,7 @@ namespace System.Xml.Serialization
             if (a.XmlType != null && a.XmlType.TypeName.Length > 0)
                 typeName = a.XmlType.TypeName;
 
-            if (type.IsGenericType && typeName.IndexOf('{') >= 0)
+            if (type.IsGenericType && typeName.Contains('{'))
             {
                 Type genType = type.GetGenericTypeDefinition();
                 Type[] names = genType.GetGenericArguments();
@@ -968,7 +954,7 @@ namespace System.Xml.Serialization
                     if (typeName.Contains(argument))
                     {
                         typeName = typeName.Replace(argument, XsdTypeName(types[i]));
-                        if (typeName.IndexOf('{') < 0)
+                        if (!typeName.Contains('{'))
                         {
                             break;
                         }
@@ -1381,7 +1367,7 @@ namespace System.Xml.Serialization
         internal static XmlReflectionMember FindSpecifiedMember(string memberName, XmlReflectionMember[] reflectionMembers)
         {
             for (int i = 0; i < reflectionMembers.Length; i++)
-                if (string.Compare(reflectionMembers[i].MemberName, memberName + "Specified", StringComparison.Ordinal) == 0)
+                if (string.Equals(reflectionMembers[i].MemberName, memberName + "Specified", StringComparison.Ordinal))
                     return reflectionMembers[i];
             return null;
         }
@@ -1538,7 +1524,7 @@ namespace System.Xml.Serialization
                 accessor.ChoiceIdentifier = new ChoiceIdentifierAccessor();
                 accessor.ChoiceIdentifier.MemberName = a.XmlChoiceIdentifier.MemberName;
                 accessor.ChoiceIdentifier.MemberInfo = a.XmlChoiceIdentifier.GetMemberInfo();
-                accessor.ChoiceIdentifier.Mapping = ImportTypeMapping(_modelScope.GetTypeModel(choiceIdentifierType), ns, ImportContext.Element, String.Empty, null, limiter);
+                accessor.ChoiceIdentifier.Mapping = ImportTypeMapping(_modelScope.GetTypeModel(choiceIdentifierType), ns, ImportContext.Element, string.Empty, null, limiter);
                 CheckChoiceIdentifierMapping((EnumMapping)accessor.ChoiceIdentifier.Mapping);
             }
 
@@ -1682,7 +1668,7 @@ namespace System.Xml.Serialization
                         TypeModel typeModel = _modelScope.GetTypeModel(targetType);
                         if (element.Name.Length > 0)
                             typeModel.TypeDesc.IsMixed = true;
-                        element.Mapping = ImportTypeMapping(typeModel, element.Namespace, ImportContext.Element, String.Empty, null, limiter);
+                        element.Mapping = ImportTypeMapping(typeModel, element.Namespace, ImportContext.Element, string.Empty, null, limiter);
                         element.Default = GetDefaultValue(model.FieldTypeDesc, model.FieldType, a);
                         element.IsNullable = false;
                         element.Form = elementFormDefault;
@@ -1927,7 +1913,7 @@ namespace System.Xml.Serialization
 
                         if (element.Name.Length > 0)
                             typeModel.TypeDesc.IsMixed = true;
-                        element.Mapping = ImportTypeMapping(typeModel, element.Namespace, ImportContext.Element, String.Empty, null, false, openModel, limiter);
+                        element.Mapping = ImportTypeMapping(typeModel, element.Namespace, ImportContext.Element, string.Empty, null, false, openModel, limiter);
                         element.Default = GetDefaultValue(model.FieldTypeDesc, model.FieldType, a);
                         element.IsNullable = false;
                         element.Form = elementFormDefault;
@@ -2264,8 +2250,8 @@ namespace System.Xml.Serialization
     }
     internal class ImportStructWorkItem
     {
-        private StructModel _model;
-        private StructMapping _mapping;
+        private readonly StructModel _model;
+        private readonly StructMapping _mapping;
 
         internal ImportStructWorkItem(StructModel model, StructMapping mapping)
         {
@@ -2279,7 +2265,7 @@ namespace System.Xml.Serialization
 
     internal class WorkItems
     {
-        private ArrayList _list = new ArrayList();
+        private readonly ArrayList _list = new ArrayList();
 
         internal ImportStructWorkItem this[int index]
         {
@@ -2329,18 +2315,14 @@ namespace System.Xml.Serialization
 
     internal class RecursionLimiter
     {
-        private int _maxDepth;
+        private readonly int _maxDepth;
         private int _depth;
         private WorkItems _deferredWorkItems;
 
         internal RecursionLimiter()
         {
             _depth = 0;
-#if XMLSERIALIZERGENERATOR
-            _maxDepth = int.MaxValue;
-#else
             _maxDepth = DiagnosticsSwitches.NonRecursiveTypeLoading.Enabled ? 1 : int.MaxValue;
-#endif
         }
 
         internal bool IsExceededLimit { get { return _depth > _maxDepth; } }

@@ -45,18 +45,17 @@ namespace System.Security.Cryptography
             }
 
             public override string SignatureAlgorithm => "DSA";
-            public override string KeyExchangeAlgorithm  => null;
+            public override string KeyExchangeAlgorithm => null;
 
             // Need to override since base methods throw a "override me" exception: makes SignData/VerifyData function.
-            protected override byte[] HashData(byte[] data, int offset, int count, HashAlgorithmName hashAlgorithm)
-            {
-                return CngCommon.HashData(data, offset, count, hashAlgorithm);
-            }
+            protected override byte[] HashData(byte[] data, int offset, int count, HashAlgorithmName hashAlgorithm) =>
+                CngCommon.HashData(data, offset, count, hashAlgorithm);
 
-            protected override byte[] HashData(Stream data, HashAlgorithmName hashAlgorithm)
-            {
-                return CngCommon.HashData(data, hashAlgorithm);
-            }
+            protected override byte[] HashData(Stream data, HashAlgorithmName hashAlgorithm) =>
+                CngCommon.HashData(data, hashAlgorithm);
+
+            protected override bool TryHashData(ReadOnlySpan<byte> source, Span<byte> destination, HashAlgorithmName hashAlgorithm, out int bytesWritten) =>
+                CngCommon.TryHashData(source, destination, hashAlgorithm, out bytesWritten);
 
             private void ForceSetKeySize(int newKeySize)
             {
@@ -81,7 +80,7 @@ namespace System.Security.Cryptography
                 return isAtLeastWindows8;
             }
 
-            private static KeySizes[] s_legalKeySizes = new KeySizes[] { new KeySizes(minSize: 512, maxSize: 3072, skipSize: 64) };
+            private static readonly KeySizes[] s_legalKeySizes = new KeySizes[] { new KeySizes(minSize: 512, maxSize: 3072, skipSize: 64) };
             private static readonly int s_defaultKeySize = Supports2048KeySize() ? 2048 : 1024;
         }
 #if INTERNAL_ASYMMETRIC_IMPLEMENTATIONS

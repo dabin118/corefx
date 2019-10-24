@@ -4,6 +4,7 @@
 
 using System.Diagnostics;
 using System.Runtime.ExceptionServices;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace System.Net.Sockets
@@ -16,11 +17,13 @@ namespace System.Net.Sockets
         private AddressFamily _family;
         private Socket _clientSocket;
         private NetworkStream _dataStream;
-        private bool _cleanedUp;
+        private volatile int _disposed;
         private bool _active;
 
+        private bool Disposed => _disposed != 0;
+
         // Initializes a new instance of the System.Net.Sockets.TcpClient class.
-        public TcpClient() : this(AddressFamily.InterNetwork)
+        public TcpClient() : this(AddressFamily.Unknown)
         {
         }
 
@@ -31,7 +34,8 @@ namespace System.Net.Sockets
 
             // Validate parameter
             if (family != AddressFamily.InterNetwork &&
-                family != AddressFamily.InterNetworkV6)
+                family != AddressFamily.InterNetworkV6 &&
+                family != AddressFamily.Unknown)
             {
                 throw new ArgumentException(SR.Format(SR.net_protocol_invalid_family, "TCP"), nameof(family));
             }
@@ -59,7 +63,7 @@ namespace System.Net.Sockets
             if (NetEventSource.IsEnabled) NetEventSource.Exit(this);
         }
 
-        // Initializes a new instance of the System.Net.Sockets.TcpClient class and connects to the specified port on 
+        // Initializes a new instance of the System.Net.Sockets.TcpClient class and connects to the specified port on
         // the specified host.
         public TcpClient(string hostname, int port)
         {
@@ -105,20 +109,24 @@ namespace System.Net.Sockets
             set { _active = value; }
         }
 
-        public int Available => _clientSocket?.Available ?? 0;
+        public int Available => Client?.Available ?? 0;
 
         // Used by the class to provide the underlying network socket.
         public Socket Client
         {
-            get { return _clientSocket; }
-            set { _clientSocket = value; }
+            get { return Disposed ? null : _clientSocket; }
+            set
+            {
+                _clientSocket = value;
+                _family = _clientSocket?.AddressFamily ?? AddressFamily.Unknown;
+            }
         }
 
-        public bool Connected => _clientSocket?.Connected ?? false;
+        public bool Connected => Client?.Connected ?? false;
 
         public bool ExclusiveAddressUse
         {
-            get { return _clientSocket?.ExclusiveAddressUse ?? false; }
+            get { return Client?.ExclusiveAddressUse ?? false; }
             set
             {
                 if (_clientSocket != null)
@@ -133,10 +141,8 @@ namespace System.Net.Sockets
         {
             if (NetEventSource.IsEnabled) NetEventSource.Enter(this, hostname);
 
-            if (_cleanedUp)
-            {
-                throw new ObjectDisposedException(GetType().FullName);
-            }
+            ThrowIfDisposed();
+
             if (hostname == null)
             {
                 throw new ArgumentNullException(nameof(hostname));
@@ -166,7 +172,6 @@ namespace System.Net.Sockets
             {
                 foreach (IPAddress address in addresses)
                 {
-                    Socket tmpSocket = null;
                     try
                     {
                         if (_clientSocket == null)
@@ -176,17 +181,31 @@ namespace System.Net.Sockets
                             Debug.Assert(address.AddressFamily == AddressFamily.InterNetwork || address.AddressFamily == AddressFamily.InterNetworkV6);
                             if ((address.AddressFamily == AddressFamily.InterNetwork && Socket.OSSupportsIPv4) || Socket.OSSupportsIPv6)
                             {
-                                tmpSocket = new Socket(address.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
-                                tmpSocket.Connect(address, port);
-                                _clientSocket = tmpSocket;
-                                tmpSocket = null;
+                                var socket = new Socket(address.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
+                                // Use of Interlocked.Exchanged ensures _clientSocket is written before Disposed is read.
+                                Interlocked.Exchange(ref _clientSocket, socket);
+                                if (Disposed)
+                                {
+                                    // Dispose the socket so it throws ObjectDisposedException when we Connect.
+                                    socket.Dispose();
+                                }
+
+                                try
+                                {
+                                    socket.Connect(address, port);
+                                }
+                                catch
+                                {
+                                    _clientSocket = null;
+                                    throw;
+                                }
                             }
 
                             _family = address.AddressFamily;
                             _active = true;
                             break;
                         }
-                        else if (address.AddressFamily == _family)
+                        else if (address.AddressFamily == _family || _family == AddressFamily.Unknown)
                         {
                             // Only use addresses with a matching family
                             Connect(new IPEndPoint(address, port));
@@ -196,11 +215,6 @@ namespace System.Net.Sockets
                     }
                     catch (Exception ex) when (!(ex is OutOfMemoryException))
                     {
-                        if (tmpSocket != null)
-                        {
-                            tmpSocket.Dispose();
-                            tmpSocket = null;
-                        }
                         lastex = ExceptionDispatchInfo.Capture(ex);
                     }
                 }
@@ -223,10 +237,8 @@ namespace System.Net.Sockets
         {
             if (NetEventSource.IsEnabled) NetEventSource.Enter(this, address);
 
-            if (_cleanedUp)
-            {
-                throw new ObjectDisposedException(GetType().FullName);
-            }
+            ThrowIfDisposed();
+
             if (address == null)
             {
                 throw new ArgumentNullException(nameof(address));
@@ -247,16 +259,15 @@ namespace System.Net.Sockets
         {
             if (NetEventSource.IsEnabled) NetEventSource.Enter(this, remoteEP);
 
-            if (_cleanedUp)
-            {
-                throw new ObjectDisposedException(GetType().FullName);
-            }
+            ThrowIfDisposed();
+
             if (remoteEP == null)
             {
                 throw new ArgumentNullException(nameof(remoteEP));
             }
 
             Client.Connect(remoteEP);
+            _family = Client.AddressFamily;
             _active = true;
 
             if (NetEventSource.IsEnabled) NetEventSource.Exit(this);
@@ -267,6 +278,7 @@ namespace System.Net.Sockets
             if (NetEventSource.IsEnabled) NetEventSource.Enter(this, ipAddresses);
 
             Client.Connect(ipAddresses, port);
+            _family = Client.AddressFamily;
             _active = true;
 
             if (NetEventSource.IsEnabled) NetEventSource.Exit(this);
@@ -324,14 +336,7 @@ namespace System.Net.Sockets
         {
             if (NetEventSource.IsEnabled) NetEventSource.Enter(this, asyncResult);
 
-            Socket s = Client;
-            if (s == null)
-            {
-                // Dispose nulls out the client socket field.
-                throw new ObjectDisposedException(GetType().Name);
-            }
-
-            s.EndConnect(asyncResult);
+            _clientSocket.EndConnect(asyncResult);
             _active = true;
 
             if (NetEventSource.IsEnabled) NetEventSource.Exit(this);
@@ -342,10 +347,8 @@ namespace System.Net.Sockets
         {
             if (NetEventSource.IsEnabled) NetEventSource.Enter(this);
 
-            if (_cleanedUp)
-            {
-                throw new ObjectDisposedException(GetType().FullName);
-            }
+            ThrowIfDisposed();
+
             if (!Connected)
             {
                 throw new InvalidOperationException(SR.net_notconnected);
@@ -367,44 +370,39 @@ namespace System.Net.Sockets
         {
             if (NetEventSource.IsEnabled) NetEventSource.Enter(this);
 
-            if (_cleanedUp)
+            if (Interlocked.CompareExchange(ref _disposed, 1, 0) == 0)
             {
-                if (NetEventSource.IsEnabled) NetEventSource.Exit(this);
-                return;
-            }
-
-            if (disposing)
-            {
-                IDisposable dataStream = _dataStream;
-                if (dataStream != null)
+                if (disposing)
                 {
-                    dataStream.Dispose();
-                }
-                else
-                {
-                    // If the NetworkStream wasn't created, the Socket might
-                    // still be there and needs to be closed. In the case in which
-                    // we are bound to a local IPEndPoint this will remove the
-                    // binding and free up the IPEndPoint for later uses.
-                    Socket chkClientSocket = _clientSocket;
-                    if (chkClientSocket != null)
+                    IDisposable dataStream = _dataStream;
+                    if (dataStream != null)
                     {
-                        try
+                        dataStream.Dispose();
+                    }
+                    else
+                    {
+                        // If the NetworkStream wasn't created, the Socket might
+                        // still be there and needs to be closed. In the case in which
+                        // we are bound to a local IPEndPoint this will remove the
+                        // binding and free up the IPEndPoint for later uses.
+                        Socket chkClientSocket = Volatile.Read(ref _clientSocket);
+                        if (chkClientSocket != null)
                         {
-                            chkClientSocket.InternalShutdown(SocketShutdown.Both);
-                        }
-                        finally
-                        {
-                            chkClientSocket.Close();
-                            _clientSocket = null;
+                            try
+                            {
+                                chkClientSocket.InternalShutdown(SocketShutdown.Both);
+                            }
+                            finally
+                            {
+                                chkClientSocket.Close();
+                            }
                         }
                     }
-                }
 
-                GC.SuppressFinalize(this);
+                    GC.SuppressFinalize(this);
+                }
             }
 
-            _cleanedUp = true;
             if (NetEventSource.IsEnabled) NetEventSource.Exit(this);
         }
 
@@ -468,7 +466,29 @@ namespace System.Net.Sockets
         private void InitializeClientSocket()
         {
             Debug.Assert(_clientSocket == null);
-            _clientSocket = new Socket(_family, SocketType.Stream, ProtocolType.Tcp);
+            if (_family == AddressFamily.Unknown)
+            {
+                // If AF was not explicitly set try to initialize dual mode socket or fall-back to IPv4.
+                _clientSocket = new Socket(SocketType.Stream, ProtocolType.Tcp);
+                if (_clientSocket.AddressFamily == AddressFamily.InterNetwork)
+                {
+                    _family = AddressFamily.InterNetwork;
+                }
+            }
+            else
+            {
+                _clientSocket = new Socket(_family, SocketType.Stream, ProtocolType.Tcp);
+            }
+        }
+
+        private void ThrowIfDisposed()
+        {
+            if (Disposed)
+            {
+                ThrowObjectDisposedException();
+            }
+
+            void ThrowObjectDisposedException() => throw new ObjectDisposedException(GetType().FullName);
         }
     }
 }

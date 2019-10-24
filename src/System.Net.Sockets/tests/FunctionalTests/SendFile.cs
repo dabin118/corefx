@@ -12,7 +12,7 @@ using Xunit;
 
 namespace System.Net.Sockets.Tests
 {
-    public class SendFileTest
+    public class SendFileTest : FileCleanupTestBase
     {
         public static IEnumerable<object[]> SendFile_MemberData()
         {
@@ -141,7 +141,7 @@ namespace System.Net.Sockets.Tests
                     using (remote)
                     {
                         var recvBuffer = new byte[256];
-                        for (;;)
+                        while (true)
                         {
                             int received = remote.Receive(recvBuffer, 0, recvBuffer.Length, SocketFlags.None);
                             if (received == 0)
@@ -180,10 +180,87 @@ namespace System.Net.Sockets.Tests
             File.Delete(filename);
         }
 
+        [Fact]
+        public async Task SyncSendFileGetsCanceledByDispose()
+        {
+            // We try this a couple of times to deal with a timing race: if the Dispose happens
+            // before the operation is started, the peer won't see a ConnectionReset SocketException and we won't
+            // see a SocketException either.
+            int msDelay = 100;
+            await RetryHelper.ExecuteAsync(async () =>
+            {
+                (Socket socket1, Socket socket2) = CreateConnectedSocketPair();
+                using (socket2)
+                {
+                    Task socketOperation = Task.Run(() =>
+                    {
+                        // Create a large file that will cause SendFile to block until the peer starts reading.
+                        string filename = GetTestFilePath();
+                        using (var fs = new FileStream(filename, FileMode.CreateNew, FileAccess.Write))
+                        {
+                            fs.SetLength(20 * 1024 * 1024 /* 20MB */);
+                        }
+
+                        socket1.SendFile(filename);
+                    });
+
+                    // Wait a little so the operation is started.
+                    await Task.Delay(msDelay);
+                    msDelay *= 2;
+                    Task disposeTask = Task.Run(() => socket1.Dispose());
+
+                    var cts = new CancellationTokenSource();
+                    Task timeoutTask = Task.Delay(30000, cts.Token);
+                    Assert.NotSame(timeoutTask, await Task.WhenAny(disposeTask, socketOperation, timeoutTask));
+                    cts.Cancel();
+
+                    await disposeTask;
+
+                    SocketError? localSocketError = null;
+                    try
+                    {
+                        await socketOperation;
+                    }
+                    catch (SocketException se)
+                    {
+                        localSocketError = se.SocketErrorCode;
+                    }
+                    catch (ObjectDisposedException)
+                    { }
+                    Assert.Equal(SocketError.ConnectionAborted, localSocketError);
+
+                    // On OSX, we're unable to unblock the on-going socket operations and
+                    // perform an abortive close.
+                    if (!PlatformDetection.IsOSX)
+                    {
+                        SocketError? peerSocketError = null;
+                        var receiveBuffer = new byte[4096];
+                        while (true)
+                        {
+                            try
+                            {
+                                int received = socket2.Receive(receiveBuffer);
+                                if (received == 0)
+                                {
+                                    break;
+                                }
+                            }
+                            catch (SocketException se)
+                            {
+                                peerSocketError = se.SocketErrorCode;
+                                break;
+                            }
+                        }
+                        Assert.Equal(SocketError.ConnectionReset, peerSocketError);
+                    }
+                }
+            }, maxAttempts: 10);
+        }
+
         [OuterLoop] // TODO: Issue #11345
         [Theory]
         [MemberData(nameof(SendFile_MemberData))]
-        public void SendFile_APM(IPAddress listenAt, bool sendPreAndPostBuffers, int bytesToSend)
+        public async Task SendFile_APM(IPAddress listenAt, bool sendPreAndPostBuffers, int bytesToSend)
         {
             const int ListenBacklog = 1, TestTimeout = 30000;
 
@@ -228,10 +305,7 @@ namespace System.Net.Sockets.Tests
                 });
 
                 // Wait for the tasks to complete
-                Task<Task> firstCompleted = Task.WhenAny(serverTask, clientTask);
-                Assert.True(firstCompleted.Wait(TestTimeout), "Neither client nor server task completed within allowed time");
-                firstCompleted.Result.GetAwaiter().GetResult();
-                Assert.True(Task.WaitAll(new[] { serverTask, clientTask }, TestTimeout), $"Tasks didn't complete within allowed time. Server:{serverTask.Status} Client:{clientTask.Status}");
+                await (new[] { serverTask, clientTask }).WhenAllOrAnyFailed(TestTimeout);
 
                 // Validate the results
                 Assert.Equal(bytesToSend, bytesReceived);
@@ -240,6 +314,21 @@ namespace System.Net.Sockets.Tests
 
             // Clean up the file we created
             File.Delete(filename);
+        }
+
+        protected static (Socket, Socket) CreateConnectedSocketPair()
+        {
+            using (Socket listener = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp))
+            {
+                listener.Bind(new IPEndPoint(IPAddress.Loopback, 0));
+                listener.Listen(1);
+
+                Socket client = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+                client.Connect(listener.LocalEndPoint);
+                Socket server = listener.Accept();
+
+                return (client, server);
+            }
         }
     }
 }

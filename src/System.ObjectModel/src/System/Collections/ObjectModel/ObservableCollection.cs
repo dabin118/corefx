@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using System.Runtime.Serialization;
 
 namespace System.Collections.ObjectModel
@@ -21,31 +22,17 @@ namespace System.Collections.ObjectModel
     [System.Runtime.CompilerServices.TypeForwardedFrom("WindowsBase, Version=3.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35")]
     public class ObservableCollection<T> : Collection<T>, INotifyCollectionChanged, INotifyPropertyChanged
     {
-        //------------------------------------------------------
-        //
-        //  Private Fields
-        //
-        //------------------------------------------------------
-
-        #region Private Fields
-
-        private SimpleMonitor _monitor; // Lazily allocated only when a subclass calls BlockReentrancy() or during serialization. Do not rename (binary serialization)
+        private SimpleMonitor? _monitor; // Lazily allocated only when a subclass calls BlockReentrancy() or during serialization. Do not rename (binary serialization)
 
         [NonSerialized]
         private int _blockReentrancyCount;
-        #endregion Private Fields
 
-        //------------------------------------------------------
-        //
-        //  Constructors
-        //
-        //------------------------------------------------------
-
-        #region Constructors
         /// <summary>
         /// Initializes a new instance of ObservableCollection that is empty and has default initial capacity.
         /// </summary>
-        public ObservableCollection() { }
+        public ObservableCollection()
+        {
+        }
 
         /// <summary>
         /// Initializes a new instance of the ObservableCollection class that contains
@@ -58,7 +45,9 @@ namespace System.Collections.ObjectModel
         /// same order they are read by the enumerator of the collection.
         /// </remarks>
         /// <exception cref="ArgumentNullException"> collection is a null reference </exception>
-        public ObservableCollection(IEnumerable<T> collection) : base(CreateCopy(collection, nameof(collection))) { }
+        public ObservableCollection(IEnumerable<T> collection) : base(CreateCopy(collection, nameof(collection)))
+        {
+        }
 
         /// <summary>
         /// Initializes a new instance of the ObservableCollection class
@@ -70,67 +59,35 @@ namespace System.Collections.ObjectModel
         /// same order they are read by the enumerator of the list.
         /// </remarks>
         /// <exception cref="ArgumentNullException"> list is a null reference </exception>
-        public ObservableCollection(List<T> list) : base(CreateCopy(list, nameof(list))) { }
+        public ObservableCollection(List<T> list) : base(CreateCopy(list, nameof(list)))
+        {
+        }
 
         private static List<T> CreateCopy(IEnumerable<T> collection, string paramName)
         {
             if (collection == null)
+            {
                 throw new ArgumentNullException(paramName);
+            }
 
             return new List<T>(collection);
         }
 
-        #endregion Constructors
-
-
-        //------------------------------------------------------
-        //
-        //  Public Methods
-        //
-        //------------------------------------------------------
-
-        #region Public Methods
-
         /// <summary>
         /// Move item at oldIndex to newIndex.
         /// </summary>
-        public void Move(int oldIndex, int newIndex)
-        {
-            MoveItem(oldIndex, newIndex);
-        }
+        public void Move(int oldIndex, int newIndex) => MoveItem(oldIndex, newIndex);
 
-        #endregion Public Methods
-
-
-        //------------------------------------------------------
-        //
-        //  Public Events
-        //
-        //------------------------------------------------------
-
-        #region Public Events
-
-        //------------------------------------------------------
-        #region INotifyPropertyChanged implementation
 
         /// <summary>
         /// PropertyChanged event (per <see cref="INotifyPropertyChanged" />).
         /// </summary>
-        event PropertyChangedEventHandler INotifyPropertyChanged.PropertyChanged
+        event PropertyChangedEventHandler? INotifyPropertyChanged.PropertyChanged
         {
-            add
-            {
-                PropertyChanged += value;
-            }
-            remove
-            {
-                PropertyChanged -= value;
-            }
+            add => PropertyChanged += value;
+            remove => PropertyChanged -= value;
         }
-        #endregion INotifyPropertyChanged implementation
 
-
-        //------------------------------------------------------
         /// <summary>
         /// Occurs when the collection changes, either by adding or removing an item.
         /// </summary>
@@ -138,18 +95,7 @@ namespace System.Collections.ObjectModel
         /// see <seealso cref="INotifyCollectionChanged"/>
         /// </remarks>
         [field: NonSerialized]
-        public virtual event NotifyCollectionChangedEventHandler CollectionChanged;
-
-        #endregion Public Events
-
-
-        //------------------------------------------------------
-        //
-        //  Protected Methods
-        //
-        //------------------------------------------------------
-
-        #region Protected Methods
+        public virtual event NotifyCollectionChangedEventHandler? CollectionChanged;
 
         /// <summary>
         /// Called by base class Collection&lt;T&gt; when the list is being cleared;
@@ -225,7 +171,6 @@ namespace System.Collections.ObjectModel
             OnCollectionChanged(NotifyCollectionChangedAction.Move, removedItem, newIndex, oldIndex);
         }
 
-
         /// <summary>
         /// Raises a PropertyChanged event (per <see cref="INotifyPropertyChanged" />).
         /// </summary>
@@ -238,7 +183,7 @@ namespace System.Collections.ObjectModel
         /// PropertyChanged event (per <see cref="INotifyPropertyChanged" />).
         /// </summary>
         [field: NonSerialized]
-        protected virtual event PropertyChangedEventHandler PropertyChanged;
+        protected virtual event PropertyChangedEventHandler? PropertyChanged;
 
         /// <summary>
         /// Raise CollectionChanged event to any listeners.
@@ -251,7 +196,7 @@ namespace System.Collections.ObjectModel
         /// </remarks>
         protected virtual void OnCollectionChanged(NotifyCollectionChangedEventArgs e)
         {
-            NotifyCollectionChangedEventHandler handler = CollectionChanged;
+            NotifyCollectionChangedEventHandler? handler = CollectionChanged;
             if (handler != null)
             {
                 // Not calling BlockReentrancy() here to avoid the SimpleMonitor allocation.
@@ -268,7 +213,7 @@ namespace System.Collections.ObjectModel
         }
 
         /// <summary>
-        /// Disallow reentrant attempts to change this collection. E.g. a event handler
+        /// Disallow reentrant attempts to change this collection. E.g. an event handler
         /// of the CollectionChanged event is not allowed to make changes to this collection.
         /// </summary>
         /// <remarks>
@@ -302,36 +247,20 @@ namespace System.Collections.ObjectModel
             }
         }
 
-        #endregion Protected Methods
-
-
-        //------------------------------------------------------
-        //
-        //  Private Methods
-        //
-        //------------------------------------------------------
-
-        #region Private Methods
         /// <summary>
         /// Helper to raise a PropertyChanged event for the Count property
         /// </summary>
-        private void OnCountPropertyChanged()
-        {
-            OnPropertyChanged(EventArgsCache.CountPropertyChanged);
-        }
+        private void OnCountPropertyChanged() => OnPropertyChanged(EventArgsCache.CountPropertyChanged);
 
         /// <summary>
         /// Helper to raise a PropertyChanged event for the Indexer property
         /// </summary>
-        private void OnIndexerPropertyChanged()
-        {
-            OnPropertyChanged(EventArgsCache.IndexerPropertyChanged);
-        }
+        private void OnIndexerPropertyChanged() => OnPropertyChanged(EventArgsCache.IndexerPropertyChanged);
 
         /// <summary>
         /// Helper to raise CollectionChanged event to any listeners
         /// </summary>
-        private void OnCollectionChanged(NotifyCollectionChangedAction action, object item, int index)
+        private void OnCollectionChanged(NotifyCollectionChangedAction action, object? item, int index)
         {
             OnCollectionChanged(new NotifyCollectionChangedEventArgs(action, item, index));
         }
@@ -339,7 +268,7 @@ namespace System.Collections.ObjectModel
         /// <summary>
         /// Helper to raise CollectionChanged event to any listeners
         /// </summary>
-        private void OnCollectionChanged(NotifyCollectionChangedAction action, object item, int index, int oldIndex)
+        private void OnCollectionChanged(NotifyCollectionChangedAction action, object? item, int index, int oldIndex)
         {
             OnCollectionChanged(new NotifyCollectionChangedEventArgs(action, item, index, oldIndex));
         }
@@ -347,7 +276,7 @@ namespace System.Collections.ObjectModel
         /// <summary>
         /// Helper to raise CollectionChanged event to any listeners
         /// </summary>
-        private void OnCollectionChanged(NotifyCollectionChangedAction action, object oldItem, object newItem, int index)
+        private void OnCollectionChanged(NotifyCollectionChangedAction action, object? oldItem, object? newItem, int index)
         {
             OnCollectionChanged(new NotifyCollectionChangedEventArgs(action, newItem, oldItem, index));
         }
@@ -355,21 +284,15 @@ namespace System.Collections.ObjectModel
         /// <summary>
         /// Helper to raise CollectionChanged event with action == Reset to any listeners
         /// </summary>
-        private void OnCollectionReset()
-        {
-            OnCollectionChanged(EventArgsCache.ResetCollectionChanged);
-        }
+        private void OnCollectionReset() => OnCollectionChanged(EventArgsCache.ResetCollectionChanged);
 
-        private SimpleMonitor EnsureMonitorInitialized()
-        {
-            return _monitor ?? (_monitor = new SimpleMonitor(this));
-        }
+        private SimpleMonitor EnsureMonitorInitialized() => _monitor ??= new SimpleMonitor(this);
 
         [OnSerializing]
         private void OnSerializing(StreamingContext context)
         {
             EnsureMonitorInitialized();
-            _monitor._busyCount = _blockReentrancyCount;
+            _monitor!._busyCount = _blockReentrancyCount;
         }
 
         [OnDeserialized]
@@ -381,19 +304,10 @@ namespace System.Collections.ObjectModel
                 _monitor._collection = this;
             }
         }
-        #endregion Private Methods
-
-        //------------------------------------------------------
-        //
-        //  Private Types
-        //
-        //------------------------------------------------------
-
-        #region Private Types
 
         // this class helps prevent reentrant calls
         [Serializable]
-        [System.Runtime.CompilerServices.TypeForwardedFrom("WindowsBase, Version=3.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35")]
+        [TypeForwardedFrom("WindowsBase, Version=3.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35")]
         private sealed class SimpleMonitor : IDisposable
         {
             internal int _busyCount; // Only used during (de)serialization to maintain compatibility with desktop. Do not rename (binary serialization)
@@ -407,13 +321,8 @@ namespace System.Collections.ObjectModel
                 _collection = collection;
             }
 
-            public void Dispose()
-            {
-                _collection._blockReentrancyCount--;
-            }
+            public void Dispose() => _collection._blockReentrancyCount--;
         }
-
-        #endregion Private Types
     }
 
     internal static class EventArgsCache

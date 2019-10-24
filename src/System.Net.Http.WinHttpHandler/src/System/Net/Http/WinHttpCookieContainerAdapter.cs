@@ -27,20 +27,18 @@ namespace System.Net.Http
             char[] buffer = null;
             uint index = 0;
             string cookieHeader;
-            WinHttpTraceHelper.Trace("WINHTTP_QUERY_SET_COOKIE");
             while (WinHttpResponseParser.GetResponseHeader(
                 requestHandle, Interop.WinHttp.WINHTTP_QUERY_SET_COOKIE, ref buffer, ref index, out cookieHeader))
             {
-                WinHttpTraceHelper.Trace(cookieHeader);
                 try
                 {
                     cookieContainer.SetCookies(request.RequestUri, cookieHeader);
-                    WinHttpTraceHelper.Trace(cookieHeader);
+                    if (NetEventSource.IsEnabled) NetEventSource.Info(cookieContainer, $"Added cookie: {cookieHeader}");
                 }
                 catch (CookieException)
                 {
                     // We ignore malformed cookies in the response.
-                    WinHttpTraceHelper.Trace("Ignoring invalid cookie: {0}", cookieHeader);
+                    if (NetEventSource.IsEnabled) NetEventSource.Error(cookieContainer, $"Ignoring invalid cookie: {cookieHeader}");
                 }
             }
         }
@@ -48,9 +46,9 @@ namespace System.Net.Http
         public static void ResetCookieRequestHeaders(WinHttpRequestState state, Uri redirectUri)
         {
             SafeWinHttpHandle requestHandle = state.RequestHandle;
-            
+
             Debug.Assert(state.Handler.CookieUsePolicy == CookieUsePolicy.UseSpecifiedCookieContainer);
-            
+
             // Clear cookies.
             if (!Interop.WinHttp.WinHttpAddRequestHeaders(
                 requestHandle,
@@ -61,7 +59,7 @@ namespace System.Net.Http
                 int lastError = Marshal.GetLastWin32Error();
                 if (lastError != Interop.WinHttp.ERROR_WINHTTP_HEADER_NOT_FOUND)
                 {
-                    throw WinHttpException.CreateExceptionUsingError(lastError);
+                    throw WinHttpException.CreateExceptionUsingError(lastError, nameof(Interop.WinHttp.WinHttpAddRequestHeaders));
                 }
             }
 
@@ -76,11 +74,11 @@ namespace System.Net.Http
                     (uint)cookieHeader.Length,
                     Interop.WinHttp.WINHTTP_ADDREQ_FLAG_ADD))
                 {
-                    WinHttpException.ThrowExceptionUsingLastError();
+                    WinHttpException.ThrowExceptionUsingLastError(nameof(Interop.WinHttp.WinHttpAddRequestHeaders));
                 }
             }
         }
-        
+
         public static string GetCookieHeader(Uri uri, CookieContainer cookies)
         {
             string cookieHeader = null;
@@ -90,10 +88,10 @@ namespace System.Net.Http
             string cookieValues = cookies.GetCookieHeader(uri);
             if (!string.IsNullOrEmpty(cookieValues))
             {
-                cookieHeader = CookieHeaderNameWithColon + " " + cookieValues;                
+                cookieHeader = CookieHeaderNameWithColon + " " + cookieValues;
             }
 
             return cookieHeader;
-        }        
+        }
     }
 }

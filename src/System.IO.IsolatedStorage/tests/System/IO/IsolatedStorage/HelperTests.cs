@@ -7,12 +7,9 @@ using Xunit;
 
 namespace System.IO.IsolatedStorage.Tests
 {
-    [SkipOnTargetFramework(TargetFrameworkMonikers.NetFramework,
-        "These are unit tests for the CoreFX implementation and don't apply to NetFX.")]
     public partial class HelperTests
     {
         [Fact]
-        [ActiveIssue(18940, TargetFrameworkMonikers.Uap)]
         public void GetDefaultIdentityAndHash()
         {
             object identity;
@@ -41,12 +38,11 @@ namespace System.IO.IsolatedStorage.Tests
             InlineData(IsolatedStorageScope.Assembly | IsolatedStorageScope.Roaming),
             InlineData(IsolatedStorageScope.Machine)
             ]
-        [ActiveIssue(18940, TargetFrameworkMonikers.Uap)]
         public void GetDataDirectory(IsolatedStorageScope scope)
         {
             // Machine scope is behind a policy that isn't enabled by default
             // https://github.com/dotnet/corefx/issues/19839
-            if (scope == IsolatedStorageScope.Machine && PlatformDetection.IsWinRT)
+            if (scope == IsolatedStorageScope.Machine && PlatformDetection.IsInAppContainer)
                 return;
 
             string path = Helper.GetDataDirectory(scope);

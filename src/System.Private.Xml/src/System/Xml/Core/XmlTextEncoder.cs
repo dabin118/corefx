@@ -20,12 +20,12 @@ namespace System.Xml
         // Fields
         //
         // output text writer
-        private TextWriter _textWriter;
+        private readonly TextWriter _textWriter;
 
         // true when writing out the content of attribute value
         private bool _inAttribute;
 
-        // quote char of the attribute (when inAttribute) 
+        // quote char of the attribute (when inAttribute)
         private char _quoteChar;
 
         // caching of attribute value
@@ -93,7 +93,7 @@ namespace System.Xml
                 }
                 else
                 {
-                    return String.Empty;
+                    return string.Empty;
                 }
             }
         }
@@ -110,7 +110,6 @@ namespace System.Xml
             _textWriter.Write(lowChar);
         }
 
-        [System.Security.SecurityCritical]
         internal void Write(char[] array, int offset, int count)
         {
             if (null == array)
@@ -141,7 +140,7 @@ namespace System.Xml
             int endPos = offset + count;
             int i = offset;
             char ch = (char)0;
-            for (;;)
+            while (true)
             {
                 int startPos = i;
                 unsafe
@@ -254,7 +253,6 @@ namespace System.Xml
             _textWriter.Write(';');
         }
 
-        [System.Security.SecurityCritical]
         internal void Write(string text)
         {
             if (text == null)
@@ -272,7 +270,7 @@ namespace System.Xml
             int i = 0;
             int startPos = 0;
             char ch = (char)0;
-            for (;;)
+            while (true)
             {
                 unsafe
                 {
@@ -308,7 +306,7 @@ namespace System.Xml
             }
 
             char[] helperBuffer = new char[256];
-            for (;;)
+            while (true)
             {
                 if (startPos < i)
                 {
@@ -399,7 +397,6 @@ namespace System.Xml
             }
         }
 
-        [System.Security.SecurityCritical]
         internal void WriteRawWithSurrogateChecking(string text)
         {
             if (text == null)
@@ -415,7 +412,7 @@ namespace System.Xml
             int i = 0;
             char ch = (char)0;
 
-            for (;;)
+            while (true)
             {
                 unsafe
                 {
@@ -521,9 +518,9 @@ namespace System.Xml
         //
         // Private implementation methods
         //
-        // This is a helper method to workaround the fact that TextWriter does not have a Write method 
-        // for fragment of a string such as Write( string, offset, count). 
-        // The string fragment will be written out by copying into a small helper buffer and then 
+        // This is a helper method to workaround the fact that TextWriter does not have a Write method
+        // for fragment of a string such as Write( string, offset, count).
+        // The string fragment will be written out by copying into a small helper buffer and then
         // calling textWriter to write out the buffer.
         private void WriteStringFragment(string str, int offset, int count, char[] helperBuffer)
         {

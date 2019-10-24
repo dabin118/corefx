@@ -13,7 +13,7 @@ namespace System.Data.SqlClient
     // that AppDomain.  It receives calls from the SqlDependencyProcessDispatcher with an ID or a server name
     // to invalidate matching dependencies in the given AppDomain.
 
-    internal class SqlDependencyPerAppDomainDispatcher : MarshalByRefObject
+    internal partial class SqlDependencyPerAppDomainDispatcher : MarshalByRefObject
     {
         // Instance members
 
@@ -23,9 +23,9 @@ namespace System.Data.SqlClient
         internal object _instanceLock = new object();
 
         // Dependency ID -> Dependency hashtable.  1 -> 1 mapping.
-        // 1) Used for ASP.Net to map from ID to dependency.
+        // 1) Used for ASP.NET to map from ID to dependency.
         // 2) Used to enumerate dependencies to invalidate based on server.
-        private Dictionary<string, SqlDependency> _dependencyIdToDependencyHash;
+        private readonly Dictionary<string, SqlDependency> _dependencyIdToDependencyHash;
 
         // holds dependencies list per notification and the command hash from which this notification was generated
         // command hash is needed to remove its entry from _commandHashToNotificationId when the notification is removed
@@ -45,12 +45,12 @@ namespace System.Data.SqlClient
         // resource effect on SQL Server.  The Guid identifier is sent to the server during notification enlistment,
         // and returned during the notification event.  Dependencies look up existing Guids, if one exists, to ensure
         // they are re-using notification ids.
-        private Dictionary<string, DependencyList> _notificationIdToDependenciesHash;
+        private readonly Dictionary<string, DependencyList> _notificationIdToDependenciesHash;
 
         // CommandHash value -> notificationId associated with it:  1->1 mapping. This map is used to quickly find if we need to create
         // new notification or hookup into existing one.
         // CommandHash is built from connection string, command text and parameters
-        private Dictionary<string, string> _commandHashToNotificationId;
+        private readonly Dictionary<string, string> _commandHashToNotificationId;
 
         // TIMEOUT LOGIC DESCRIPTION
         //
@@ -72,7 +72,7 @@ namespace System.Data.SqlClient
         private DateTime _nextTimeout;
         // Timer to periodically check the dependencies in the table and see if anyone needs
         // a timeout.  We'll enable this only on demand.
-        private Timer _timeoutTimer;
+        private readonly Timer _timeoutTimer;
 
         private SqlDependencyPerAppDomainDispatcher()
         {
@@ -80,32 +80,20 @@ namespace System.Data.SqlClient
             _notificationIdToDependenciesHash = new Dictionary<string, DependencyList>();
             _commandHashToNotificationId = new Dictionary<string, string>();
 
-            _timeoutTimer = new Timer(new TimerCallback(TimeoutTimerCallback), null, Timeout.Infinite, Timeout.Infinite);
+            _timeoutTimer = ADP.UnsafeCreateTimer(
+                new TimerCallback(TimeoutTimerCallback),
+                null,
+                Timeout.Infinite,
+                Timeout.Infinite);
 
-            // If rude abort - we'll leak.  This is acceptable for now.  
-            AppDomain.CurrentDomain.DomainUnload += new EventHandler(UnloadEventHandler);
+            SubscribeToAppDomainUnload();
         }
 
-        //  When remoted across appdomains, MarshalByRefObject links by default time out if there is no activity 
+        //  When remoted across appdomains, MarshalByRefObject links by default time out if there is no activity
         //  within a few minutes.  Add this override to prevent marshaled links from timing out.
         public override object InitializeLifetimeService()
         {
             return null;
-        }
-
-        // Events
-
-        private void UnloadEventHandler(object sender, EventArgs e)
-        {
-            // Make non-blocking call to ProcessDispatcher to ThreadPool.QueueUserWorkItem to complete 
-            // stopping of all start calls in this AppDomain.  For containers shared among various AppDomains,
-            // this will just be a ref-count subtract.  For non-shared containers, we will close the container
-            // and clean-up.
-            SqlDependencyProcessDispatcher dispatcher = SqlDependency.ProcessDispatcher;
-            if (null != dispatcher)
-            {
-                dispatcher.QueueAppDomainUnloading(SqlDependency.AppDomainKey);
-            }
         }
 
         // Methods for dependency hash manipulation and firing.
@@ -266,7 +254,7 @@ namespace System.Data.SqlClient
             }
         }
 
-        // This method is called by SqlCommand to enable ASP.Net scenarios - map from ID to Dependency.
+        // This method is called by SqlCommand to enable ASP.NET scenarios - map from ID to Dependency.
         internal SqlDependency LookupDependencyEntry(string id)
         {
             if (null == id)
@@ -507,4 +495,3 @@ namespace System.Data.SqlClient
         internal SqlNotificationType Type => _type;
     }
 }
-

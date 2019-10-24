@@ -2,11 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-#if XMLSERIALIZERGENERATOR
-namespace Microsoft.XmlSerializer.Generator
-#else
 namespace System.Xml.Serialization
-#endif
 {
     using System.Reflection;
     using System.Reflection.Emit;
@@ -27,12 +23,8 @@ namespace System.Xml.Serialization
 
     internal class Compiler
     {
-#if !XMLSERIALIZERGENERATOR
-        private bool _debugEnabled = DiagnosticsSwitches.KeepTempFiles.Enabled;
-#endif
-        private StringWriter _writer = new StringWriter(CultureInfo.InvariantCulture);
+        private readonly StringWriter _writer = new StringWriter(CultureInfo.InvariantCulture);
 
-#if XMLSERIALIZERGENERATOR
         // SxS: This method does not take any resource name and does not expose any resources to the caller.
         // It's OK to suppress the SxS warning.
         internal void AddImport(Type type, Hashtable types)
@@ -56,10 +48,10 @@ namespace System.Xml.Serialization
                 AddImport(intf, types);
 
             ConstructorInfo[] ctors = type.GetConstructors();
-            for (int i = 0; i<ctors.Length; i++)
+            for (int i = 0; i < ctors.Length; i++)
             {
                 ParameterInfo[] parms = ctors[i].GetParameters();
-                for (int j = 0; j<parms.Length; j++)
+                for (int j = 0; j < parms.Length; j++)
                 {
                     AddImport(parms[j].ParameterType, types);
                 }
@@ -68,7 +60,7 @@ namespace System.Xml.Serialization
             if (type.IsGenericType)
             {
                 Type[] arguments = type.GetGenericArguments();
-                for (int i = 0; i<arguments.Length; i++)
+                for (int i = 0; i < arguments.Length; i++)
                 {
                     AddImport(arguments[i], types);
                 }
@@ -87,16 +79,13 @@ namespace System.Xml.Serialization
             {
                 TypeForwardedFromAttribute originalAssemblyInfo = typeForwardedFromAttribute[0] as TypeForwardedFromAttribute;
                 Assembly originalAssembly = Assembly.Load(new AssemblyName(originalAssemblyInfo.AssemblyFullName));
-                //_imports[originalAssembly] = originalAssembly.Location;
             }
-            //_imports[assembly] = assembly.Location;
         }
 
         // SxS: This method does not take any resource name and does not expose any resources to the caller.
         // It's OK to suppress the SxS warning.
         internal void AddImport(Assembly assembly)
         {
-            //_imports[assembly] = assembly.Location;
         }
 
         internal void Close() { }
@@ -105,7 +94,6 @@ namespace System.Xml.Serialization
         {
             get { return _writer; }
         }
-#endif
 
         internal static string GetTempAssemblyName(AssemblyName parent, string ns)
         {
@@ -113,5 +101,3 @@ namespace System.Xml.Serialization
         }
     }
 }
-
-

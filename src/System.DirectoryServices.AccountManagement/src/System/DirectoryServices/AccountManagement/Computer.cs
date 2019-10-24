@@ -5,13 +5,9 @@
 using System;
 using System.Diagnostics;
 using System.Collections.Generic;
-using System.Security.Permissions;
 
 namespace System.DirectoryServices.AccountManagement
 {
-#pragma warning disable 618    // Have not migrated to v4 transparency yet
-    [System.Security.SecurityCritical(System.Security.SecurityCriticalScope.Everything)]
-#pragma warning restore 618
     [DirectoryRdnPrefix("CN")]
     public class ComputerPrincipal : AuthenticablePrincipal
     {
@@ -100,7 +96,7 @@ namespace System.DirectoryServices.AccountManagement
         //
         // Internal "constructor": Used for constructing Computer returned by a query
         //
-        static internal ComputerPrincipal MakeComputer(PrincipalContext ctx)
+        internal static ComputerPrincipal MakeComputer(PrincipalContext ctx)
         {
             ComputerPrincipal computer = new ComputerPrincipal(ctx);
             computer.unpersisted = false;
@@ -141,14 +137,11 @@ namespace System.DirectoryServices.AccountManagement
         {
             GlobalDebug.WriteLineIf(GlobalDebug.Info, "Computer", "GetChangeStatusForProperty: name=" + propertyName);
 
-            switch (propertyName)
+            return propertyName switch
             {
-                case (PropertyNames.ComputerServicePrincipalNames):
-                    return _servicePrincipalNames.Changed;
-
-                default:
-                    return base.GetChangeStatusForProperty(propertyName);
-            }
+                PropertyNames.ComputerServicePrincipalNames => _servicePrincipalNames.Changed,
+                _ => base.GetChangeStatusForProperty(propertyName),
+            };
         }
 
         // Given a property name, returns the current value for the property.
@@ -156,14 +149,11 @@ namespace System.DirectoryServices.AccountManagement
         {
             GlobalDebug.WriteLineIf(GlobalDebug.Info, "Computer", "GetValueForProperty: name=" + propertyName);
 
-            switch (propertyName)
+            return propertyName switch
             {
-                case (PropertyNames.ComputerServicePrincipalNames):
-                    return _servicePrincipalNames;
-
-                default:
-                    return base.GetValueForProperty(propertyName);
-            }
+                PropertyNames.ComputerServicePrincipalNames => _servicePrincipalNames,
+                _ => base.GetValueForProperty(propertyName),
+            };
         }
 
         // Reset all change-tracking status for all properties on the object to "unchanged".

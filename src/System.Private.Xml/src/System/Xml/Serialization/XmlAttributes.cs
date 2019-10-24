@@ -2,11 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-#if XMLSERIALIZERGENERATOR
-namespace Microsoft.XmlSerializer.Generator
-#else
 namespace System.Xml.Serialization
-#endif
 {
     using System;
     using System.Reflection;
@@ -37,9 +33,9 @@ namespace System.Xml.Serialization
     /// </devdoc>
     public class XmlAttributes
     {
-        private XmlElementAttributes _xmlElements = new XmlElementAttributes();
-        private XmlArrayItemAttributes _xmlArrayItems = new XmlArrayItemAttributes();
-        private XmlAnyElementAttributes _xmlAnyElements = new XmlAnyElementAttributes();
+        private readonly XmlElementAttributes _xmlElements = new XmlElementAttributes();
+        private readonly XmlArrayItemAttributes _xmlArrayItems = new XmlArrayItemAttributes();
+        private readonly XmlAnyElementAttributes _xmlAnyElements = new XmlAnyElementAttributes();
         private XmlArrayAttribute _xmlArray;
         private XmlAttributeAttribute _xmlAttribute;
         private XmlTextAttribute _xmlText;
@@ -50,7 +46,7 @@ namespace System.Xml.Serialization
         private XmlRootAttribute _xmlRoot;
         private XmlTypeAttribute _xmlType;
         private XmlAnyAttributeAttribute _xmlAnyAttribute;
-        private XmlChoiceIdentifierAttribute _xmlChoiceIdentifier;
+        private readonly XmlChoiceIdentifierAttribute _xmlChoiceIdentifier;
         private static volatile Type s_ignoreAttributeType;
 
 
@@ -105,7 +101,7 @@ namespace System.Xml.Serialization
         {
             object[] attrs = provider.GetCustomAttributes(false);
 
-            // most generic <any/> matches everything 
+            // most generic <any/> matches everything
             XmlAnyElementAttribute wildcard = null;
             for (int i = 0; i < attrs.Length; i++)
             {

@@ -1,693 +1,1361 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using System.Diagnostics;
+#pragma warning disable BCL0015
+
 using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
+using System.Drawing.Text;
 using System.Runtime.InteropServices;
 
 namespace System.Drawing
 {
     // Raw function imports for gdiplus
     // Functions are loaded manually in order to accomodate different shared library names on Unix.
-    internal partial class SafeNativeMethods
+    internal static unsafe partial class SafeNativeMethods
     {
-        internal partial class Gdip
+        internal static partial class Gdip
         {
-            private static IntPtr s_gdipModule;
-
-            private static FunctionWrapper<T> LoadFunction<T>(string name) where T : class
-            {
-                if (s_gdipModule == IntPtr.Zero)
-                {
-                    throw new DllNotFoundException();
-                }
-
-                Lazy<T> lazyDelegate = new Lazy<T>(() =>
-                {
-                    IntPtr funcPtr = LoadFunctionPointer(s_gdipModule, name);
-                    if (funcPtr == IntPtr.Zero)
-                    {
-                        return null;
-                    }
-                    else
-                    {
-                        return Marshal.GetDelegateForFunctionPointer<T>(funcPtr);
-                    }
-                });
-                
-                return new FunctionWrapper<T>(lazyDelegate);
-            }
-
-            /// <summary>
-            /// Utility class which lazily loads function pointers and throws an EntryPointNotFoundException at
-            /// usage-time if the function pointer can not be loaded.
-            /// </summary>
-            /// <typeparam name="T">The type of the function to wrap.</typeparam>
-            private class FunctionWrapper<T> where T : class
-            {
-                private Lazy<T> _lazyDelegate;
-
-                public FunctionWrapper(Lazy<T> lazyDelegate)
-                {
-                    _lazyDelegate = lazyDelegate;
-                }
-
-                public T Delegate => _lazyDelegate.Value ?? throw new EntryPointNotFoundException();
-            }
-
-            private static void LoadSharedFunctionPointers()
-            {
-                GdipCreateAdjustableArrowCap_ptr = LoadFunction<GdipCreateAdjustableArrowCap_delegate>("GdipCreateAdjustableArrowCap");
-                GdipGetAdjustableArrowCapHeight_ptr = LoadFunction<GdipGetAdjustableArrowCapHeight_delegate>("GdipGetAdjustableArrowCapHeight");
-                GdipSetAdjustableArrowCapHeight_ptr = LoadFunction<GdipSetAdjustableArrowCapHeight_delegate>("GdipSetAdjustableArrowCapHeight");
-                GdipSetAdjustableArrowCapWidth_ptr = LoadFunction<GdipSetAdjustableArrowCapWidth_delegate>("GdipSetAdjustableArrowCapWidth");
-                GdipGetAdjustableArrowCapWidth_ptr = LoadFunction<GdipGetAdjustableArrowCapWidth_delegate>("GdipGetAdjustableArrowCapWidth");
-                GdipSetAdjustableArrowCapMiddleInset_ptr = LoadFunction<GdipSetAdjustableArrowCapMiddleInset_delegate>("GdipSetAdjustableArrowCapMiddleInset");
-                GdipGetAdjustableArrowCapMiddleInset_ptr = LoadFunction<GdipGetAdjustableArrowCapMiddleInset_delegate>("GdipGetAdjustableArrowCapMiddleInset");
-                GdipSetAdjustableArrowCapFillState_ptr = LoadFunction<GdipSetAdjustableArrowCapFillState_delegate>("GdipSetAdjustableArrowCapFillState");
-                GdipGetAdjustableArrowCapFillState_ptr = LoadFunction<GdipGetAdjustableArrowCapFillState_delegate>("GdipGetAdjustableArrowCapFillState");
-                GdipGetCustomLineCapType_ptr = LoadFunction<GdipGetCustomLineCapType_delegate>("GdipGetCustomLineCapType");
-                GdipCreateCustomLineCap_ptr = LoadFunction<GdipCreateCustomLineCap_delegate>("GdipCreateCustomLineCap");
-                GdipDeleteCustomLineCap_ptr = LoadFunction<GdipDeleteCustomLineCap_delegate>("GdipDeleteCustomLineCap");
-                GdipCloneCustomLineCap_ptr = LoadFunction<GdipCloneCustomLineCap_delegate>("GdipCloneCustomLineCap");
-                GdipSetCustomLineCapStrokeCaps_ptr = LoadFunction<GdipSetCustomLineCapStrokeCaps_delegate>("GdipSetCustomLineCapStrokeCaps");
-                GdipGetCustomLineCapStrokeCaps_ptr = LoadFunction<GdipGetCustomLineCapStrokeCaps_delegate>("GdipGetCustomLineCapStrokeCaps");
-                GdipSetCustomLineCapStrokeJoin_ptr = LoadFunction<GdipSetCustomLineCapStrokeJoin_delegate>("GdipSetCustomLineCapStrokeJoin");
-                GdipGetCustomLineCapStrokeJoin_ptr = LoadFunction<GdipGetCustomLineCapStrokeJoin_delegate>("GdipGetCustomLineCapStrokeJoin");
-                GdipSetCustomLineCapBaseCap_ptr = LoadFunction<GdipSetCustomLineCapBaseCap_delegate>("GdipSetCustomLineCapBaseCap");
-                GdipGetCustomLineCapBaseCap_ptr = LoadFunction<GdipGetCustomLineCapBaseCap_delegate>("GdipGetCustomLineCapBaseCap");
-                GdipSetCustomLineCapBaseInset_ptr = LoadFunction<GdipSetCustomLineCapBaseInset_delegate>("GdipSetCustomLineCapBaseInset");
-                GdipGetCustomLineCapBaseInset_ptr = LoadFunction<GdipGetCustomLineCapBaseInset_delegate>("GdipGetCustomLineCapBaseInset");
-                GdipSetCustomLineCapWidthScale_ptr = LoadFunction<GdipSetCustomLineCapWidthScale_delegate>("GdipSetCustomLineCapWidthScale");
-                GdipGetCustomLineCapWidthScale_ptr = LoadFunction<GdipGetCustomLineCapWidthScale_delegate>("GdipGetCustomLineCapWidthScale");
-                GdipCreatePathIter_ptr = LoadFunction<GdipCreatePathIter_delegate>("GdipCreatePathIter");
-                GdipDeletePathIter_ptr = LoadFunction<GdipDeletePathIter_delegate>("GdipDeletePathIter");
-                GdipPathIterNextSubpath_ptr = LoadFunction<GdipPathIterNextSubpath_delegate>("GdipPathIterNextSubpath");
-                GdipPathIterNextSubpathPath_ptr = LoadFunction<GdipPathIterNextSubpathPath_delegate>("GdipPathIterNextSubpathPath");
-                GdipPathIterNextPathType_ptr = LoadFunction<GdipPathIterNextPathType_delegate>("GdipPathIterNextPathType");
-                GdipPathIterNextMarker_ptr = LoadFunction<GdipPathIterNextMarker_delegate>("GdipPathIterNextMarker");
-                GdipPathIterNextMarkerPath_ptr = LoadFunction<GdipPathIterNextMarkerPath_delegate>("GdipPathIterNextMarkerPath");
-                GdipPathIterGetCount_ptr = LoadFunction<GdipPathIterGetCount_delegate>("GdipPathIterGetCount");
-                GdipPathIterGetSubpathCount_ptr = LoadFunction<GdipPathIterGetSubpathCount_delegate>("GdipPathIterGetSubpathCount");
-                GdipPathIterHasCurve_ptr = LoadFunction<GdipPathIterHasCurve_delegate>("GdipPathIterHasCurve");
-                GdipPathIterRewind_ptr = LoadFunction<GdipPathIterRewind_delegate>("GdipPathIterRewind");
-                GdipPathIterEnumerate_ptr = LoadFunction<GdipPathIterEnumerate_delegate>("GdipPathIterEnumerate");
-                GdipPathIterCopyData_ptr = LoadFunction<GdipPathIterCopyData_delegate>("GdipPathIterCopyData");
-                GdipCreateHatchBrush_ptr = LoadFunction<GdipCreateHatchBrush_delegate>("GdipCreateHatchBrush");
-                GdipGetHatchStyle_ptr = LoadFunction<GdipGetHatchStyle_delegate>("GdipGetHatchStyle");
-                GdipGetHatchForegroundColor_ptr = LoadFunction<GdipGetHatchForegroundColor_delegate>("GdipGetHatchForegroundColor");
-                GdipGetHatchBackgroundColor_ptr = LoadFunction<GdipGetHatchBackgroundColor_delegate>("GdipGetHatchBackgroundColor");
-                GdipCloneBrush_ptr = LoadFunction<GdipCloneBrush_delegate>("GdipCloneBrush");
-                GdipCreateImageAttributes_ptr = LoadFunction<GdipCreateImageAttributes_delegate>("GdipCreateImageAttributes");
-                GdipCloneImageAttributes_ptr = LoadFunction<GdipCloneImageAttributes_delegate>("GdipCloneImageAttributes");
-                GdipDisposeImageAttributes_ptr = LoadFunction<GdipDisposeImageAttributes_delegate>("GdipDisposeImageAttributes");
-                GdipSetImageAttributesColorMatrix_ptr = LoadFunction<GdipSetImageAttributesColorMatrix_delegate>("GdipSetImageAttributesColorMatrix");
-                GdipSetImageAttributesThreshold_ptr = LoadFunction<GdipSetImageAttributesThreshold_delegate>("GdipSetImageAttributesThreshold");
-                GdipSetImageAttributesGamma_ptr = LoadFunction<GdipSetImageAttributesGamma_delegate>("GdipSetImageAttributesGamma");
-                GdipSetImageAttributesNoOp_ptr = LoadFunction<GdipSetImageAttributesNoOp_delegate>("GdipSetImageAttributesNoOp");
-                GdipSetImageAttributesColorKeys_ptr = LoadFunction<GdipSetImageAttributesColorKeys_delegate>("GdipSetImageAttributesColorKeys");
-                GdipSetImageAttributesOutputChannel_ptr = LoadFunction<GdipSetImageAttributesOutputChannel_delegate>("GdipSetImageAttributesOutputChannel");
-                GdipSetImageAttributesOutputChannelColorProfile_ptr = LoadFunction<GdipSetImageAttributesOutputChannelColorProfile_delegate>("GdipSetImageAttributesOutputChannelColorProfile");
-                GdipSetImageAttributesRemapTable_ptr = LoadFunction<GdipSetImageAttributesRemapTable_delegate>("GdipSetImageAttributesRemapTable");
-                GdipSetImageAttributesWrapMode_ptr = LoadFunction<GdipSetImageAttributesWrapMode_delegate>("GdipSetImageAttributesWrapMode");
-                GdipGetImageAttributesAdjustedPalette_ptr = LoadFunction<GdipGetImageAttributesAdjustedPalette_delegate>("GdipGetImageAttributesAdjustedPalette");
-                GdipGetImageDecodersSize_ptr = LoadFunction<GdipGetImageDecodersSize_delegate>("GdipGetImageDecodersSize");
-                GdipGetImageDecoders_ptr = LoadFunction<GdipGetImageDecoders_delegate>("GdipGetImageDecoders");
-                GdipGetImageEncodersSize_ptr = LoadFunction<GdipGetImageEncodersSize_delegate>("GdipGetImageEncodersSize");
-                GdipGetImageEncoders_ptr = LoadFunction<GdipGetImageEncoders_delegate>("GdipGetImageEncoders");
-                GdipCreateSolidFill_ptr = LoadFunction<GdipCreateSolidFill_delegate>("GdipCreateSolidFill");
-                GdipSetSolidFillColor_ptr = LoadFunction<GdipSetSolidFillColor_delegate>("GdipSetSolidFillColor");
-                GdipGetSolidFillColor_ptr = LoadFunction<GdipGetSolidFillColor_delegate>("GdipGetSolidFillColor");
-                GdipCreateTexture_ptr = LoadFunction<GdipCreateTexture_delegate>("GdipCreateTexture");
-                GdipCreateTexture2_ptr = LoadFunction<GdipCreateTexture2_delegate>("GdipCreateTexture2");
-                GdipCreateTextureIA_ptr = LoadFunction<GdipCreateTextureIA_delegate>("GdipCreateTextureIA");
-                GdipCreateTexture2I_ptr = LoadFunction<GdipCreateTexture2I_delegate>("GdipCreateTexture2I");
-                GdipCreateTextureIAI_ptr = LoadFunction<GdipCreateTextureIAI_delegate>("GdipCreateTextureIAI");
-                GdipSetTextureTransform_ptr = LoadFunction<GdipSetTextureTransform_delegate>("GdipSetTextureTransform");
-                GdipGetTextureTransform_ptr = LoadFunction<GdipGetTextureTransform_delegate>("GdipGetTextureTransform");
-                GdipResetTextureTransform_ptr = LoadFunction<GdipResetTextureTransform_delegate>("GdipResetTextureTransform");
-                GdipMultiplyTextureTransform_ptr = LoadFunction<GdipMultiplyTextureTransform_delegate>("GdipMultiplyTextureTransform");
-                GdipTranslateTextureTransform_ptr = LoadFunction<GdipTranslateTextureTransform_delegate>("GdipTranslateTextureTransform");
-                GdipScaleTextureTransform_ptr = LoadFunction<GdipScaleTextureTransform_delegate>("GdipScaleTextureTransform");
-                GdipRotateTextureTransform_ptr = LoadFunction<GdipRotateTextureTransform_delegate>("GdipRotateTextureTransform");
-                GdipSetTextureWrapMode_ptr = LoadFunction<GdipSetTextureWrapMode_delegate>("GdipSetTextureWrapMode");
-                GdipGetTextureWrapMode_ptr = LoadFunction<GdipGetTextureWrapMode_delegate>("GdipGetTextureWrapMode");
-                GdipGetTextureImage_ptr = LoadFunction<GdipGetTextureImage_delegate>("GdipGetTextureImage");
-                GdipGetFontCollectionFamilyCount_ptr = LoadFunction<GdipGetFontCollectionFamilyCount_delegate>("GdipGetFontCollectionFamilyCount");
-                GdipGetFontCollectionFamilyList_ptr = LoadFunction<GdipGetFontCollectionFamilyList_delegate>("GdipGetFontCollectionFamilyList");
-                GdipCloneFontFamily_ptr = LoadFunction<GdipCloneFontFamily_delegate>("GdipCloneFontFamily");
-                GdipNewInstalledFontCollection_ptr = LoadFunction<GdipNewInstalledFontCollection_delegate>("GdipNewInstalledFontCollection");
-                GdipCreatePen1_ptr = LoadFunction<GdipCreatePen1_delegate>("GdipCreatePen1");
-                GdipCreatePen2_ptr = LoadFunction<GdipCreatePen2_delegate>("GdipCreatePen2");
-                GdipClonePen_ptr = LoadFunction<GdipClonePen_delegate>("GdipClonePen");
-                GdipDeletePen_ptr = LoadFunction<GdipDeletePen_delegate>("GdipDeletePen");
-                GdipSetPenMode_ptr = LoadFunction<GdipSetPenMode_delegate>("GdipSetPenMode");
-                GdipGetPenMode_ptr = LoadFunction<GdipGetPenMode_delegate>("GdipGetPenMode");
-                GdipSetPenWidth_ptr = LoadFunction<GdipSetPenWidth_delegate>("GdipSetPenWidth");
-                GdipGetPenWidth_ptr = LoadFunction<GdipGetPenWidth_delegate>("GdipGetPenWidth");
-                GdipSetPenLineCap197819_ptr = LoadFunction<GdipSetPenLineCap197819_delegate>("GdipSetPenLineCap197819");
-                GdipSetPenStartCap_ptr = LoadFunction<GdipSetPenStartCap_delegate>("GdipSetPenStartCap");
-                GdipSetPenEndCap_ptr = LoadFunction<GdipSetPenEndCap_delegate>("GdipSetPenEndCap");
-                GdipGetPenStartCap_ptr = LoadFunction<GdipGetPenStartCap_delegate>("GdipGetPenStartCap");
-                GdipGetPenEndCap_ptr = LoadFunction<GdipGetPenEndCap_delegate>("GdipGetPenEndCap");
-                GdipGetPenDashCap197819_ptr = LoadFunction<GdipGetPenDashCap197819_delegate>("GdipGetPenDashCap197819");
-                GdipSetPenDashCap197819_ptr = LoadFunction<GdipSetPenDashCap197819_delegate>("GdipSetPenDashCap197819");
-                GdipSetPenLineJoin_ptr = LoadFunction<GdipSetPenLineJoin_delegate>("GdipSetPenLineJoin");
-                GdipGetPenLineJoin_ptr = LoadFunction<GdipGetPenLineJoin_delegate>("GdipGetPenLineJoin");
-                GdipSetPenCustomStartCap_ptr = LoadFunction<GdipSetPenCustomStartCap_delegate>("GdipSetPenCustomStartCap");
-                GdipGetPenCustomStartCap_ptr = LoadFunction<GdipGetPenCustomStartCap_delegate>("GdipGetPenCustomStartCap");
-                GdipSetPenCustomEndCap_ptr = LoadFunction<GdipSetPenCustomEndCap_delegate>("GdipSetPenCustomEndCap");
-                GdipGetPenCustomEndCap_ptr = LoadFunction<GdipGetPenCustomEndCap_delegate>("GdipGetPenCustomEndCap");
-                GdipSetPenMiterLimit_ptr = LoadFunction<GdipSetPenMiterLimit_delegate>("GdipSetPenMiterLimit");
-                GdipGetPenMiterLimit_ptr = LoadFunction<GdipGetPenMiterLimit_delegate>("GdipGetPenMiterLimit");
-                GdipSetPenTransform_ptr = LoadFunction<GdipSetPenTransform_delegate>("GdipSetPenTransform");
-                GdipGetPenTransform_ptr = LoadFunction<GdipGetPenTransform_delegate>("GdipGetPenTransform");
-                GdipResetPenTransform_ptr = LoadFunction<GdipResetPenTransform_delegate>("GdipResetPenTransform");
-                GdipMultiplyPenTransform_ptr = LoadFunction<GdipMultiplyPenTransform_delegate>("GdipMultiplyPenTransform");
-                GdipTranslatePenTransform_ptr = LoadFunction<GdipTranslatePenTransform_delegate>("GdipTranslatePenTransform");
-                GdipScalePenTransform_ptr = LoadFunction<GdipScalePenTransform_delegate>("GdipScalePenTransform");
-                GdipRotatePenTransform_ptr = LoadFunction<GdipRotatePenTransform_delegate>("GdipRotatePenTransform");
-                GdipSetPenColor_ptr = LoadFunction<GdipSetPenColor_delegate>("GdipSetPenColor");
-                GdipGetPenColor_ptr = LoadFunction<GdipGetPenColor_delegate>("GdipGetPenColor");
-                GdipSetPenBrushFill_ptr = LoadFunction<GdipSetPenBrushFill_delegate>("GdipSetPenBrushFill");
-                GdipGetPenBrushFill_ptr = LoadFunction<GdipGetPenBrushFill_delegate>("GdipGetPenBrushFill");
-                GdipGetPenFillType_ptr = LoadFunction<GdipGetPenFillType_delegate>("GdipGetPenFillType");
-                GdipGetPenDashStyle_ptr = LoadFunction<GdipGetPenDashStyle_delegate>("GdipGetPenDashStyle");
-                GdipSetPenDashStyle_ptr = LoadFunction<GdipSetPenDashStyle_delegate>("GdipSetPenDashStyle");
-                GdipSetPenDashArray_ptr = LoadFunction<GdipSetPenDashArray_delegate>("GdipSetPenDashArray");
-                GdipGetPenDashOffset_ptr = LoadFunction<GdipGetPenDashOffset_delegate>("GdipGetPenDashOffset");
-                GdipSetPenDashOffset_ptr = LoadFunction<GdipSetPenDashOffset_delegate>("GdipSetPenDashOffset");
-                GdipGetPenDashCount_ptr = LoadFunction<GdipGetPenDashCount_delegate>("GdipGetPenDashCount");
-                GdipGetPenDashArray_ptr = LoadFunction<GdipGetPenDashArray_delegate>("GdipGetPenDashArray");
-                GdipGetPenCompoundCount_ptr = LoadFunction<GdipGetPenCompoundCount_delegate>("GdipGetPenCompoundCount");
-                GdipSetPenCompoundArray_ptr = LoadFunction<GdipSetPenCompoundArray_delegate>("GdipSetPenCompoundArray");
-                GdipGetPenCompoundArray_ptr = LoadFunction<GdipGetPenCompoundArray_delegate>("GdipGetPenCompoundArray");
-            }
-
             // Shared function imports (all platforms)
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipBeginContainer(HandleRef graphics, ref RectangleF dstRect, ref RectangleF srcRect, GraphicsUnit unit, out int state);
 
-            private delegate int GdipCreateAdjustableArrowCap_delegate(float height, float width, bool isFilled, out IntPtr adjustableArrowCap);
-            private static FunctionWrapper<GdipCreateAdjustableArrowCap_delegate> GdipCreateAdjustableArrowCap_ptr;
-            internal static int GdipCreateAdjustableArrowCap(float height, float width, bool isFilled, out IntPtr adjustableArrowCap) => GdipCreateAdjustableArrowCap_ptr.Delegate(height, width, isFilled, out adjustableArrowCap);
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipBeginContainer2(HandleRef graphics, out int state);
 
-            private delegate int GdipGetAdjustableArrowCapHeight_delegate(HandleRef adjustableArrowCap, out float height);
-            private static FunctionWrapper<GdipGetAdjustableArrowCapHeight_delegate> GdipGetAdjustableArrowCapHeight_ptr;
-            internal static int GdipGetAdjustableArrowCapHeight(HandleRef adjustableArrowCap, out float height) => GdipGetAdjustableArrowCapHeight_ptr.Delegate(adjustableArrowCap, out height);
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipBeginContainerI(HandleRef graphics, ref Rectangle dstRect, ref Rectangle srcRect, GraphicsUnit unit, out int state);
 
-            private delegate int GdipSetAdjustableArrowCapHeight_delegate(HandleRef adjustableArrowCap, float height);
-            private static FunctionWrapper<GdipSetAdjustableArrowCapHeight_delegate> GdipSetAdjustableArrowCapHeight_ptr;
-            internal static int GdipSetAdjustableArrowCapHeight(HandleRef adjustableArrowCap, float height) => GdipSetAdjustableArrowCapHeight_ptr.Delegate(adjustableArrowCap, height);
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipEndContainer(HandleRef graphics, int state);
 
-            private delegate int GdipSetAdjustableArrowCapWidth_delegate(HandleRef adjustableArrowCap, float width);
-            private static FunctionWrapper<GdipSetAdjustableArrowCapWidth_delegate> GdipSetAdjustableArrowCapWidth_ptr;
-            internal static int GdipSetAdjustableArrowCapWidth(HandleRef adjustableArrowCap, float width) => GdipSetAdjustableArrowCapWidth_ptr.Delegate(adjustableArrowCap, width);
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipCreateAdjustableArrowCap(float height, float width, bool isFilled, out IntPtr adjustableArrowCap);
 
-            private delegate int GdipGetAdjustableArrowCapWidth_delegate(HandleRef adjustableArrowCap, out float width);
-            private static FunctionWrapper<GdipGetAdjustableArrowCapWidth_delegate> GdipGetAdjustableArrowCapWidth_ptr;
-            internal static int GdipGetAdjustableArrowCapWidth(HandleRef adjustableArrowCap, out float width) => GdipGetAdjustableArrowCapWidth_ptr.Delegate(adjustableArrowCap, out width);
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipGetAdjustableArrowCapHeight(HandleRef adjustableArrowCap, out float height);
 
-            private delegate int GdipSetAdjustableArrowCapMiddleInset_delegate(HandleRef adjustableArrowCap, float middleInset);
-            private static FunctionWrapper<GdipSetAdjustableArrowCapMiddleInset_delegate> GdipSetAdjustableArrowCapMiddleInset_ptr;
-            internal static int GdipSetAdjustableArrowCapMiddleInset(HandleRef adjustableArrowCap, float middleInset) => GdipSetAdjustableArrowCapMiddleInset_ptr.Delegate(adjustableArrowCap, middleInset);
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipSetAdjustableArrowCapHeight(HandleRef adjustableArrowCap, float height);
 
-            private delegate int GdipGetAdjustableArrowCapMiddleInset_delegate(HandleRef adjustableArrowCap, out float middleInset);
-            private static FunctionWrapper<GdipGetAdjustableArrowCapMiddleInset_delegate> GdipGetAdjustableArrowCapMiddleInset_ptr;
-            internal static int GdipGetAdjustableArrowCapMiddleInset(HandleRef adjustableArrowCap, out float middleInset) => GdipGetAdjustableArrowCapMiddleInset_ptr.Delegate(adjustableArrowCap, out middleInset);
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipSetAdjustableArrowCapWidth(HandleRef adjustableArrowCap, float width);
 
-            private delegate int GdipSetAdjustableArrowCapFillState_delegate(HandleRef adjustableArrowCap, bool fillState);
-            private static FunctionWrapper<GdipSetAdjustableArrowCapFillState_delegate> GdipSetAdjustableArrowCapFillState_ptr;
-            internal static int GdipSetAdjustableArrowCapFillState(HandleRef adjustableArrowCap, bool fillState) => GdipSetAdjustableArrowCapFillState_ptr.Delegate(adjustableArrowCap, fillState);
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipGetAdjustableArrowCapWidth(HandleRef adjustableArrowCap, out float width);
 
-            private delegate int GdipGetAdjustableArrowCapFillState_delegate(HandleRef adjustableArrowCap, out bool fillState);
-            private static FunctionWrapper<GdipGetAdjustableArrowCapFillState_delegate> GdipGetAdjustableArrowCapFillState_ptr;
-            internal static int GdipGetAdjustableArrowCapFillState(HandleRef adjustableArrowCap, out bool fillState) => GdipGetAdjustableArrowCapFillState_ptr.Delegate(adjustableArrowCap, out fillState);
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipSetAdjustableArrowCapMiddleInset(HandleRef adjustableArrowCap, float middleInset);
 
-            private delegate int GdipGetCustomLineCapType_delegate(HandleRef customCap, out CustomLineCapType capType);
-            private static FunctionWrapper<GdipGetCustomLineCapType_delegate> GdipGetCustomLineCapType_ptr;
-            internal static int GdipGetCustomLineCapType(HandleRef customCap, out CustomLineCapType capType) => GdipGetCustomLineCapType_ptr.Delegate(customCap, out capType);
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipGetAdjustableArrowCapMiddleInset(HandleRef adjustableArrowCap, out float middleInset);
 
-            private delegate int GdipCreateCustomLineCap_delegate(HandleRef fillpath, HandleRef strokepath, LineCap baseCap, float baseInset, out IntPtr customCap);
-            private static FunctionWrapper<GdipCreateCustomLineCap_delegate> GdipCreateCustomLineCap_ptr;
-            internal static int GdipCreateCustomLineCap(HandleRef fillpath, HandleRef strokepath, LineCap baseCap, float baseInset, out IntPtr customCap) => GdipCreateCustomLineCap_ptr.Delegate(fillpath, strokepath, baseCap, baseInset, out customCap);
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipSetAdjustableArrowCapFillState(HandleRef adjustableArrowCap, bool fillState);
 
-            private delegate int GdipDeleteCustomLineCap_delegate(HandleRef customCap);
-            private static FunctionWrapper<GdipDeleteCustomLineCap_delegate> GdipDeleteCustomLineCap_ptr;
-            internal static int IntGdipDeleteCustomLineCap(HandleRef customCap) => GdipDeleteCustomLineCap_ptr.Delegate(customCap);
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipGetAdjustableArrowCapFillState(HandleRef adjustableArrowCap, out bool fillState);
 
-            private delegate int GdipCloneCustomLineCap_delegate(HandleRef customCap, out IntPtr clonedCap);
-            private static FunctionWrapper<GdipCloneCustomLineCap_delegate> GdipCloneCustomLineCap_ptr;
-            internal static int GdipCloneCustomLineCap(HandleRef customCap, out IntPtr clonedCap) => GdipCloneCustomLineCap_ptr.Delegate(customCap, out clonedCap);
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipGetCustomLineCapType(IntPtr customCap, out CustomLineCapType capType);
 
-            private delegate int GdipSetCustomLineCapStrokeCaps_delegate(HandleRef customCap, LineCap startCap, LineCap endCap);
-            private static FunctionWrapper<GdipSetCustomLineCapStrokeCaps_delegate> GdipSetCustomLineCapStrokeCaps_ptr;
-            internal static int GdipSetCustomLineCapStrokeCaps(HandleRef customCap, LineCap startCap, LineCap endCap) => GdipSetCustomLineCapStrokeCaps_ptr.Delegate(customCap, startCap, endCap);
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipCreateCustomLineCap(HandleRef fillpath, HandleRef strokepath, LineCap baseCap, float baseInset, out IntPtr customCap);
 
-            private delegate int GdipGetCustomLineCapStrokeCaps_delegate(HandleRef customCap, out LineCap startCap, out LineCap endCap);
-            private static FunctionWrapper<GdipGetCustomLineCapStrokeCaps_delegate> GdipGetCustomLineCapStrokeCaps_ptr;
-            internal static int GdipGetCustomLineCapStrokeCaps(HandleRef customCap, out LineCap startCap, out LineCap endCap) => GdipGetCustomLineCapStrokeCaps_ptr.Delegate(customCap, out startCap, out endCap);
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipDeleteCustomLineCap(IntPtr customCap);
 
-            private delegate int GdipSetCustomLineCapStrokeJoin_delegate(HandleRef customCap, LineJoin lineJoin);
-            private static FunctionWrapper<GdipSetCustomLineCapStrokeJoin_delegate> GdipSetCustomLineCapStrokeJoin_ptr;
-            internal static int GdipSetCustomLineCapStrokeJoin(HandleRef customCap, LineJoin lineJoin) => GdipSetCustomLineCapStrokeJoin_ptr.Delegate(customCap, lineJoin);
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipDeleteCustomLineCap(HandleRef customCap);
 
-            private delegate int GdipGetCustomLineCapStrokeJoin_delegate(HandleRef customCap, out LineJoin lineJoin);
-            private static FunctionWrapper<GdipGetCustomLineCapStrokeJoin_delegate> GdipGetCustomLineCapStrokeJoin_ptr;
-            internal static int GdipGetCustomLineCapStrokeJoin(HandleRef customCap, out LineJoin lineJoin) => GdipGetCustomLineCapStrokeJoin_ptr.Delegate(customCap, out lineJoin);
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipCloneCustomLineCap(HandleRef customCap, out IntPtr clonedCap);
 
-            private delegate int GdipSetCustomLineCapBaseCap_delegate(HandleRef customCap, LineCap baseCap);
-            private static FunctionWrapper<GdipSetCustomLineCapBaseCap_delegate> GdipSetCustomLineCapBaseCap_ptr;
-            internal static int GdipSetCustomLineCapBaseCap(HandleRef customCap, LineCap baseCap) => GdipSetCustomLineCapBaseCap_ptr.Delegate(customCap, baseCap);
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipSetCustomLineCapStrokeCaps(HandleRef customCap, LineCap startCap, LineCap endCap);
 
-            private delegate int GdipGetCustomLineCapBaseCap_delegate(HandleRef customCap, out LineCap baseCap);
-            private static FunctionWrapper<GdipGetCustomLineCapBaseCap_delegate> GdipGetCustomLineCapBaseCap_ptr;
-            internal static int GdipGetCustomLineCapBaseCap(HandleRef customCap, out LineCap baseCap) => GdipGetCustomLineCapBaseCap_ptr.Delegate(customCap, out baseCap);
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipGetCustomLineCapStrokeCaps(HandleRef customCap, out LineCap startCap, out LineCap endCap);
 
-            private delegate int GdipSetCustomLineCapBaseInset_delegate(HandleRef customCap, float inset);
-            private static FunctionWrapper<GdipSetCustomLineCapBaseInset_delegate> GdipSetCustomLineCapBaseInset_ptr;
-            internal static int GdipSetCustomLineCapBaseInset(HandleRef customCap, float inset) => GdipSetCustomLineCapBaseInset_ptr.Delegate(customCap, inset);
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipSetCustomLineCapStrokeJoin(HandleRef customCap, LineJoin lineJoin);
 
-            private delegate int GdipGetCustomLineCapBaseInset_delegate(HandleRef customCap, out float inset);
-            private static FunctionWrapper<GdipGetCustomLineCapBaseInset_delegate> GdipGetCustomLineCapBaseInset_ptr;
-            internal static int GdipGetCustomLineCapBaseInset(HandleRef customCap, out float inset) => GdipGetCustomLineCapBaseInset_ptr.Delegate(customCap, out inset);
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipGetCustomLineCapStrokeJoin(HandleRef customCap, out LineJoin lineJoin);
 
-            private delegate int GdipSetCustomLineCapWidthScale_delegate(HandleRef customCap, float widthScale);
-            private static FunctionWrapper<GdipSetCustomLineCapWidthScale_delegate> GdipSetCustomLineCapWidthScale_ptr;
-            internal static int GdipSetCustomLineCapWidthScale(HandleRef customCap, float widthScale) => GdipSetCustomLineCapWidthScale_ptr.Delegate(customCap, widthScale);
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipSetCustomLineCapBaseCap(HandleRef customCap, LineCap baseCap);
 
-            private delegate int GdipGetCustomLineCapWidthScale_delegate(HandleRef customCap, out float widthScale);
-            private static FunctionWrapper<GdipGetCustomLineCapWidthScale_delegate> GdipGetCustomLineCapWidthScale_ptr;
-            internal static int GdipGetCustomLineCapWidthScale(HandleRef customCap, out float widthScale) => GdipGetCustomLineCapWidthScale_ptr.Delegate(customCap, out widthScale);
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipGetCustomLineCapBaseCap(HandleRef customCap, out LineCap baseCap);
 
-            private delegate int GdipCreatePathIter_delegate(out IntPtr pathIter, HandleRef path);
-            private static FunctionWrapper<GdipCreatePathIter_delegate> GdipCreatePathIter_ptr;
-            internal static int GdipCreatePathIter(out IntPtr pathIter, HandleRef path) => GdipCreatePathIter_ptr.Delegate(out pathIter, path);
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipSetCustomLineCapBaseInset(HandleRef customCap, float inset);
 
-            private delegate int GdipDeletePathIter_delegate(HandleRef pathIter);
-            private static FunctionWrapper<GdipDeletePathIter_delegate> GdipDeletePathIter_ptr;
-            internal static int IntGdipDeletePathIter(HandleRef pathIter) => GdipDeletePathIter_ptr.Delegate(pathIter);
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipGetCustomLineCapBaseInset(HandleRef customCap, out float inset);
 
-            private delegate int GdipPathIterNextSubpath_delegate(HandleRef pathIter, out int resultCount, out int startIndex, out int endIndex, out bool isClosed);
-            private static FunctionWrapper<GdipPathIterNextSubpath_delegate> GdipPathIterNextSubpath_ptr;
-            internal static int GdipPathIterNextSubpath(HandleRef pathIter, out int resultCount, out int startIndex, out int endIndex, out bool isClosed) => GdipPathIterNextSubpath_ptr.Delegate(pathIter, out resultCount, out startIndex, out endIndex, out isClosed);
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipSetCustomLineCapWidthScale(HandleRef customCap, float widthScale);
 
-            private delegate int GdipPathIterNextSubpathPath_delegate(HandleRef pathIter, out int resultCount, HandleRef path, out bool isClosed);
-            private static FunctionWrapper<GdipPathIterNextSubpathPath_delegate> GdipPathIterNextSubpathPath_ptr;
-            internal static int GdipPathIterNextSubpathPath(HandleRef pathIter, out int resultCount, HandleRef path, out bool isClosed) => GdipPathIterNextSubpathPath_ptr.Delegate(pathIter, out resultCount, path, out isClosed);
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipGetCustomLineCapWidthScale(HandleRef customCap, out float widthScale);
 
-            private delegate int GdipPathIterNextPathType_delegate(HandleRef pathIter, out int resultCount, out byte pathType, out int startIndex, out int endIndex);
-            private static FunctionWrapper<GdipPathIterNextPathType_delegate> GdipPathIterNextPathType_ptr;
-            internal static int GdipPathIterNextPathType(HandleRef pathIter, out int resultCount, out byte pathType, out int startIndex, out int endIndex) => GdipPathIterNextPathType_ptr.Delegate(pathIter, out resultCount, out pathType, out startIndex, out endIndex);
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipCreatePathIter(out IntPtr pathIter, HandleRef path);
 
-            private delegate int GdipPathIterNextMarker_delegate(HandleRef pathIter, out int resultCount, out int startIndex, out int endIndex);
-            private static FunctionWrapper<GdipPathIterNextMarker_delegate> GdipPathIterNextMarker_ptr;
-            internal static int GdipPathIterNextMarker(HandleRef pathIter, out int resultCount, out int startIndex, out int endIndex) => GdipPathIterNextMarker_ptr.Delegate(pathIter, out resultCount, out startIndex, out endIndex);
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipDeletePathIter(HandleRef pathIter);
 
-            private delegate int GdipPathIterNextMarkerPath_delegate(HandleRef pathIter, out int resultCount, HandleRef path);
-            private static FunctionWrapper<GdipPathIterNextMarkerPath_delegate> GdipPathIterNextMarkerPath_ptr;
-            internal static int GdipPathIterNextMarkerPath(HandleRef pathIter, out int resultCount, HandleRef path) => GdipPathIterNextMarkerPath_ptr.Delegate(pathIter, out resultCount, path);
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipPathIterNextSubpath(HandleRef pathIter, out int resultCount, out int startIndex, out int endIndex, out bool isClosed);
 
-            private delegate int GdipPathIterGetCount_delegate(HandleRef pathIter, out int count);
-            private static FunctionWrapper<GdipPathIterGetCount_delegate> GdipPathIterGetCount_ptr;
-            internal static int GdipPathIterGetCount(HandleRef pathIter, out int count) => GdipPathIterGetCount_ptr.Delegate(pathIter, out count);
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipPathIterNextSubpathPath(HandleRef pathIter, out int resultCount, HandleRef path, out bool isClosed);
 
-            private delegate int GdipPathIterGetSubpathCount_delegate(HandleRef pathIter, out int count);
-            private static FunctionWrapper<GdipPathIterGetSubpathCount_delegate> GdipPathIterGetSubpathCount_ptr;
-            internal static int GdipPathIterGetSubpathCount(HandleRef pathIter, out int count) => GdipPathIterGetSubpathCount_ptr.Delegate(pathIter, out count);
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipPathIterNextPathType(HandleRef pathIter, out int resultCount, out byte pathType, out int startIndex, out int endIndex);
 
-            private delegate int GdipPathIterHasCurve_delegate(HandleRef pathIter, out bool hasCurve);
-            private static FunctionWrapper<GdipPathIterHasCurve_delegate> GdipPathIterHasCurve_ptr;
-            internal static int GdipPathIterHasCurve(HandleRef pathIter, out bool hasCurve) => GdipPathIterHasCurve_ptr.Delegate(pathIter, out hasCurve);
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipPathIterNextMarker(HandleRef pathIter, out int resultCount, out int startIndex, out int endIndex);
 
-            private delegate int GdipPathIterRewind_delegate(HandleRef pathIter);
-            private static FunctionWrapper<GdipPathIterRewind_delegate> GdipPathIterRewind_ptr;
-            internal static int GdipPathIterRewind(HandleRef pathIter) => GdipPathIterRewind_ptr.Delegate(pathIter);
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipPathIterNextMarkerPath(HandleRef pathIter, out int resultCount, HandleRef path);
 
-            private delegate int GdipPathIterEnumerate_delegate(HandleRef pathIter, out int resultCount, IntPtr memoryPts, [In] [Out] byte[] types, int count);
-            private static FunctionWrapper<GdipPathIterEnumerate_delegate> GdipPathIterEnumerate_ptr;
-            internal static int GdipPathIterEnumerate(HandleRef pathIter, out int resultCount, IntPtr memoryPts, [In] [Out] byte[] types, int count) => GdipPathIterEnumerate_ptr.Delegate(pathIter, out resultCount, memoryPts, types, count);
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipPathIterGetCount(HandleRef pathIter, out int count);
 
-            private delegate int GdipPathIterCopyData_delegate(HandleRef pathIter, out int resultCount, IntPtr memoryPts, [In] [Out] byte[] types, int startIndex, int endIndex);
-            private static FunctionWrapper<GdipPathIterCopyData_delegate> GdipPathIterCopyData_ptr;
-            internal static int GdipPathIterCopyData(HandleRef pathIter, out int resultCount, IntPtr memoryPts, [In] [Out] byte[] types, int startIndex, int endIndex) => GdipPathIterCopyData_ptr.Delegate(pathIter, out resultCount, memoryPts, types, startIndex, endIndex);
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipPathIterGetSubpathCount(HandleRef pathIter, out int count);
 
-            private delegate int GdipCreateHatchBrush_delegate(int hatchstyle, int forecol, int backcol, out IntPtr brush);
-            private static FunctionWrapper<GdipCreateHatchBrush_delegate> GdipCreateHatchBrush_ptr;
-            internal static int GdipCreateHatchBrush(int hatchstyle, int forecol, int backcol, out IntPtr brush) => GdipCreateHatchBrush_ptr.Delegate(hatchstyle, forecol, backcol, out brush);
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipPathIterHasCurve(HandleRef pathIter, out bool hasCurve);
 
-            private delegate int GdipGetHatchStyle_delegate(HandleRef brush, out int hatchstyle);
-            private static FunctionWrapper<GdipGetHatchStyle_delegate> GdipGetHatchStyle_ptr;
-            internal static int GdipGetHatchStyle(HandleRef brush, out int hatchstyle) => GdipGetHatchStyle_ptr.Delegate(brush, out hatchstyle);
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipPathIterRewind(HandleRef pathIter);
 
-            private delegate int GdipGetHatchForegroundColor_delegate(HandleRef brush, out int forecol);
-            private static FunctionWrapper<GdipGetHatchForegroundColor_delegate> GdipGetHatchForegroundColor_ptr;
-            internal static int GdipGetHatchForegroundColor(HandleRef brush, out int forecol) => GdipGetHatchForegroundColor_ptr.Delegate(brush, out forecol);
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipPathIterEnumerate(HandleRef pathIter, out int resultCount, PointF* points, byte* types, int count);
 
-            private delegate int GdipGetHatchBackgroundColor_delegate(HandleRef brush, out int backcol);
-            private static FunctionWrapper<GdipGetHatchBackgroundColor_delegate> GdipGetHatchBackgroundColor_ptr;
-            internal static int GdipGetHatchBackgroundColor(HandleRef brush, out int backcol) => GdipGetHatchBackgroundColor_ptr.Delegate(brush, out backcol);
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipPathIterCopyData(HandleRef pathIter, out int resultCount, PointF* points, byte* types, int startIndex, int endIndex);
 
-            private delegate int GdipCloneBrush_delegate(HandleRef brush, out IntPtr clonebrush);
-            private static FunctionWrapper<GdipCloneBrush_delegate> GdipCloneBrush_ptr;
-            internal static int GdipCloneBrush(HandleRef brush, out IntPtr clonebrush) => GdipCloneBrush_ptr.Delegate(brush, out clonebrush);
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipCreateHatchBrush(int hatchstyle, int forecol, int backcol, out IntPtr brush);
 
-            private delegate int GdipCreateImageAttributes_delegate(out IntPtr imageattr);
-            private static FunctionWrapper<GdipCreateImageAttributes_delegate> GdipCreateImageAttributes_ptr;
-            internal static int GdipCreateImageAttributes(out IntPtr imageattr) => GdipCreateImageAttributes_ptr.Delegate(out imageattr);
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipGetHatchStyle(HandleRef brush, out int hatchstyle);
 
-            private delegate int GdipCloneImageAttributes_delegate(HandleRef imageattr, out IntPtr cloneImageattr);
-            private static FunctionWrapper<GdipCloneImageAttributes_delegate> GdipCloneImageAttributes_ptr;
-            internal static int GdipCloneImageAttributes(HandleRef imageattr, out IntPtr cloneImageattr) => GdipCloneImageAttributes_ptr.Delegate(imageattr, out cloneImageattr);
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipGetHatchForegroundColor(HandleRef brush, out int forecol);
 
-            private delegate int GdipDisposeImageAttributes_delegate(HandleRef imageattr);
-            private static FunctionWrapper<GdipDisposeImageAttributes_delegate> GdipDisposeImageAttributes_ptr;
-            internal static int IntGdipDisposeImageAttributes(HandleRef imageattr) => GdipDisposeImageAttributes_ptr.Delegate(imageattr);
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipGetHatchBackgroundColor(HandleRef brush, out int backcol);
 
-            private delegate int GdipSetImageAttributesColorMatrix_delegate(HandleRef imageattr, ColorAdjustType type, bool enableFlag, ColorMatrix colorMatrix, ColorMatrix grayMatrix, ColorMatrixFlag flags);
-            private static FunctionWrapper<GdipSetImageAttributesColorMatrix_delegate> GdipSetImageAttributesColorMatrix_ptr;
-            internal static int GdipSetImageAttributesColorMatrix(HandleRef imageattr, ColorAdjustType type, bool enableFlag, ColorMatrix colorMatrix, ColorMatrix grayMatrix, ColorMatrixFlag flags) => GdipSetImageAttributesColorMatrix_ptr.Delegate(imageattr, type, enableFlag, colorMatrix, grayMatrix, flags);
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipCloneBrush(HandleRef brush, out IntPtr clonebrush);
 
-            private delegate int GdipSetImageAttributesThreshold_delegate(HandleRef imageattr, ColorAdjustType type, bool enableFlag, float threshold);
-            private static FunctionWrapper<GdipSetImageAttributesThreshold_delegate> GdipSetImageAttributesThreshold_ptr;
-            internal static int GdipSetImageAttributesThreshold(HandleRef imageattr, ColorAdjustType type, bool enableFlag, float threshold) => GdipSetImageAttributesThreshold_ptr.Delegate(imageattr, type, enableFlag, threshold);
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipCreateLineBrush(ref PointF point1, ref PointF point2, int color1, int color2, WrapMode wrapMode, out IntPtr lineGradient);
 
-            private delegate int GdipSetImageAttributesGamma_delegate(HandleRef imageattr, ColorAdjustType type, bool enableFlag, float gamma);
-            private static FunctionWrapper<GdipSetImageAttributesGamma_delegate> GdipSetImageAttributesGamma_ptr;
-            internal static int GdipSetImageAttributesGamma(HandleRef imageattr, ColorAdjustType type, bool enableFlag, float gamma) => GdipSetImageAttributesGamma_ptr.Delegate(imageattr, type, enableFlag, gamma);
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipCreateLineBrushI(ref Point point1, ref Point point2, int color1, int color2, WrapMode wrapMode, out IntPtr lineGradient);
 
-            private delegate int GdipSetImageAttributesNoOp_delegate(HandleRef imageattr, ColorAdjustType type, bool enableFlag);
-            private static FunctionWrapper<GdipSetImageAttributesNoOp_delegate> GdipSetImageAttributesNoOp_ptr;
-            internal static int GdipSetImageAttributesNoOp(HandleRef imageattr, ColorAdjustType type, bool enableFlag) => GdipSetImageAttributesNoOp_ptr.Delegate(imageattr, type, enableFlag);
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipCreateLineBrushFromRect(ref RectangleF rect, int color1, int color2, LinearGradientMode lineGradientMode, WrapMode wrapMode, out IntPtr lineGradient);
 
-            private delegate int GdipSetImageAttributesColorKeys_delegate(HandleRef imageattr, ColorAdjustType type, bool enableFlag, int colorLow, int colorHigh);
-            private static FunctionWrapper<GdipSetImageAttributesColorKeys_delegate> GdipSetImageAttributesColorKeys_ptr;
-            internal static int GdipSetImageAttributesColorKeys(HandleRef imageattr, ColorAdjustType type, bool enableFlag, int colorLow, int colorHigh) => GdipSetImageAttributesColorKeys_ptr.Delegate(imageattr, type, enableFlag, colorLow, colorHigh);
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipCreateLineBrushFromRectI(ref Rectangle rect, int color1, int color2, LinearGradientMode lineGradientMode, WrapMode wrapMode, out IntPtr lineGradient);
 
-            private delegate int GdipSetImageAttributesOutputChannel_delegate(HandleRef imageattr, ColorAdjustType type, bool enableFlag, ColorChannelFlag flags);
-            private static FunctionWrapper<GdipSetImageAttributesOutputChannel_delegate> GdipSetImageAttributesOutputChannel_ptr;
-            internal static int GdipSetImageAttributesOutputChannel(HandleRef imageattr, ColorAdjustType type, bool enableFlag, ColorChannelFlag flags) => GdipSetImageAttributesOutputChannel_ptr.Delegate(imageattr, type, enableFlag, flags);
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipCreateLineBrushFromRectWithAngle(ref RectangleF rect, int color1, int color2, float angle, bool isAngleScaleable, WrapMode wrapMode, out IntPtr lineGradient);
 
-            private delegate int GdipSetImageAttributesOutputChannelColorProfile_delegate(HandleRef imageattr, ColorAdjustType type, bool enableFlag, [MarshalAs(UnmanagedType.LPWStr)]string colorProfileFilename);
-            private static FunctionWrapper<GdipSetImageAttributesOutputChannelColorProfile_delegate> GdipSetImageAttributesOutputChannelColorProfile_ptr;
-            internal static int GdipSetImageAttributesOutputChannelColorProfile(HandleRef imageattr, ColorAdjustType type, bool enableFlag, string colorProfileFilename) => GdipSetImageAttributesOutputChannelColorProfile_ptr.Delegate(imageattr, type, enableFlag, colorProfileFilename);
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipCreateLineBrushFromRectWithAngleI(ref Rectangle rect, int color1, int color2, float angle, bool isAngleScaleable, WrapMode wrapMode, out IntPtr lineGradient);
 
-            private delegate int GdipSetImageAttributesRemapTable_delegate(HandleRef imageattr, ColorAdjustType type, bool enableFlag, int mapSize, HandleRef map);
-            private static FunctionWrapper<GdipSetImageAttributesRemapTable_delegate> GdipSetImageAttributesRemapTable_ptr;
-            internal static int GdipSetImageAttributesRemapTable(HandleRef imageattr, ColorAdjustType type, bool enableFlag, int mapSize, HandleRef map) => GdipSetImageAttributesRemapTable_ptr.Delegate(imageattr, type, enableFlag, mapSize, map);
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipSetLineColors(HandleRef brush, int color1, int color2);
 
-            private delegate int GdipSetImageAttributesWrapMode_delegate(HandleRef imageattr, int wrapmode, int argb, bool clamp);
-            private static FunctionWrapper<GdipSetImageAttributesWrapMode_delegate> GdipSetImageAttributesWrapMode_ptr;
-            internal static int GdipSetImageAttributesWrapMode(HandleRef imageattr, int wrapmode, int argb, bool clamp) => GdipSetImageAttributesWrapMode_ptr.Delegate(imageattr, wrapmode, argb, clamp);
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipGetLineColors(HandleRef brush, int[] colors);
 
-            private delegate int GdipGetImageAttributesAdjustedPalette_delegate(HandleRef imageattr, HandleRef palette, ColorAdjustType type);
-            private static FunctionWrapper<GdipGetImageAttributesAdjustedPalette_delegate> GdipGetImageAttributesAdjustedPalette_ptr;
-            internal static int GdipGetImageAttributesAdjustedPalette(HandleRef imageattr, HandleRef palette, ColorAdjustType type) => GdipGetImageAttributesAdjustedPalette_ptr.Delegate(imageattr, palette, type);
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipGetLineRect(HandleRef brush, out RectangleF gprectf);
 
-            private delegate int GdipGetImageDecodersSize_delegate(out int numDecoders, out int size);
-            private static FunctionWrapper<GdipGetImageDecodersSize_delegate> GdipGetImageDecodersSize_ptr;
-            internal static int GdipGetImageDecodersSize(out int numDecoders, out int size) => GdipGetImageDecodersSize_ptr.Delegate(out numDecoders, out size);
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipGetLineGammaCorrection(HandleRef brush, out bool useGammaCorrection);
 
-            private delegate int GdipGetImageDecoders_delegate(int numDecoders, int size, IntPtr decoders);
-            private static FunctionWrapper<GdipGetImageDecoders_delegate> GdipGetImageDecoders_ptr;
-            internal static int GdipGetImageDecoders(int numDecoders, int size, IntPtr decoders) => GdipGetImageDecoders_ptr.Delegate(numDecoders, size, decoders);
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipSetLineGammaCorrection(HandleRef brush, bool useGammaCorrection);
 
-            private delegate int GdipGetImageEncodersSize_delegate(out int numEncoders, out int size);
-            private static FunctionWrapper<GdipGetImageEncodersSize_delegate> GdipGetImageEncodersSize_ptr;
-            internal static int GdipGetImageEncodersSize(out int numEncoders, out int size) => GdipGetImageEncodersSize_ptr.Delegate(out numEncoders, out size);
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipSetLineSigmaBlend(HandleRef brush, float focus, float scale);
 
-            private delegate int GdipGetImageEncoders_delegate(int numEncoders, int size, IntPtr encoders);
-            private static FunctionWrapper<GdipGetImageEncoders_delegate> GdipGetImageEncoders_ptr;
-            internal static int GdipGetImageEncoders(int numEncoders, int size, IntPtr encoders) => GdipGetImageEncoders_ptr.Delegate(numEncoders, size, encoders);
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipSetLineLinearBlend(HandleRef brush, float focus, float scale);
 
-            private delegate int GdipCreateSolidFill_delegate(int color, out IntPtr brush);
-            private static FunctionWrapper<GdipCreateSolidFill_delegate> GdipCreateSolidFill_ptr;
-            internal static int GdipCreateSolidFill(int color, out IntPtr brush) => GdipCreateSolidFill_ptr.Delegate(color, out brush);
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipGetLineBlendCount(HandleRef brush, out int count);
 
-            private delegate int GdipSetSolidFillColor_delegate(HandleRef brush, int color);
-            private static FunctionWrapper<GdipSetSolidFillColor_delegate> GdipSetSolidFillColor_ptr;
-            internal static int GdipSetSolidFillColor(HandleRef brush, int color) => GdipSetSolidFillColor_ptr.Delegate(brush, color);
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipGetLineBlend(HandleRef brush, IntPtr blend, IntPtr positions, int count);
 
-            private delegate int GdipGetSolidFillColor_delegate(HandleRef brush, out int color);
-            private static FunctionWrapper<GdipGetSolidFillColor_delegate> GdipGetSolidFillColor_ptr;
-            internal static int GdipGetSolidFillColor(HandleRef brush, out int color) => GdipGetSolidFillColor_ptr.Delegate(brush, out color);
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipSetLineBlend(HandleRef brush, IntPtr blend, IntPtr positions, int count);
 
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipGetLinePresetBlendCount(HandleRef brush, out int count);
 
-            private delegate int GdipCreateTexture_delegate(HandleRef bitmap, int wrapmode, out IntPtr texture);
-            private static FunctionWrapper<GdipCreateTexture_delegate> GdipCreateTexture_ptr;
-            internal static int GdipCreateTexture(HandleRef bitmap, int wrapmode, out IntPtr texture) => GdipCreateTexture_ptr.Delegate(bitmap, wrapmode, out texture);
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipGetLinePresetBlend(HandleRef brush, IntPtr blend, IntPtr positions, int count);
 
-            private delegate int GdipCreateTexture2_delegate(HandleRef bitmap, int wrapmode, float x, float y, float width, float height, out IntPtr texture);
-            private static FunctionWrapper<GdipCreateTexture2_delegate> GdipCreateTexture2_ptr;
-            internal static int GdipCreateTexture2(HandleRef bitmap, int wrapmode, float x, float y, float width, float height, out IntPtr texture) => GdipCreateTexture2_ptr.Delegate(bitmap, wrapmode, x, y, width, height, out texture);
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipSetLinePresetBlend(HandleRef brush, IntPtr blend, IntPtr positions, int count);
 
-            private delegate int GdipCreateTextureIA_delegate(HandleRef bitmap, HandleRef imageAttrib, float x, float y, float width, float height, out IntPtr texture);
-            private static FunctionWrapper<GdipCreateTextureIA_delegate> GdipCreateTextureIA_ptr;
-            internal static int GdipCreateTextureIA(HandleRef bitmap, HandleRef imageAttrib, float x, float y, float width, float height, out IntPtr texture) => GdipCreateTextureIA_ptr.Delegate(bitmap, imageAttrib, x, y, width, height, out texture);
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipSetLineWrapMode(HandleRef brush, int wrapMode);
 
-            private delegate int GdipCreateTexture2I_delegate(HandleRef bitmap, int wrapmode, int x, int y, int width, int height, out IntPtr texture);
-            private static FunctionWrapper<GdipCreateTexture2I_delegate> GdipCreateTexture2I_ptr;
-            internal static int GdipCreateTexture2I(HandleRef bitmap, int wrapmode, int x, int y, int width, int height, out IntPtr texture) => GdipCreateTexture2I_ptr.Delegate(bitmap, wrapmode, x, y, width, height, out texture);
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipGetLineWrapMode(HandleRef brush, out int wrapMode);
 
-            private delegate int GdipCreateTextureIAI_delegate(HandleRef bitmap, HandleRef imageAttrib, int x, int y, int width, int height, out IntPtr texture);
-            private static FunctionWrapper<GdipCreateTextureIAI_delegate> GdipCreateTextureIAI_ptr;
-            internal static int GdipCreateTextureIAI(HandleRef bitmap, HandleRef imageAttrib, int x, int y, int width, int height, out IntPtr texture) => GdipCreateTextureIAI_ptr.Delegate(bitmap, imageAttrib, x, y, width, height, out texture);
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipResetLineTransform(HandleRef brush);
 
-            private delegate int GdipSetTextureTransform_delegate(HandleRef brush, HandleRef matrix);
-            private static FunctionWrapper<GdipSetTextureTransform_delegate> GdipSetTextureTransform_ptr;
-            internal static int GdipSetTextureTransform(HandleRef brush, HandleRef matrix) => GdipSetTextureTransform_ptr.Delegate(brush, matrix);
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipMultiplyLineTransform(HandleRef brush, HandleRef matrix, MatrixOrder order);
 
-            private delegate int GdipGetTextureTransform_delegate(HandleRef brush, HandleRef matrix);
-            private static FunctionWrapper<GdipGetTextureTransform_delegate> GdipGetTextureTransform_ptr;
-            internal static int GdipGetTextureTransform(HandleRef brush, HandleRef matrix) => GdipGetTextureTransform_ptr.Delegate(brush, matrix);
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipGetLineTransform(HandleRef brush, HandleRef matrix);
 
-            private delegate int GdipResetTextureTransform_delegate(HandleRef brush);
-            private static FunctionWrapper<GdipResetTextureTransform_delegate> GdipResetTextureTransform_ptr;
-            internal static int GdipResetTextureTransform(HandleRef brush) => GdipResetTextureTransform_ptr.Delegate(brush);
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipSetLineTransform(HandleRef brush, HandleRef matrix);
 
-            private delegate int GdipMultiplyTextureTransform_delegate(HandleRef brush, HandleRef matrix, MatrixOrder order);
-            private static FunctionWrapper<GdipMultiplyTextureTransform_delegate> GdipMultiplyTextureTransform_ptr;
-            internal static int GdipMultiplyTextureTransform(HandleRef brush, HandleRef matrix, MatrixOrder order) => GdipMultiplyTextureTransform_ptr.Delegate(brush, matrix, order);
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipTranslateLineTransform(HandleRef brush, float dx, float dy, MatrixOrder order);
 
-            private delegate int GdipTranslateTextureTransform_delegate(HandleRef brush, float dx, float dy, MatrixOrder order);
-            private static FunctionWrapper<GdipTranslateTextureTransform_delegate> GdipTranslateTextureTransform_ptr;
-            internal static int GdipTranslateTextureTransform(HandleRef brush, float dx, float dy, MatrixOrder order) => GdipTranslateTextureTransform_ptr.Delegate(brush, dx, dy, order);
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipScaleLineTransform(HandleRef brush, float sx, float sy, MatrixOrder order);
 
-            private delegate int GdipScaleTextureTransform_delegate(HandleRef brush, float sx, float sy, MatrixOrder order);
-            private static FunctionWrapper<GdipScaleTextureTransform_delegate> GdipScaleTextureTransform_ptr;
-            internal static int GdipScaleTextureTransform(HandleRef brush, float sx, float sy, MatrixOrder order) => GdipScaleTextureTransform_ptr.Delegate(brush, sx, sy, order);
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipRotateLineTransform(HandleRef brush, float angle, MatrixOrder order);
 
-            private delegate int GdipRotateTextureTransform_delegate(HandleRef brush, float angle, MatrixOrder order);
-            private static FunctionWrapper<GdipRotateTextureTransform_delegate> GdipRotateTextureTransform_ptr;
-            internal static int GdipRotateTextureTransform(HandleRef brush, float angle, MatrixOrder order) => GdipRotateTextureTransform_ptr.Delegate(brush, angle, order);
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipCreatePathGradient(PointF* points, int count, WrapMode wrapMode, out IntPtr brush);
 
-            private delegate int GdipSetTextureWrapMode_delegate(HandleRef brush, int wrapMode);
-            private static FunctionWrapper<GdipSetTextureWrapMode_delegate> GdipSetTextureWrapMode_ptr;
-            internal static int GdipSetTextureWrapMode(HandleRef brush, int wrapMode) => GdipSetTextureWrapMode_ptr.Delegate(brush, wrapMode);
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipCreatePathGradientI(Point* points, int count, WrapMode wrapMode, out IntPtr brush);
 
-            private delegate int GdipGetTextureWrapMode_delegate(HandleRef brush, out int wrapMode);
-            private static FunctionWrapper<GdipGetTextureWrapMode_delegate> GdipGetTextureWrapMode_ptr;
-            internal static int GdipGetTextureWrapMode(HandleRef brush, out int wrapMode) => GdipGetTextureWrapMode_ptr.Delegate(brush, out wrapMode);
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipCreatePathGradientFromPath(HandleRef path, out IntPtr brush);
 
-            private delegate int GdipGetTextureImage_delegate(HandleRef brush, out IntPtr image);
-            private static FunctionWrapper<GdipGetTextureImage_delegate> GdipGetTextureImage_ptr;
-            internal static int GdipGetTextureImage(HandleRef brush, out IntPtr image) => GdipGetTextureImage_ptr.Delegate(brush, out image);
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipGetPathGradientCenterColor(HandleRef brush, out int color);
 
-            private delegate int GdipGetFontCollectionFamilyCount_delegate(HandleRef fontCollection, out int numFound);
-            private static FunctionWrapper<GdipGetFontCollectionFamilyCount_delegate> GdipGetFontCollectionFamilyCount_ptr;
-            internal static int GdipGetFontCollectionFamilyCount(HandleRef fontCollection, out int numFound) => GdipGetFontCollectionFamilyCount_ptr.Delegate(fontCollection, out numFound);
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipSetPathGradientCenterColor(HandleRef brush, int color);
 
-            private delegate int GdipGetFontCollectionFamilyList_delegate(HandleRef fontCollection, int numSought, IntPtr[] gpfamilies, out int numFound);
-            private static FunctionWrapper<GdipGetFontCollectionFamilyList_delegate> GdipGetFontCollectionFamilyList_ptr;
-            internal static int GdipGetFontCollectionFamilyList(HandleRef fontCollection, int numSought, IntPtr[] gpfamilies, out int numFound) => GdipGetFontCollectionFamilyList_ptr.Delegate(fontCollection, numSought, gpfamilies, out numFound);
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipGetPathGradientSurroundColorsWithCount(HandleRef brush, int[] color, ref int count);
 
-            private delegate int GdipCloneFontFamily_delegate(HandleRef fontfamily, out IntPtr clonefontfamily);
-            private static FunctionWrapper<GdipCloneFontFamily_delegate> GdipCloneFontFamily_ptr;
-            internal static int GdipCloneFontFamily(HandleRef fontfamily, out IntPtr clonefontfamily) => GdipCloneFontFamily_ptr.Delegate(fontfamily, out clonefontfamily);
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipSetPathGradientSurroundColorsWithCount(HandleRef brush, int[] argb, ref int count);
 
-            private delegate int GdipNewInstalledFontCollection_delegate(out IntPtr fontCollection);
-            private static FunctionWrapper<GdipNewInstalledFontCollection_delegate> GdipNewInstalledFontCollection_ptr;
-            internal static int GdipNewInstalledFontCollection(out IntPtr fontCollection) => GdipNewInstalledFontCollection_ptr.Delegate(out fontCollection);
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipGetPathGradientCenterPoint(HandleRef brush, out PointF point);
 
-            private delegate int GdipCreatePen1_delegate(int argb, float width, int unit, out IntPtr pen);
-            private static FunctionWrapper<GdipCreatePen1_delegate> GdipCreatePen1_ptr;
-            internal static int GdipCreatePen1(int argb, float width, int unit, out IntPtr pen) => GdipCreatePen1_ptr.Delegate(argb, width, unit, out pen);
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipSetPathGradientCenterPoint(HandleRef brush, ref PointF point);
 
-            private delegate int GdipCreatePen2_delegate(HandleRef brush, float width, int unit, out IntPtr pen);
-            private static FunctionWrapper<GdipCreatePen2_delegate> GdipCreatePen2_ptr;
-            internal static int GdipCreatePen2(HandleRef brush, float width, int unit, out IntPtr pen) => GdipCreatePen2_ptr.Delegate(brush, width, unit, out pen);
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipGetPathGradientRect(HandleRef brush, out RectangleF gprectf);
 
-            private delegate int GdipClonePen_delegate(HandleRef pen, out IntPtr clonepen);
-            private static FunctionWrapper<GdipClonePen_delegate> GdipClonePen_ptr;
-            internal static int GdipClonePen(HandleRef pen, out IntPtr clonepen) => GdipClonePen_ptr.Delegate(pen, out clonepen);
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipGetPathGradientPointCount(HandleRef brush, out int count);
 
-            private delegate int GdipDeletePen_delegate(HandleRef Pen);
-            private static FunctionWrapper<GdipDeletePen_delegate> GdipDeletePen_ptr;
-            internal static int IntGdipDeletePen(HandleRef Pen) => GdipDeletePen_ptr.Delegate(Pen);
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipGetPathGradientSurroundColorCount(HandleRef brush, out int count);
 
-            private delegate int GdipSetPenMode_delegate(HandleRef pen, PenAlignment penAlign);
-            private static FunctionWrapper<GdipSetPenMode_delegate> GdipSetPenMode_ptr;
-            internal static int GdipSetPenMode(HandleRef pen, PenAlignment penAlign) => GdipSetPenMode_ptr.Delegate(pen, penAlign);
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipGetPathGradientBlendCount(HandleRef brush, out int count);
 
-            private delegate int GdipGetPenMode_delegate(HandleRef pen, out PenAlignment penAlign);
-            private static FunctionWrapper<GdipGetPenMode_delegate> GdipGetPenMode_ptr;
-            internal static int GdipGetPenMode(HandleRef pen, out PenAlignment penAlign) => GdipGetPenMode_ptr.Delegate(pen, out penAlign);
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipGetPathGradientBlend(HandleRef brush, float[] blend, float[] positions, int count);
 
-            private delegate int GdipSetPenWidth_delegate(HandleRef pen, float width);
-            private static FunctionWrapper<GdipSetPenWidth_delegate> GdipSetPenWidth_ptr;
-            internal static int GdipSetPenWidth(HandleRef pen, float width) => GdipSetPenWidth_ptr.Delegate(pen, width);
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipSetPathGradientBlend(HandleRef brush, IntPtr blend, IntPtr positions, int count);
 
-            private delegate int GdipGetPenWidth_delegate(HandleRef pen, float[] width);
-            private static FunctionWrapper<GdipGetPenWidth_delegate> GdipGetPenWidth_ptr;
-            internal static int GdipGetPenWidth(HandleRef pen, float[] width) => GdipGetPenWidth_ptr.Delegate(pen, width);
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipGetPathGradientPresetBlendCount(HandleRef brush, out int count);
 
-            private delegate int GdipSetPenLineCap197819_delegate(HandleRef pen, int startCap, int endCap, int dashCap);
-            private static FunctionWrapper<GdipSetPenLineCap197819_delegate> GdipSetPenLineCap197819_ptr;
-            internal static int GdipSetPenLineCap197819(HandleRef pen, int startCap, int endCap, int dashCap) => GdipSetPenLineCap197819_ptr.Delegate(pen, startCap, endCap, dashCap);
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipGetPathGradientPresetBlend(HandleRef brush, int[] blend, float[] positions, int count);
 
-            private delegate int GdipSetPenStartCap_delegate(HandleRef pen, int startCap);
-            private static FunctionWrapper<GdipSetPenStartCap_delegate> GdipSetPenStartCap_ptr;
-            internal static int GdipSetPenStartCap(HandleRef pen, int startCap) => GdipSetPenStartCap_ptr.Delegate(pen, startCap);
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipSetPathGradientPresetBlend(HandleRef brush, int[] blend, float[] positions, int count);
 
-            private delegate int GdipSetPenEndCap_delegate(HandleRef pen, int endCap);
-            private static FunctionWrapper<GdipSetPenEndCap_delegate> GdipSetPenEndCap_ptr;
-            internal static int GdipSetPenEndCap(HandleRef pen, int endCap) => GdipSetPenEndCap_ptr.Delegate(pen, endCap);
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipSetPathGradientSigmaBlend(HandleRef brush, float focus, float scale);
 
-            private delegate int GdipGetPenStartCap_delegate(HandleRef pen, out int startCap);
-            private static FunctionWrapper<GdipGetPenStartCap_delegate> GdipGetPenStartCap_ptr;
-            internal static int GdipGetPenStartCap(HandleRef pen, out int startCap) => GdipGetPenStartCap_ptr.Delegate(pen, out startCap);
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipSetPathGradientLinearBlend(HandleRef brush, float focus, float scale);
 
-            private delegate int GdipGetPenEndCap_delegate(HandleRef pen, out int endCap);
-            private static FunctionWrapper<GdipGetPenEndCap_delegate> GdipGetPenEndCap_ptr;
-            internal static int GdipGetPenEndCap(HandleRef pen, out int endCap) => GdipGetPenEndCap_ptr.Delegate(pen, out endCap);
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipSetPathGradientWrapMode(HandleRef brush, int wrapmode);
 
-            private delegate int GdipGetPenDashCap197819_delegate(HandleRef pen, out int dashCap);
-            private static FunctionWrapper<GdipGetPenDashCap197819_delegate> GdipGetPenDashCap197819_ptr;
-            internal static int GdipGetPenDashCap197819(HandleRef pen, out int dashCap) => GdipGetPenDashCap197819_ptr.Delegate(pen, out dashCap);
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipGetPathGradientWrapMode(HandleRef brush, out int wrapmode);
 
-            private delegate int GdipSetPenDashCap197819_delegate(HandleRef pen, int dashCap);
-            private static FunctionWrapper<GdipSetPenDashCap197819_delegate> GdipSetPenDashCap197819_ptr;
-            internal static int GdipSetPenDashCap197819(HandleRef pen, int dashCap) => GdipSetPenDashCap197819_ptr.Delegate(pen, dashCap);
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipSetPathGradientTransform(HandleRef brush, HandleRef matrix);
 
-            private delegate int GdipSetPenLineJoin_delegate(HandleRef pen, int lineJoin);
-            private static FunctionWrapper<GdipSetPenLineJoin_delegate> GdipSetPenLineJoin_ptr;
-            internal static int GdipSetPenLineJoin(HandleRef pen, int lineJoin) => GdipSetPenLineJoin_ptr.Delegate(pen, lineJoin);
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipGetPathGradientTransform(HandleRef brush, HandleRef matrix);
 
-            private delegate int GdipGetPenLineJoin_delegate(HandleRef pen, out int lineJoin);
-            private static FunctionWrapper<GdipGetPenLineJoin_delegate> GdipGetPenLineJoin_ptr;
-            internal static int GdipGetPenLineJoin(HandleRef pen, out int lineJoin) => GdipGetPenLineJoin_ptr.Delegate(pen, out lineJoin);
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipResetPathGradientTransform(HandleRef brush);
 
-            private delegate int GdipSetPenCustomStartCap_delegate(HandleRef pen, HandleRef customCap);
-            private static FunctionWrapper<GdipSetPenCustomStartCap_delegate> GdipSetPenCustomStartCap_ptr;
-            internal static int GdipSetPenCustomStartCap(HandleRef pen, HandleRef customCap) => GdipSetPenCustomStartCap_ptr.Delegate(pen, customCap);
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipMultiplyPathGradientTransform(HandleRef brush, HandleRef matrix, MatrixOrder order);
 
-            private delegate int GdipGetPenCustomStartCap_delegate(HandleRef pen, out IntPtr customCap);
-            private static FunctionWrapper<GdipGetPenCustomStartCap_delegate> GdipGetPenCustomStartCap_ptr;
-            internal static int GdipGetPenCustomStartCap(HandleRef pen, out IntPtr customCap) => GdipGetPenCustomStartCap_ptr.Delegate(pen, out customCap);
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipTranslatePathGradientTransform(HandleRef brush, float dx, float dy, MatrixOrder order);
 
-            private delegate int GdipSetPenCustomEndCap_delegate(HandleRef pen, HandleRef customCap);
-            private static FunctionWrapper<GdipSetPenCustomEndCap_delegate> GdipSetPenCustomEndCap_ptr;
-            internal static int GdipSetPenCustomEndCap(HandleRef pen, HandleRef customCap) => GdipSetPenCustomEndCap_ptr.Delegate(pen, customCap);
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipScalePathGradientTransform(HandleRef brush, float sx, float sy, MatrixOrder order);
 
-            private delegate int GdipGetPenCustomEndCap_delegate(HandleRef pen, out IntPtr customCap);
-            private static FunctionWrapper<GdipGetPenCustomEndCap_delegate> GdipGetPenCustomEndCap_ptr;
-            internal static int GdipGetPenCustomEndCap(HandleRef pen, out IntPtr customCap) => GdipGetPenCustomEndCap_ptr.Delegate(pen, out customCap);
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipRotatePathGradientTransform(HandleRef brush, float angle, MatrixOrder order);
 
-            private delegate int GdipSetPenMiterLimit_delegate(HandleRef pen, float miterLimit);
-            private static FunctionWrapper<GdipSetPenMiterLimit_delegate> GdipSetPenMiterLimit_ptr;
-            internal static int GdipSetPenMiterLimit(HandleRef pen, float miterLimit) => GdipSetPenMiterLimit_ptr.Delegate(pen, miterLimit);
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipGetPathGradientFocusScales(HandleRef brush, float[] xScale, float[] yScale);
 
-            private delegate int GdipGetPenMiterLimit_delegate(HandleRef pen, float[] miterLimit);
-            private static FunctionWrapper<GdipGetPenMiterLimit_delegate> GdipGetPenMiterLimit_ptr;
-            internal static int GdipGetPenMiterLimit(HandleRef pen, float[] miterLimit) => GdipGetPenMiterLimit_ptr.Delegate(pen, miterLimit);
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipSetPathGradientFocusScales(HandleRef brush, float xScale, float yScale);
 
-            private delegate int GdipSetPenTransform_delegate(HandleRef pen, HandleRef matrix);
-            private static FunctionWrapper<GdipSetPenTransform_delegate> GdipSetPenTransform_ptr;
-            internal static int GdipSetPenTransform(HandleRef pen, HandleRef matrix) => GdipSetPenTransform_ptr.Delegate(pen, matrix);
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipCreateImageAttributes(out IntPtr imageattr);
 
-            private delegate int GdipGetPenTransform_delegate(HandleRef pen, HandleRef matrix);
-            private static FunctionWrapper<GdipGetPenTransform_delegate> GdipGetPenTransform_ptr;
-            internal static int GdipGetPenTransform(HandleRef pen, HandleRef matrix) => GdipGetPenTransform_ptr.Delegate(pen, matrix);
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipCloneImageAttributes(HandleRef imageattr, out IntPtr cloneImageattr);
 
-            private delegate int GdipResetPenTransform_delegate(HandleRef brush);
-            private static FunctionWrapper<GdipResetPenTransform_delegate> GdipResetPenTransform_ptr;
-            internal static int GdipResetPenTransform(HandleRef brush) => GdipResetPenTransform_ptr.Delegate(brush);
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipDisposeImageAttributes(HandleRef imageattr);
 
-            private delegate int GdipMultiplyPenTransform_delegate(HandleRef brush, HandleRef matrix, MatrixOrder order);
-            private static FunctionWrapper<GdipMultiplyPenTransform_delegate> GdipMultiplyPenTransform_ptr;
-            internal static int GdipMultiplyPenTransform(HandleRef brush, HandleRef matrix, MatrixOrder order) => GdipMultiplyPenTransform_ptr.Delegate(brush, matrix, order);
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipSetImageAttributesColorMatrix(HandleRef imageattr, ColorAdjustType type, bool enableFlag, ColorMatrix colorMatrix, ColorMatrix grayMatrix, ColorMatrixFlag flags);
 
-            private delegate int GdipTranslatePenTransform_delegate(HandleRef brush, float dx, float dy, MatrixOrder order);
-            private static FunctionWrapper<GdipTranslatePenTransform_delegate> GdipTranslatePenTransform_ptr;
-            internal static int GdipTranslatePenTransform(HandleRef brush, float dx, float dy, MatrixOrder order) => GdipTranslatePenTransform_ptr.Delegate(brush, dx, dy, order);
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipSetImageAttributesThreshold(HandleRef imageattr, ColorAdjustType type, bool enableFlag, float threshold);
 
-            private delegate int GdipScalePenTransform_delegate(HandleRef brush, float sx, float sy, MatrixOrder order);
-            private static FunctionWrapper<GdipScalePenTransform_delegate> GdipScalePenTransform_ptr;
-            internal static int GdipScalePenTransform(HandleRef brush, float sx, float sy, MatrixOrder order) => GdipScalePenTransform_ptr.Delegate(brush, sx, sy, order);
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipSetImageAttributesGamma(HandleRef imageattr, ColorAdjustType type, bool enableFlag, float gamma);
 
-            private delegate int GdipRotatePenTransform_delegate(HandleRef brush, float angle, MatrixOrder order);
-            private static FunctionWrapper<GdipRotatePenTransform_delegate> GdipRotatePenTransform_ptr;
-            internal static int GdipRotatePenTransform(HandleRef brush, float angle, MatrixOrder order) => GdipRotatePenTransform_ptr.Delegate(brush, angle, order);
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipSetImageAttributesNoOp(HandleRef imageattr, ColorAdjustType type, bool enableFlag);
 
-            private delegate int GdipSetPenColor_delegate(HandleRef pen, int argb);
-            private static FunctionWrapper<GdipSetPenColor_delegate> GdipSetPenColor_ptr;
-            internal static int GdipSetPenColor(HandleRef pen, int argb) => GdipSetPenColor_ptr.Delegate(pen, argb);
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipSetImageAttributesColorKeys(HandleRef imageattr, ColorAdjustType type, bool enableFlag, int colorLow, int colorHigh);
 
-            private delegate int GdipGetPenColor_delegate(HandleRef pen, out int argb);
-            private static FunctionWrapper<GdipGetPenColor_delegate> GdipGetPenColor_ptr;
-            internal static int GdipGetPenColor(HandleRef pen, out int argb) => GdipGetPenColor_ptr.Delegate(pen, out argb);
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipSetImageAttributesOutputChannel(HandleRef imageattr, ColorAdjustType type, bool enableFlag, ColorChannelFlag flags);
 
-            private delegate int GdipSetPenBrushFill_delegate(HandleRef pen, HandleRef brush);
-            private static FunctionWrapper<GdipSetPenBrushFill_delegate> GdipSetPenBrushFill_ptr;
-            internal static int GdipSetPenBrushFill(HandleRef pen, HandleRef brush) => GdipSetPenBrushFill_ptr.Delegate(pen, brush);
+            [DllImport(LibraryName, ExactSpelling = true, CharSet = CharSet.Unicode)]
+            internal static extern int GdipSetImageAttributesOutputChannelColorProfile(HandleRef imageattr, ColorAdjustType type, bool enableFlag, string colorProfileFilename);
 
-            private delegate int GdipGetPenBrushFill_delegate(HandleRef pen, out IntPtr brush);
-            private static FunctionWrapper<GdipGetPenBrushFill_delegate> GdipGetPenBrushFill_ptr;
-            internal static int GdipGetPenBrushFill(HandleRef pen, out IntPtr brush) => GdipGetPenBrushFill_ptr.Delegate(pen, out brush);
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipSetImageAttributesRemapTable(HandleRef imageattr, ColorAdjustType type, bool enableFlag, int mapSize, IntPtr map);
 
-            private delegate int GdipGetPenFillType_delegate(HandleRef pen, out int pentype);
-            private static FunctionWrapper<GdipGetPenFillType_delegate> GdipGetPenFillType_ptr;
-            internal static int GdipGetPenFillType(HandleRef pen, out int pentype) => GdipGetPenFillType_ptr.Delegate(pen, out pentype);
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipSetImageAttributesWrapMode(HandleRef imageattr, int wrapmode, int argb, bool clamp);
 
-            private delegate int GdipGetPenDashStyle_delegate(HandleRef pen, out int dashstyle);
-            private static FunctionWrapper<GdipGetPenDashStyle_delegate> GdipGetPenDashStyle_ptr;
-            internal static int GdipGetPenDashStyle(HandleRef pen, out int dashstyle) => GdipGetPenDashStyle_ptr.Delegate(pen, out dashstyle);
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipGetImageAttributesAdjustedPalette(HandleRef imageattr, IntPtr palette, ColorAdjustType type);
 
-            private delegate int GdipSetPenDashStyle_delegate(HandleRef pen, int dashstyle);
-            private static FunctionWrapper<GdipSetPenDashStyle_delegate> GdipSetPenDashStyle_ptr;
-            internal static int GdipSetPenDashStyle(HandleRef pen, int dashstyle) => GdipSetPenDashStyle_ptr.Delegate(pen, dashstyle);
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipGetImageDecodersSize(out int numDecoders, out int size);
 
-            private delegate int GdipSetPenDashArray_delegate(HandleRef pen, HandleRef memorydash, int count);
-            private static FunctionWrapper<GdipSetPenDashArray_delegate> GdipSetPenDashArray_ptr;
-            internal static int GdipSetPenDashArray(HandleRef pen, HandleRef memorydash, int count) => GdipSetPenDashArray_ptr.Delegate(pen, memorydash, count);
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipGetImageDecoders(int numDecoders, int size, IntPtr decoders);
 
-            private delegate int GdipGetPenDashOffset_delegate(HandleRef pen, float[] dashoffset);
-            private static FunctionWrapper<GdipGetPenDashOffset_delegate> GdipGetPenDashOffset_ptr;
-            internal static int GdipGetPenDashOffset(HandleRef pen, float[] dashoffset) => GdipGetPenDashOffset_ptr.Delegate(pen, dashoffset);
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipGetImageEncodersSize(out int numEncoders, out int size);
 
-            private delegate int GdipSetPenDashOffset_delegate(HandleRef pen, float dashoffset);
-            private static FunctionWrapper<GdipSetPenDashOffset_delegate> GdipSetPenDashOffset_ptr;
-            internal static int GdipSetPenDashOffset(HandleRef pen, float dashoffset) => GdipSetPenDashOffset_ptr.Delegate(pen, dashoffset);
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipGetImageEncoders(int numEncoders, int size, IntPtr encoders);
 
-            private delegate int GdipGetPenDashCount_delegate(HandleRef pen, out int dashcount);
-            private static FunctionWrapper<GdipGetPenDashCount_delegate> GdipGetPenDashCount_ptr;
-            internal static int GdipGetPenDashCount(HandleRef pen, out int dashcount) => GdipGetPenDashCount_ptr.Delegate(pen, out dashcount);
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipCreateSolidFill(int color, out IntPtr brush);
 
-            private delegate int GdipGetPenDashArray_delegate(HandleRef pen, IntPtr memorydash, int count);
-            private static FunctionWrapper<GdipGetPenDashArray_delegate> GdipGetPenDashArray_ptr;
-            internal static int GdipGetPenDashArray(HandleRef pen, IntPtr memorydash, int count) => GdipGetPenDashArray_ptr.Delegate(pen, memorydash, count);
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipSetSolidFillColor(HandleRef brush, int color);
 
-            private delegate int GdipGetPenCompoundCount_delegate(HandleRef pen, out int count);
-            private static FunctionWrapper<GdipGetPenCompoundCount_delegate> GdipGetPenCompoundCount_ptr;
-            internal static int GdipGetPenCompoundCount(HandleRef pen, out int count) => GdipGetPenCompoundCount_ptr.Delegate(pen, out count);
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipGetSolidFillColor(HandleRef brush, out int color);
 
-            private delegate int GdipSetPenCompoundArray_delegate(HandleRef pen, float[] array, int count);
-            private static FunctionWrapper<GdipSetPenCompoundArray_delegate> GdipSetPenCompoundArray_ptr;
-            internal static int GdipSetPenCompoundArray(HandleRef pen, float[] array, int count) => GdipSetPenCompoundArray_ptr.Delegate(pen, array, count);
 
-            private delegate int GdipGetPenCompoundArray_delegate(HandleRef pen, float[] array, int count);
-            private static FunctionWrapper<GdipGetPenCompoundArray_delegate> GdipGetPenCompoundArray_ptr;
-            internal static int GdipGetPenCompoundArray(HandleRef pen, float[] array, int count) => GdipGetPenCompoundArray_ptr.Delegate(pen, array, count);
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipCreateTexture(HandleRef bitmap, int wrapmode, out IntPtr texture);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipCreateTexture2(HandleRef bitmap, int wrapmode, float x, float y, float width, float height, out IntPtr texture);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipCreateTextureIA(HandleRef bitmap, HandleRef imageAttrib, float x, float y, float width, float height, out IntPtr texture);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipCreateTexture2I(HandleRef bitmap, int wrapmode, int x, int y, int width, int height, out IntPtr texture);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipCreateTextureIAI(HandleRef bitmap, HandleRef imageAttrib, int x, int y, int width, int height, out IntPtr texture);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipSetTextureTransform(HandleRef brush, HandleRef matrix);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipGetTextureTransform(HandleRef brush, HandleRef matrix);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipResetTextureTransform(HandleRef brush);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipMultiplyTextureTransform(HandleRef brush, HandleRef matrix, MatrixOrder order);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipTranslateTextureTransform(HandleRef brush, float dx, float dy, MatrixOrder order);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipScaleTextureTransform(HandleRef brush, float sx, float sy, MatrixOrder order);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipRotateTextureTransform(HandleRef brush, float angle, MatrixOrder order);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipSetTextureWrapMode(HandleRef brush, int wrapMode);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipGetTextureWrapMode(HandleRef brush, out int wrapMode);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipGetTextureImage(HandleRef brush, out IntPtr image);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipGetFontCollectionFamilyCount(HandleRef fontCollection, out int numFound);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipGetFontCollectionFamilyList(HandleRef fontCollection, int numSought, IntPtr[] gpfamilies, out int numFound);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipCloneFontFamily(IntPtr fontfamily, out IntPtr clonefontfamily);
+
+            [DllImport(LibraryName, ExactSpelling = true, CharSet = CharSet.Unicode)]
+            internal static extern int GdipCreateFontFamilyFromName(string name, HandleRef fontCollection, out IntPtr FontFamily);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipGetGenericFontFamilySansSerif(out IntPtr fontfamily);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipGetGenericFontFamilySerif(out IntPtr fontfamily);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipGetGenericFontFamilyMonospace(out IntPtr fontfamily);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipDeleteFontFamily(HandleRef fontFamily);
+
+            [DllImport(LibraryName, ExactSpelling = true, CharSet = CharSet.Unicode)]
+            internal static extern int GdipGetFamilyName(HandleRef family, char* name, int language);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipIsStyleAvailable(HandleRef family, FontStyle style, out int isStyleAvailable);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipGetEmHeight(HandleRef family, FontStyle style, out int EmHeight);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipGetCellAscent(HandleRef family, FontStyle style, out int CellAscent);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipGetCellDescent(HandleRef family, FontStyle style, out int CellDescent);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipGetLineSpacing(HandleRef family, FontStyle style, out int LineSpaceing);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipNewInstalledFontCollection(out IntPtr fontCollection);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipNewPrivateFontCollection(out IntPtr fontCollection);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipDeletePrivateFontCollection(ref IntPtr fontCollection);
+
+            [DllImport(LibraryName, ExactSpelling = true, CharSet = CharSet.Unicode)]
+            internal static extern int GdipPrivateAddFontFile(HandleRef fontCollection, string filename);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipPrivateAddMemoryFont(HandleRef fontCollection, IntPtr memory, int length);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipCreateFont(HandleRef fontFamily, float emSize, FontStyle style, GraphicsUnit unit, out IntPtr font);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipCreateFontFromDC(IntPtr hdc, ref IntPtr font);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipCloneFont(HandleRef font, out IntPtr cloneFont);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipDeleteFont(HandleRef font);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipGetFamily(HandleRef font, out IntPtr family);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipGetFontStyle(HandleRef font, out FontStyle style);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipGetFontSize(HandleRef font, out float size);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipGetFontHeight(HandleRef font, HandleRef graphics, out float size);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipGetFontHeightGivenDPI(HandleRef font, float dpi, out float size);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipGetFontUnit(HandleRef font, out GraphicsUnit unit);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipGetLogFontW(HandleRef font, HandleRef graphics, ref LOGFONT lf);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipCreatePen1(int argb, float width, int unit, out IntPtr pen);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipCreatePen2(HandleRef brush, float width, int unit, out IntPtr pen);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipClonePen(HandleRef pen, out IntPtr clonepen);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipDeletePen(HandleRef Pen);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipSetPenMode(HandleRef pen, PenAlignment penAlign);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipGetPenMode(HandleRef pen, out PenAlignment penAlign);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipSetPenWidth(HandleRef pen, float width);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipGetPenWidth(HandleRef pen, float[] width);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipSetPenLineCap197819(HandleRef pen, int startCap, int endCap, int dashCap);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipSetPenStartCap(HandleRef pen, int startCap);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipSetPenEndCap(HandleRef pen, int endCap);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipGetPenStartCap(HandleRef pen, out int startCap);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipGetPenEndCap(HandleRef pen, out int endCap);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipGetPenDashCap197819(HandleRef pen, out int dashCap);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipSetPenDashCap197819(HandleRef pen, int dashCap);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipSetPenLineJoin(HandleRef pen, int lineJoin);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipGetPenLineJoin(HandleRef pen, out int lineJoin);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipSetPenCustomStartCap(HandleRef pen, HandleRef customCap);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipGetPenCustomStartCap(HandleRef pen, out IntPtr customCap);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipSetPenCustomEndCap(HandleRef pen, HandleRef customCap);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipGetPenCustomEndCap(HandleRef pen, out IntPtr customCap);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipSetPenMiterLimit(HandleRef pen, float miterLimit);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipGetPenMiterLimit(HandleRef pen, float[] miterLimit);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipSetPenTransform(HandleRef pen, HandleRef matrix);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipGetPenTransform(HandleRef pen, HandleRef matrix);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipResetPenTransform(HandleRef brush);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipMultiplyPenTransform(HandleRef brush, HandleRef matrix, MatrixOrder order);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipTranslatePenTransform(HandleRef brush, float dx, float dy, MatrixOrder order);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipScalePenTransform(HandleRef brush, float sx, float sy, MatrixOrder order);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipRotatePenTransform(HandleRef brush, float angle, MatrixOrder order);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipSetPenColor(HandleRef pen, int argb);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipGetPenColor(HandleRef pen, out int argb);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipSetPenBrushFill(HandleRef pen, HandleRef brush);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipGetPenBrushFill(HandleRef pen, out IntPtr brush);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipGetPenFillType(HandleRef pen, out int pentype);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipGetPenDashStyle(HandleRef pen, out int dashstyle);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipSetPenDashStyle(HandleRef pen, int dashstyle);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipSetPenDashArray(HandleRef pen, HandleRef memorydash, int count);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipGetPenDashOffset(HandleRef pen, float[] dashoffset);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipSetPenDashOffset(HandleRef pen, float dashoffset);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipGetPenDashCount(HandleRef pen, out int dashcount);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipGetPenDashArray(HandleRef pen, float[] memorydash, int count);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipGetPenCompoundCount(HandleRef pen, out int count);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipSetPenCompoundArray(HandleRef pen, float[] array, int count);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipGetPenCompoundArray(HandleRef pen, float[] array, int count);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipSetWorldTransform(HandleRef graphics, HandleRef matrix);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipResetWorldTransform(HandleRef graphics);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipMultiplyWorldTransform(HandleRef graphics, HandleRef matrix, MatrixOrder order);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipTranslateWorldTransform(HandleRef graphics, float dx, float dy, MatrixOrder order);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipScaleWorldTransform(HandleRef graphics, float sx, float sy, MatrixOrder order);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipRotateWorldTransform(HandleRef graphics, float angle, MatrixOrder order);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipGetWorldTransform(HandleRef graphics, HandleRef matrix);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipSetCompositingMode(HandleRef graphics, CompositingMode compositingMode);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipSetTextRenderingHint(HandleRef graphics, TextRenderingHint textRenderingHint);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipSetTextContrast(HandleRef graphics, int textContrast);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipSetInterpolationMode(HandleRef graphics, InterpolationMode interpolationMode);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipGetCompositingMode(HandleRef graphics, out CompositingMode compositingMode);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipSetRenderingOrigin(HandleRef graphics, int x, int y);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipGetRenderingOrigin(HandleRef graphics, out int x, out int y);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipSetCompositingQuality(HandleRef graphics, CompositingQuality quality);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipGetCompositingQuality(HandleRef graphics, out CompositingQuality quality);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipSetSmoothingMode(HandleRef graphics, SmoothingMode smoothingMode);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipGetSmoothingMode(HandleRef graphics, out SmoothingMode smoothingMode);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipSetPixelOffsetMode(HandleRef graphics, PixelOffsetMode pixelOffsetMode);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipGetPixelOffsetMode(HandleRef graphics, out PixelOffsetMode pixelOffsetMode);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipGetTextRenderingHint(HandleRef graphics, out TextRenderingHint textRenderingHint);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipGetTextContrast(HandleRef graphics, out int textContrast);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipGetInterpolationMode(HandleRef graphics, out InterpolationMode interpolationMode);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipGetPageUnit(HandleRef graphics, out GraphicsUnit unit);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipGetPageScale(HandleRef graphics, out float scale);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipSetPageUnit(HandleRef graphics, GraphicsUnit unit);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipSetPageScale(HandleRef graphics, float scale);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipGetDpiX(HandleRef graphics, out float dpi);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipGetDpiY(HandleRef graphics, out float dpi);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipCreateMatrix(out IntPtr matrix);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipCreateMatrix2(float m11, float m12, float m21, float m22, float dx, float dy, out IntPtr matrix);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipCreateMatrix3(ref RectangleF rect, PointF* dstplg, out IntPtr matrix);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipCreateMatrix3I(ref Rectangle rect, Point* dstplg, out IntPtr matrix);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipCloneMatrix(HandleRef matrix, out IntPtr cloneMatrix);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipDeleteMatrix(HandleRef matrix);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipSetMatrixElements(HandleRef matrix, float m11, float m12, float m21, float m22, float dx, float dy);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipMultiplyMatrix(HandleRef matrix, HandleRef matrix2, MatrixOrder order);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipTranslateMatrix(HandleRef matrix, float offsetX, float offsetY, MatrixOrder order);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipScaleMatrix(HandleRef matrix, float scaleX, float scaleY, MatrixOrder order);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipRotateMatrix(HandleRef matrix, float angle, MatrixOrder order);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipShearMatrix(HandleRef matrix, float shearX, float shearY, MatrixOrder order);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipInvertMatrix(HandleRef matrix);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipTransformMatrixPoints(HandleRef matrix, PointF* pts, int count);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipTransformMatrixPointsI(HandleRef matrix, Point* pts, int count);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipVectorTransformMatrixPoints(HandleRef matrix, PointF* pts, int count);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipVectorTransformMatrixPointsI(HandleRef matrix, Point* pts, int count);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipGetMatrixElements(HandleRef matrix, IntPtr m);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipIsMatrixInvertible(HandleRef matrix, out int boolean);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipIsMatrixIdentity(HandleRef matrix, out int boolean);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipIsMatrixEqual(HandleRef matrix, HandleRef matrix2, out int boolean);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipCreateRegion(out IntPtr region);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipCreateRegionRect(ref RectangleF gprectf, out IntPtr region);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipCreateRegionRectI(ref Rectangle gprect, out IntPtr region);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipCreateRegionPath(HandleRef path, out IntPtr region);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipCreateRegionRgnData(byte[] rgndata, int size, out IntPtr region);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipCreateRegionHrgn(IntPtr hRgn, out IntPtr region);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipCloneRegion(HandleRef region, out IntPtr cloneregion);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipDeleteRegion(HandleRef region);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipFillRegion(HandleRef graphics, HandleRef brush, HandleRef region);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipSetInfinite(HandleRef region);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipSetEmpty(HandleRef region);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipCombineRegionRect(HandleRef region, ref RectangleF gprectf, CombineMode mode);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipCombineRegionRectI(HandleRef region, ref Rectangle gprect, CombineMode mode);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipCombineRegionPath(HandleRef region, HandleRef path, CombineMode mode);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipCombineRegionRegion(HandleRef region, HandleRef region2, CombineMode mode);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipTranslateRegion(HandleRef region, float dx, float dy);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipTranslateRegionI(HandleRef region, int dx, int dy);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipTransformRegion(HandleRef region, HandleRef matrix);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipGetRegionBounds(HandleRef region, HandleRef graphics, out RectangleF gprectf);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipGetRegionHRgn(HandleRef region, HandleRef graphics, out IntPtr hrgn);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipIsEmptyRegion(HandleRef region, HandleRef graphics, out int boolean);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipIsInfiniteRegion(HandleRef region, HandleRef graphics, out int boolean);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipIsEqualRegion(HandleRef region, HandleRef region2, HandleRef graphics, out int boolean);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipGetRegionDataSize(HandleRef region, out int bufferSize);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipGetRegionData(HandleRef region, byte[] regionData, int bufferSize, out int sizeFilled);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipIsVisibleRegionPoint(HandleRef region, float X, float Y, HandleRef graphics, out int boolean);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipIsVisibleRegionPointI(HandleRef region, int X, int Y, HandleRef graphics, out int boolean);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipIsVisibleRegionRect(HandleRef region, float X, float Y, float width, float height, HandleRef graphics, out int boolean);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipIsVisibleRegionRectI(HandleRef region, int X, int Y, int width, int height, HandleRef graphics, out int boolean);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipGetRegionScansCount(HandleRef region, out int count, HandleRef matrix);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipGetRegionScans(HandleRef region, RectangleF* rects, out int count, HandleRef matrix);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipCreateFromHDC(IntPtr hdc, out IntPtr graphics);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipSetClipGraphics(HandleRef graphics, HandleRef srcgraphics, CombineMode mode);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipSetClipRect(HandleRef graphics, float x, float y, float width, float height, CombineMode mode);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipSetClipRectI(HandleRef graphics, int x, int y, int width, int height, CombineMode mode);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipSetClipPath(HandleRef graphics, HandleRef path, CombineMode mode);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipSetClipRegion(HandleRef graphics, HandleRef region, CombineMode mode);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipResetClip(HandleRef graphics);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipTranslateClip(HandleRef graphics, float dx, float dy);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipGetClip(HandleRef graphics, HandleRef region);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipGetClipBounds(HandleRef graphics, out RectangleF rect);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipIsClipEmpty(HandleRef graphics, out bool result);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipGetVisibleClipBounds(HandleRef graphics, out RectangleF rect);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipIsVisibleClipEmpty(HandleRef graphics, out bool result);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipIsVisiblePoint(HandleRef graphics, float x, float y, out bool result);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipIsVisiblePointI(HandleRef graphics, int x, int y, out bool result);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipIsVisibleRect(HandleRef graphics, float x, float y, float width, float height, out bool result);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipIsVisibleRectI(HandleRef graphics, int x, int y, int width, int height, out bool result);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipFlush(HandleRef graphics, FlushIntention intention);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipGetDC(HandleRef graphics, out IntPtr hdc);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipSetStringFormatMeasurableCharacterRanges(HandleRef format, int rangeCount, [In] [Out] CharacterRange[] range);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipCreateStringFormat(StringFormatFlags options, int language, out IntPtr format);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipStringFormatGetGenericDefault(out IntPtr format);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipStringFormatGetGenericTypographic(out IntPtr format);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipDeleteStringFormat(HandleRef format);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipCloneStringFormat(HandleRef format, out IntPtr newFormat);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipSetStringFormatFlags(HandleRef format, StringFormatFlags options);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipGetStringFormatFlags(HandleRef format, out StringFormatFlags result);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipSetStringFormatAlign(HandleRef format, StringAlignment align);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipGetStringFormatAlign(HandleRef format, out StringAlignment align);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipSetStringFormatLineAlign(HandleRef format, StringAlignment align);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipGetStringFormatLineAlign(HandleRef format, out StringAlignment align);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipSetStringFormatHotkeyPrefix(HandleRef format, HotkeyPrefix hotkeyPrefix);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipGetStringFormatHotkeyPrefix(HandleRef format, out HotkeyPrefix hotkeyPrefix);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipSetStringFormatTabStops(HandleRef format, float firstTabOffset, int count, float[] tabStops);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipGetStringFormatTabStops(HandleRef format, int count, out float firstTabOffset, [In] [Out] float[] tabStops);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipGetStringFormatTabStopCount(HandleRef format, out int count);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipGetStringFormatMeasurableCharacterRangeCount(HandleRef format, out int count);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipSetStringFormatTrimming(HandleRef format, StringTrimming trimming);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipGetStringFormatTrimming(HandleRef format, out StringTrimming trimming);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipSetStringFormatDigitSubstitution(HandleRef format, int langID, StringDigitSubstitute sds);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipGetStringFormatDigitSubstitution(HandleRef format, out int langID, out StringDigitSubstitute sds);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipGetImageDimension(HandleRef image, out float width, out float height);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipGetImageWidth(HandleRef image, out int width);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipGetImageHeight(HandleRef image, out int height);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipGetImageHorizontalResolution(HandleRef image, out float horzRes);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipGetImageVerticalResolution(HandleRef image, out float vertRes);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipGetImageFlags(HandleRef image, out int flags);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipGetImageRawFormat(HandleRef image, ref Guid format);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipGetImagePixelFormat(HandleRef image, out PixelFormat format);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipImageGetFrameCount(HandleRef image, ref Guid dimensionID, out int count);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipImageSelectActiveFrame(HandleRef image, ref Guid dimensionID, int frameIndex);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipImageRotateFlip(HandleRef image, int rotateFlipType);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipRemovePropertyItem(HandleRef image, int propid);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipGetImageType(HandleRef image, out int type);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipGetImageType(IntPtr image, out int type);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipDisposeImage(HandleRef image);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipDisposeImage(IntPtr image);
+
+            [DllImport(LibraryName, ExactSpelling = true, CharSet = CharSet.Unicode)]
+            internal static extern int GdipCreateBitmapFromFile(string filename, out IntPtr bitmap);
+
+            [DllImport(LibraryName, ExactSpelling = true, CharSet = CharSet.Unicode)]
+            internal static extern int GdipCreateBitmapFromFileICM(string filename, out IntPtr bitmap);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipCreateBitmapFromScan0(int width, int height, int stride, int format, IntPtr scan0, out IntPtr bitmap);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipCreateBitmapFromGraphics(int width, int height, HandleRef graphics, out IntPtr bitmap);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipCreateBitmapFromHBITMAP(IntPtr hbitmap, IntPtr hpalette, out IntPtr bitmap);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipCreateBitmapFromHICON(IntPtr hicon, out IntPtr bitmap);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipCreateBitmapFromResource(IntPtr hresource, IntPtr name, out IntPtr bitmap);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipCreateHBITMAPFromBitmap(HandleRef nativeBitmap, out IntPtr hbitmap, int argbBackground);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipCreateHICONFromBitmap(HandleRef nativeBitmap, out IntPtr hicon);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipCloneBitmapArea(float x, float y, float width, float height, int format, HandleRef srcbitmap, out IntPtr dstbitmap);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipCloneBitmapAreaI(int x, int y, int width, int height, int format, HandleRef srcbitmap, out IntPtr dstbitmap);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipBitmapLockBits(HandleRef bitmap, ref Rectangle rect, ImageLockMode flags, PixelFormat format, [In] [Out] BitmapData lockedBitmapData);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipBitmapUnlockBits(HandleRef bitmap, BitmapData lockedBitmapData);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipBitmapGetPixel(HandleRef bitmap, int x, int y, out int argb);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipBitmapSetPixel(HandleRef bitmap, int x, int y, int argb);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipBitmapSetResolution(HandleRef bitmap, float dpix, float dpiy);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipImageGetFrameDimensionsCount(HandleRef image, out int count);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipImageGetFrameDimensionsList(HandleRef image, Guid* dimensionIDs, int count);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipCreateMetafileFromEmf(IntPtr hEnhMetafile, bool deleteEmf, out IntPtr metafile);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipCreateMetafileFromWmf(IntPtr hMetafile, bool deleteWmf, WmfPlaceableFileHeader wmfplacealbeHeader, out IntPtr metafile);
+
+            [DllImport(LibraryName, ExactSpelling = true, CharSet = CharSet.Unicode)]
+            internal static extern int GdipCreateMetafileFromFile(string file, out IntPtr metafile);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipRecordMetafile(IntPtr referenceHdc, EmfType emfType, IntPtr pframeRect, MetafileFrameUnit frameUnit, string description, out IntPtr metafile);
+
+            [DllImport(LibraryName, ExactSpelling = true, CharSet = CharSet.Unicode)]
+            internal static extern int GdipRecordMetafile(IntPtr referenceHdc, EmfType emfType, ref RectangleF frameRect, MetafileFrameUnit frameUnit, string description, out IntPtr metafile);
+
+            [DllImport(LibraryName, ExactSpelling = true, CharSet = CharSet.Unicode)]
+            internal static extern int GdipRecordMetafileI(IntPtr referenceHdc, EmfType emfType, ref Rectangle frameRect, MetafileFrameUnit frameUnit, string description, out IntPtr metafile);
+
+            [DllImport(LibraryName, ExactSpelling = true, CharSet = CharSet.Unicode)]
+            internal static extern int GdipRecordMetafileFileName(string fileName, IntPtr referenceHdc, EmfType emfType, ref RectangleF frameRect, MetafileFrameUnit frameUnit, string description, out IntPtr metafile);
+
+            [DllImport(LibraryName, ExactSpelling = true, CharSet = CharSet.Unicode)]
+            internal static extern int GdipRecordMetafileFileName(string fileName, IntPtr referenceHdc, EmfType emfType, IntPtr pframeRect, MetafileFrameUnit frameUnit, string description, out IntPtr metafile);
+
+            [DllImport(LibraryName, ExactSpelling = true, CharSet = CharSet.Unicode)]
+            internal static extern int GdipRecordMetafileFileNameI(string fileName, IntPtr referenceHdc, EmfType emfType, ref Rectangle frameRect, MetafileFrameUnit frameUnit, string description, out IntPtr metafile);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipPlayMetafileRecord(HandleRef metafile, EmfPlusRecordType recordType, int flags, int dataSize, byte[] data);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipSaveGraphics(HandleRef graphics, out int state);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipDrawArc(HandleRef graphics, HandleRef pen, float x, float y, float width, float height, float startAngle, float sweepAngle);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipDrawArcI(HandleRef graphics, HandleRef pen, int x, int y, int width, int height, float startAngle, float sweepAngle);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipDrawLinesI(HandleRef graphics, HandleRef pen, Point* points, int count);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipDrawBezier(HandleRef graphics, HandleRef pen, float x1, float y1, float x2, float y2, float x3, float y3, float x4, float y4);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipDrawEllipse(HandleRef graphics, HandleRef pen, float x, float y, float width, float height);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipDrawEllipseI(HandleRef graphics, HandleRef pen, int x, int y, int width, int height);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipDrawLine(HandleRef graphics, HandleRef pen, float x1, float y1, float x2, float y2);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipDrawLineI(HandleRef graphics, HandleRef pen, int x1, int y1, int x2, int y2);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipDrawLines(HandleRef graphics, HandleRef pen, PointF* points, int count);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipDrawPath(HandleRef graphics, HandleRef pen, HandleRef path);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipDrawPie(HandleRef graphics, HandleRef pen, float x, float y, float width, float height, float startAngle, float sweepAngle);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipDrawPieI(HandleRef graphics, HandleRef pen, int x, int y, int width, int height, float startAngle, float sweepAngle);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipDrawPolygon(HandleRef graphics, HandleRef pen, PointF* points, int count);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipDrawPolygonI(HandleRef graphics, HandleRef pen, Point* points, int count);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipFillEllipse(HandleRef graphics, HandleRef brush, float x, float y, float width, float height);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipFillEllipseI(HandleRef graphics, HandleRef brush, int x, int y, int width, int height);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipFillPolygon(HandleRef graphics, HandleRef brush, PointF* points, int count, FillMode brushMode);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipFillPolygonI(HandleRef graphics, HandleRef brush, Point* points, int count, FillMode brushMode);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipFillRectangle(HandleRef graphics, HandleRef brush, float x, float y, float width, float height);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipFillRectangleI(HandleRef graphics, HandleRef brush, int x, int y, int width, int height);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipFillRectangles(HandleRef graphics, HandleRef brush, RectangleF* rects, int count);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipFillRectanglesI(HandleRef graphics, HandleRef brush, Rectangle* rects, int count);
+
+            [DllImport(LibraryName, ExactSpelling = true, CharSet = CharSet.Unicode)]
+            internal static extern int GdipDrawString(HandleRef graphics, string textString, int length, HandleRef font, ref RectangleF layoutRect, HandleRef stringFormat, HandleRef brush);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipDrawImageRectI(HandleRef graphics, HandleRef image, int x, int y, int width, int height);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipGraphicsClear(HandleRef graphics, int argb);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipDrawClosedCurve(HandleRef graphics, HandleRef pen, PointF* points, int count);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipDrawClosedCurveI(HandleRef graphics, HandleRef pen, Point* points, int count);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipDrawClosedCurve2(HandleRef graphics, HandleRef pen, PointF* points, int count, float tension);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipDrawClosedCurve2I(HandleRef graphics, HandleRef pen, Point* points, int count, float tension);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipDrawCurve(HandleRef graphics, HandleRef pen, PointF* points, int count);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipDrawCurveI(HandleRef graphics, HandleRef pen, Point* points, int count);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipDrawCurve2(HandleRef graphics, HandleRef pen, PointF* points, int count, float tension);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipDrawCurve2I(HandleRef graphics, HandleRef pen, Point* points, int count, float tension);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipDrawCurve3(HandleRef graphics, HandleRef pen, PointF* points, int count, int offset, int numberOfSegments, float tension);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipDrawCurve3I(HandleRef graphics, HandleRef pen, Point* points, int count, int offset, int numberOfSegments, float tension);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipFillClosedCurve(HandleRef graphics, HandleRef brush, PointF* points, int count);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipFillClosedCurveI(HandleRef graphics, HandleRef brush, Point* points, int count);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipFillClosedCurve2(HandleRef graphics, HandleRef brush, PointF* points, int count, float tension, FillMode mode);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipFillClosedCurve2I(HandleRef graphics, HandleRef brush, Point* points, int count, float tension, FillMode mode);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipFillPie(HandleRef graphics, HandleRef brush, float x, float y, float width, float height, float startAngle, float sweepAngle);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipFillPieI(HandleRef graphics, HandleRef brush, int x, int y, int width, int height, float startAngle, float sweepAngle);
+
+            [DllImport(LibraryName, ExactSpelling = true, CharSet = CharSet.Unicode)]
+            internal static extern int GdipMeasureString(HandleRef graphics, string textString, int length, HandleRef font, ref RectangleF layoutRect, HandleRef stringFormat, ref RectangleF boundingBox, out int codepointsFitted, out int linesFilled);
+
+            [DllImport(LibraryName, ExactSpelling = true, CharSet = CharSet.Unicode)]
+            internal static extern int GdipMeasureCharacterRanges(HandleRef graphics, string textString, int length, HandleRef font, ref RectangleF layoutRect, HandleRef stringFormat, int characterCount, [In] [Out] IntPtr[] region);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipDrawImageI(HandleRef graphics, HandleRef image, int x, int y);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipDrawImage(HandleRef graphics, HandleRef image, float x, float y);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipDrawImagePoints(HandleRef graphics, HandleRef image, PointF* points, int count);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipDrawImagePointsI(HandleRef graphics, HandleRef image, Point* points, int count);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipDrawImageRectRectI(HandleRef graphics, HandleRef image, int dstx, int dsty, int dstwidth, int dstheight, int srcx, int srcy, int srcwidth, int srcheight, GraphicsUnit srcunit, HandleRef imageAttributes, Graphics.DrawImageAbort callback, HandleRef callbackdata);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipDrawImagePointsRect(HandleRef graphics, HandleRef image, PointF* points, int count, float srcx, float srcy, float srcwidth, float srcheight, GraphicsUnit srcunit, HandleRef imageAttributes, Graphics.DrawImageAbort callback, HandleRef callbackdata);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipDrawImageRectRect(HandleRef graphics, HandleRef image, float dstx, float dsty, float dstwidth, float dstheight, float srcx, float srcy, float srcwidth, float srcheight, GraphicsUnit srcunit, HandleRef imageAttributes, Graphics.DrawImageAbort callback, HandleRef callbackdata);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipDrawImagePointsRectI(HandleRef graphics, HandleRef image, Point* points, int count, int srcx, int srcy, int srcwidth, int srcheight, GraphicsUnit srcunit, HandleRef imageAttributes, Graphics.DrawImageAbort callback, HandleRef callbackdata);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipDrawImageRect(HandleRef graphics, HandleRef image, float x, float y, float width, float height);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipDrawImagePointRect(HandleRef graphics, HandleRef image, float x, float y, float srcx, float srcy, float srcwidth, float srcheight, int srcunit);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipDrawImagePointRectI(HandleRef graphics, HandleRef image, int x, int y, int srcx, int srcy, int srcwidth, int srcheight, int srcunit);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipDrawRectangle(HandleRef graphics, HandleRef pen, float x, float y, float width, float height);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipDrawRectangleI(HandleRef graphics, HandleRef pen, int x, int y, int width, int height);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipDrawRectangles(HandleRef graphics, HandleRef pen, RectangleF* rects, int count);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipDrawRectanglesI(HandleRef graphics, HandleRef pen, Rectangle* rects, int count);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipTransformPoints(HandleRef graphics, int destSpace, int srcSpace, PointF* points, int count);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipTransformPointsI(HandleRef graphics, int destSpace, int srcSpace, Point* points, int count);
+
+            [DllImport(LibraryName, ExactSpelling = true, CharSet = CharSet.Unicode)]
+            internal static extern int GdipLoadImageFromFileICM(string filename, out IntPtr image);
+
+            [DllImport(LibraryName, ExactSpelling = true, CharSet = CharSet.Unicode)]
+            internal static extern int GdipLoadImageFromFile(string filename, out IntPtr image);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipGetEncoderParameterListSize(HandleRef image, ref Guid encoder, out int size);
+
+            [DllImport(LibraryName, ExactSpelling = true)]
+            internal static extern int GdipGetEncoderParameterList(HandleRef image, ref Guid encoder, int size, IntPtr buffer);
         }
 
         [StructLayout(LayoutKind.Sequential)]
@@ -698,7 +1366,7 @@ namespace System.Drawing
             // public DebugEventProc DebugEventCallback; // Ignored on free builds
             public IntPtr DebugEventCallback;
 
-            public bool SuppressBackgroundThread;     // FALSE unless you're prepared to call 
+            public bool SuppressBackgroundThread;     // FALSE unless you're prepared to call
                                                       // the hook/unhook functions properly
 
             public bool SuppressExternalCodecs;       // FALSE unless you want GDI+ only to use
@@ -718,13 +1386,13 @@ namespace System.Drawing
         [StructLayout(LayoutKind.Sequential)]
         internal struct StartupOutput
         {
-            // The following 2 fields won't be used.  They were originally intended 
+            // The following 2 fields won't be used.  They were originally intended
             // for getting GDI+ to run on our thread - however there are marshalling
             // dealing with function *'s and what not - so we make explicit calls
-            // to gdi+ after the fact, via the GdiplusNotificationHook and 
+            // to gdi+ after the fact, via the GdiplusNotificationHook and
             // GdiplusNotificationUnhook methods.
-            public IntPtr hook;//not used
-            public IntPtr unhook;//not used.
+            public IntPtr hook; //not used
+            public IntPtr unhook; //not used.
         }
     }
 }

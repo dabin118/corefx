@@ -329,18 +329,19 @@ namespace System.Xml.Xsl
             public static readonly XmlQueryType UntypedAttribute;
             public static readonly XmlQueryType NodeNotRtf;
 
-            private static XmlQueryType[] s_builtInItemTypes;
-            private static XmlQueryType[] s_builtInItemTypesStrict;
-            private static XmlQueryType[] s_specialBuiltInItemTypes;
+            private static readonly XmlQueryType[] s_builtInItemTypes;
+            private static readonly XmlQueryType[] s_builtInItemTypesStrict;
+            private static readonly XmlQueryType[] s_specialBuiltInItemTypes;
 
-            private XmlTypeCode _code;
-            private XmlQualifiedNameTest _nameTest;
-            private XmlSchemaType _schemaType;
-            private bool _isNillable;
-            private XmlNodeKindFlags _nodeKinds;
-            private bool _isStrict;
-            private bool _isNotRtf;
+            private readonly XmlTypeCode _code;
+            private readonly XmlQualifiedNameTest _nameTest;
+            private readonly XmlSchemaType _schemaType;
+            private readonly bool _isNillable;
+            private readonly XmlNodeKindFlags _nodeKinds;
+            private readonly bool _isStrict;
+            private readonly bool _isNotRtf;
 
+#pragma warning disable CA1810 // explicit static cctor
             /// <summary>
             /// Construct arrays of built-in types.
             /// </summary>
@@ -415,6 +416,7 @@ namespace System.Xml.Xsl
 
                 s_specialBuiltInItemTypes = new XmlQueryType[4] { UntypedDocument, UntypedElement, UntypedAttribute, NodeNotRtf };
             }
+#pragma warning restore CA1810
 
             /// <summary>
             /// Create ItemType from XmlTypeCode.
@@ -511,19 +513,19 @@ namespace System.Xml.Xsl
 
                 Debug.Assert(!IsAtomicValue || schemaType.Datatype.Variety == XmlSchemaDatatypeVariety.Atomic);
 
-                switch (code)
+                _nodeKinds = code switch
                 {
-                    case XmlTypeCode.Item: _nodeKinds = XmlNodeKindFlags.Any; break;
-                    case XmlTypeCode.Node: _nodeKinds = XmlNodeKindFlags.Any; break;
-                    case XmlTypeCode.Document: _nodeKinds = XmlNodeKindFlags.Document; break;
-                    case XmlTypeCode.Element: _nodeKinds = XmlNodeKindFlags.Element; break;
-                    case XmlTypeCode.Attribute: _nodeKinds = XmlNodeKindFlags.Attribute; break;
-                    case XmlTypeCode.Namespace: _nodeKinds = XmlNodeKindFlags.Namespace; break;
-                    case XmlTypeCode.ProcessingInstruction: _nodeKinds = XmlNodeKindFlags.PI; break;
-                    case XmlTypeCode.Comment: _nodeKinds = XmlNodeKindFlags.Comment; break;
-                    case XmlTypeCode.Text: _nodeKinds = XmlNodeKindFlags.Text; break;
-                    default: _nodeKinds = XmlNodeKindFlags.None; break;
-                }
+                    XmlTypeCode.Item => XmlNodeKindFlags.Any,
+                    XmlTypeCode.Node => XmlNodeKindFlags.Any,
+                    XmlTypeCode.Document => XmlNodeKindFlags.Document,
+                    XmlTypeCode.Element => XmlNodeKindFlags.Element,
+                    XmlTypeCode.Attribute => XmlNodeKindFlags.Attribute,
+                    XmlTypeCode.Namespace => XmlNodeKindFlags.Namespace,
+                    XmlTypeCode.ProcessingInstruction => XmlNodeKindFlags.PI,
+                    XmlTypeCode.Comment => XmlNodeKindFlags.Comment,
+                    XmlTypeCode.Text => XmlNodeKindFlags.Text,
+                    _ => XmlNodeKindFlags.None,
+                };
             }
 
             //-----------------------------------------------
@@ -652,27 +654,6 @@ namespace System.Xml.Xsl
                 get { return this; }
             }
 
-            /// <summary>
-            /// Return the item's converter.
-            /// </summary>
-            public override XmlValueConverter ClrMapping
-            {
-                get
-                {
-                    // Return value converter from XmlSchemaType if type is atomic
-                    if (IsAtomicValue)
-                        return SchemaType.ValueConverter;
-
-                    // Return node converter if item must be a node
-                    if (IsNode)
-                        return XmlNodeConverter.Node;
-
-                    // Otherwise return item converter
-                    return XmlAnyConverter.Item;
-                }
-            }
-
-
             //-----------------------------------------------
             // ListBase implementation
             //-----------------------------------------------
@@ -709,10 +690,10 @@ namespace System.Xml.Xsl
         {
             public static readonly XmlQueryType None = new ChoiceType(new List<XmlQueryType>());
 
-            private XmlTypeCode _code;
-            private XmlSchemaType _schemaType;
-            private XmlNodeKindFlags _nodeKinds;
-            private List<XmlQueryType> _members;
+            private readonly XmlTypeCode _code;
+            private readonly XmlSchemaType _schemaType;
+            private readonly XmlNodeKindFlags _nodeKinds;
+            private readonly List<XmlQueryType> _members;
 
             /// <summary>
             /// Create choice between node kinds.
@@ -940,23 +921,6 @@ namespace System.Xml.Xsl
                 get { return this; }
             }
 
-            /// <summary>
-            /// Always return the item converter.
-            /// </summary>
-            public override XmlValueConverter ClrMapping
-            {
-                get
-                {
-                    if (_code == XmlTypeCode.None || _code == XmlTypeCode.Item)
-                        return XmlAnyConverter.Item;
-
-                    if (IsAtomicValue)
-                        return SchemaType.ValueConverter;
-
-                    return XmlNodeConverter.Node;
-                }
-            }
-
             //-----------------------------------------------
             // ListBase implementation
             //-----------------------------------------------
@@ -987,9 +951,8 @@ namespace System.Xml.Xsl
         {
             public static readonly XmlQueryType Zero = new SequenceType(ChoiceType.None, XmlQueryCardinality.Zero);
 
-            private XmlQueryType _prime;
-            private XmlQueryCardinality _card;
-            private XmlValueConverter _converter;
+            private readonly XmlQueryType _prime;
+            private readonly XmlQueryCardinality _card;
 
             /// <summary>
             /// Create sequence type from prime and cardinality.
@@ -1146,21 +1109,6 @@ namespace System.Xml.Xsl
                 get { return _prime; }
             }
 
-            /// <summary>
-            /// Return the prime's converter wrapped in a list converter.
-            /// </summary>
-            public override XmlValueConverter ClrMapping
-            {
-                get
-                {
-                    if (_converter == null)
-                        _converter = XmlListConverter.Create(_prime.ClrMapping);
-
-                    return _converter;
-                }
-            }
-
-
             //-----------------------------------------------
             // ListBase implementation
             //-----------------------------------------------
@@ -1186,7 +1134,7 @@ namespace System.Xml.Xsl
         /// <summary>
         /// Create a Node XmlQueryType having an XSD content type.
         /// </summary>
-        /// <param name="code">unless kind is Root, Element, or Attribute, "contentType" is ignored</param>
+        /// <param name="kind">unless kind is Root, Element, or Attribute, "contentType" is ignored</param>
         /// <param name="contentType">content type of the node</param>
         /// <returns>the node type</returns>
         public static XmlQueryType Type(XPathNodeType kind, XmlQualifiedNameTest nameTest, XmlSchemaType contentType, bool isNillable)
@@ -1346,7 +1294,7 @@ namespace System.Xml.Xsl
         }
 
         /// <summary>
-        /// Converts type of sequence of items to type of sequnce of atomic value
+        /// Converts type of sequence of items to type of sequence of atomic value
         //  See http://www.w3.org/TR/2004/xquery-semantics/#jd_data for the detailed description
         /// </summary>
         /// <param name="source">source type</param>
@@ -1529,7 +1477,7 @@ namespace System.Xml.Xsl
                 case XmlTypeCode.Element:
                     XmlSchemaType sourceSchemaType = sourceItem.SchemaType;
                     if (sourceSchemaType == XmlSchemaComplexType.UntypedAnyType) {
-                        // attfibutes of of xdt:untypedAny are attribute(*, xdt:untypedAtomic)*
+                        // attributes of xdt:untypedAny are attribute(*, xdt:untypedAtomic)*
                         card |= AddFilteredPrime(list, UntypedAttribute, filter) * XmlQueryCardinality.ZeroOrOne;
                     }
                     else {
@@ -1917,7 +1865,7 @@ namespace System.Xml.Xsl
                 return XmlQueryCardinality.ZeroOrMore;
 
             default:
-                Debug.Assert(false);
+                Debug.Fail($"Unexpected type code {typeCode}");
                 return XmlQueryCardinality.None;
             }
         }

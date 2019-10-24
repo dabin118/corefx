@@ -15,7 +15,6 @@ namespace System.DirectoryServices.AccountManagement
         // Public methods
         //
 
-        [System.Security.SecurityCritical]
         public IEnumerator<T> GetEnumerator()
         {
             GlobalDebug.WriteLineIf(GlobalDebug.Info, "PrincipalSearchResult", "Entering GetEnumerator");
@@ -25,7 +24,6 @@ namespace System.DirectoryServices.AccountManagement
             return new FindResultEnumerator<T>(_resultSet);
         }
 
-        [System.Security.SecurityCritical]
         IEnumerator IEnumerable.GetEnumerator()
         {
             return (IEnumerator)GetEnumerator();
@@ -76,7 +74,7 @@ namespace System.DirectoryServices.AccountManagement
         //   Synchronize by locking on resultSet (if resultSet is non-null).
 
         // The ResultSet returned by the query.
-        private ResultSet _resultSet;
+        private readonly ResultSet _resultSet;
 
         private bool _disposed = false;
 

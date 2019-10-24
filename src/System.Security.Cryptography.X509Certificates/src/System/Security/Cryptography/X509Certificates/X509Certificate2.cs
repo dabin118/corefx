@@ -118,6 +118,8 @@ namespace System.Security.Cryptography.X509Certificates
             throw new PlatformNotSupportedException();
         }
 
+        internal new ICertificatePal Pal => (ICertificatePal)base.Pal;
+
         public bool Archived
         {
             get
@@ -202,21 +204,16 @@ namespace System.Security.Cryptography.X509Certificates
 
                 if (_lazyPrivateKey == null)
                 {
-                    switch (GetKeyAlgorithm())
+                    _lazyPrivateKey = GetKeyAlgorithm() switch
                     {
-                        case Oids.RsaRsa:
-                            _lazyPrivateKey = Pal.GetRSAPrivateKey();
-                            break;
-                        case Oids.DsaDsa:
-                            _lazyPrivateKey = Pal.GetDSAPrivateKey();
-                            break;
-                        default:
-                            // This includes ECDSA, because an Oids.Ecc key can be
-                            // many different algorithm kinds, not necessarily with mutual exclusion.
-                            //
-                            // Plus, .NET Framework only supports RSA and DSA in this property.
-                            throw new NotSupportedException(SR.NotSupported_KeyAlgorithm);
-                    }
+                        Oids.Rsa => Pal.GetRSAPrivateKey(),
+                        Oids.Dsa => Pal.GetDSAPrivateKey(),
+
+                        // This includes ECDSA, because an Oids.EcPublicKey key can be
+                        // many different algorithm kinds, not necessarily with mutual exclusion.
+                        // Plus, .NET Framework only supports RSA and DSA in this property.
+                        _ => throw new NotSupportedException(SR.NotSupported_KeyAlgorithm),
+                    };
                 }
 
                 return _lazyPrivateKey;
@@ -249,7 +246,7 @@ namespace System.Security.Cryptography.X509Certificates
         {
             get { return GetNotBefore(); }
         }
-        
+
         public PublicKey PublicKey
         {
             get
@@ -288,9 +285,7 @@ namespace System.Security.Cryptography.X509Certificates
         {
             get
             {
-                byte[] serialNumber = GetSerialNumber();
-                Array.Reverse(serialNumber);
-                return serialNumber.ToHexStringUpper();
+                return GetSerialNumberString();
             }
         }
 
@@ -327,8 +322,7 @@ namespace System.Security.Cryptography.X509Certificates
         {
             get
             {
-                byte[] thumbPrint = GetCertHash();
-                return thumbPrint.ToHexStringUpper();
+                return GetCertHashString();
             }
         }
 
@@ -624,35 +618,25 @@ namespace System.Security.Cryptography.X509Certificates
                 //  UrlRetrievalTimeout = new TimeSpan(0, 0, 0)
 
                 bool verified = chain.Build(this, throwOnException: false);
+
+                for (int i = 0; i < chain.ChainElements.Count; i++)
+                {
+                    chain.ChainElements[i].Certificate.Dispose();
+                }
+
                 return verified;
             }
         }
 
-        private static X509Extension CreateCustomExtensionIfAny(Oid oid)
-        {
-            string oidValue = oid.Value;
-            switch (oidValue)
+        private static X509Extension CreateCustomExtensionIfAny(Oid oid) =>
+            oid.Value switch
             {
-                case Oids.BasicConstraints:
-                    return X509Pal.Instance.SupportsLegacyBasicConstraintsExtension ?
-                        new X509BasicConstraintsExtension() :
-                        null;
-
-                case Oids.BasicConstraints2:
-                    return new X509BasicConstraintsExtension();
-
-                case Oids.KeyUsage:
-                    return new X509KeyUsageExtension();
-
-                case Oids.EnhancedKeyUsage:
-                    return new X509EnhancedKeyUsageExtension();
-
-                case Oids.SubjectKeyIdentifier:
-                    return new X509SubjectKeyIdentifierExtension();
-
-                default:
-                    return null;
-            }
-        }
+                Oids.BasicConstraints => X509Pal.Instance.SupportsLegacyBasicConstraintsExtension ? new X509BasicConstraintsExtension() : null,
+                Oids.BasicConstraints2 => new X509BasicConstraintsExtension(),
+                Oids.KeyUsage => new X509KeyUsageExtension(),
+                Oids.EnhancedKeyUsage => new X509EnhancedKeyUsageExtension(),
+                Oids.SubjectKeyIdentifier => new X509SubjectKeyIdentifierExtension(),
+                _ => null,
+            };
     }
 }

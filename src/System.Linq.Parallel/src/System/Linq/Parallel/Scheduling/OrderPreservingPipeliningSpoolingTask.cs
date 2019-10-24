@@ -19,7 +19,7 @@ using System.Diagnostics;
 
 namespace System.Linq.Parallel
 {
-    class OrderPreservingPipeliningSpoolingTask<TOutput, TKey> : SpoolingTaskBase
+    internal class OrderPreservingPipeliningSpoolingTask<TOutput, TKey> : SpoolingTaskBase
     {
         private readonly QueryTaskGroupState _taskGroupState; // State shared among tasks.
         private readonly QueryOperatorEnumerator<TOutput, TKey> _partition; // The source partition.
@@ -39,9 +39,9 @@ namespace System.Linq.Parallel
         private readonly bool _autoBuffered;
 
         /// <summary>
-        /// The number of elements to accumulate on the producer before copying the elements to the 
+        /// The number of elements to accumulate on the producer before copying the elements to the
         /// producer-consumer buffer. This constant is only used in the AutoBuffered mode.
-        /// 
+        ///
         /// Experimentally, 16 appears to be sufficient buffer size to compensate for the synchronization
         /// cost.
         /// </summary>
@@ -82,7 +82,7 @@ namespace System.Linq.Parallel
         }
 
         /// <summary>
-        /// This method is responsible for enumerating results and enqueueing them to
+        /// This method is responsible for enumerating results and enqueuing them to
         /// the output buffer as appropriate.  Each base class implements its own.
         /// </summary>
         protected override void SpoolingWork()

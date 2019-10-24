@@ -37,13 +37,42 @@ namespace System.IO.Tests
             Assert.Equal(path, info.ToString());
         }
 
-        [Fact]
+        [ConditionalFact(typeof(PlatformDetection), nameof(PlatformDetection.IsNotInAppContainer))] // Can't read root in appcontainer
         [PlatformSpecific(TestPlatforms.Windows)]  // Drive letter only
-        public void DriveOnlyReturnsPeriod_Windows()
+        public void DriveOnlyReturnsDrive_Windows()
         {
             string path = @"C:";
             var info = new DirectoryInfo(path);
-            Assert.Equal(".", info.ToString());
+            Assert.Equal(path, info.ToString());
+        }
+
+        [ConditionalFact(typeof(PlatformDetection), nameof(PlatformDetection.IsFullFramework))]
+        public void ParentToString_Framework()
+        {
+            ParentToString(false);
+        }
+
+        [ConditionalFact(typeof(PlatformDetection), nameof(PlatformDetection.IsNetCore))]
+        public void ParentToString_Core()
+        {
+            ParentToString(true);
+        }
+
+        private void ParentToString(bool compareFullName)
+        {
+            string filePath = GetTestFilePath();
+
+            string dirPath = Path.GetDirectoryName(filePath);
+            DirectoryInfo dirInfo = new DirectoryInfo(dirPath);
+
+            string parentDirPath = Path.GetDirectoryName(dirPath);
+            DirectoryInfo parentDirInfo = new DirectoryInfo(parentDirPath);
+
+            string dirInfoParentString = compareFullName ? dirInfo.Parent.FullName : dirInfo.Parent.Name;
+            string parentDirInfoString = compareFullName ? parentDirInfo.FullName : parentDirInfo.Name;
+
+            Assert.Equal(dirInfo.Parent.ToString(), dirInfoParentString);
+            Assert.Equal(dirInfo.Parent.ToString(), parentDirInfoString);
         }
     }
 }

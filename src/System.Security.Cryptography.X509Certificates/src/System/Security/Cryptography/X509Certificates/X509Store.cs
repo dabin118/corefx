@@ -13,11 +13,12 @@ namespace System.Security.Cryptography.X509Certificates
         internal const string RootStoreName = "Root";
         internal const string IntermediateCAStoreName = "CA";
         internal const string DisallowedStoreName = "Disallowed";
+        internal const string MyStoreName = "My";
 
         private IStorePal _storePal;
 
         public X509Store()
-            : this(StoreName.My, StoreLocation.CurrentUser)
+            : this("MY", StoreLocation.CurrentUser)
         {
         }
 
@@ -32,45 +33,27 @@ namespace System.Security.Cryptography.X509Certificates
         }
 
         public X509Store(StoreLocation storeLocation)
-            : this(StoreName.My, storeLocation)
+            : this("MY", storeLocation)
         {
         }
 
         public X509Store(StoreName storeName, StoreLocation storeLocation)
         {
             if (storeLocation != StoreLocation.CurrentUser && storeLocation != StoreLocation.LocalMachine)
-                throw new ArgumentException(string.Format(CultureInfo.CurrentCulture, SR.Arg_EnumIllegalVal, nameof(storeLocation)));
+                throw new ArgumentException(SR.Format(SR.Arg_EnumIllegalVal, nameof(storeLocation)));
 
-            switch (storeName)
+            Name = storeName switch
             {
-                case StoreName.AddressBook:
-                    Name = "AddressBook";
-                    break;
-                case StoreName.AuthRoot:
-                    Name = "AuthRoot";
-                    break;
-                case StoreName.CertificateAuthority:
-                    Name = IntermediateCAStoreName;
-                    break;
-                case StoreName.Disallowed:
-                    Name = DisallowedStoreName;
-                    break;
-                case StoreName.My:
-                    Name = "My";
-                    break;
-                case StoreName.Root:
-                    Name = RootStoreName;
-                    break;
-                case StoreName.TrustedPeople:
-                    Name = "TrustedPeople";
-                    break;
-                case StoreName.TrustedPublisher:
-                    Name = "TrustedPublisher";
-                    break;
-                default:
-                    throw new ArgumentException(string.Format(CultureInfo.CurrentCulture, SR.Arg_EnumIllegalVal, nameof(storeName)));
-            }
-
+                StoreName.AddressBook => "AddressBook",
+                StoreName.AuthRoot => "AuthRoot",
+                StoreName.CertificateAuthority => IntermediateCAStoreName,
+                StoreName.Disallowed => DisallowedStoreName,
+                StoreName.My => MyStoreName,
+                StoreName.Root => RootStoreName,
+                StoreName.TrustedPeople => "TrustedPeople",
+                StoreName.TrustedPublisher => "TrustedPublisher",
+                _ => throw new ArgumentException(SR.Format(SR.Arg_EnumIllegalVal, nameof(storeName))),
+            };
             Location = storeLocation;
         }
 
@@ -83,7 +66,7 @@ namespace System.Security.Cryptography.X509Certificates
         public X509Store(string storeName, StoreLocation storeLocation)
         {
             if (storeLocation != StoreLocation.CurrentUser && storeLocation != StoreLocation.LocalMachine)
-                throw new ArgumentException(string.Format(CultureInfo.CurrentCulture, SR.Arg_EnumIllegalVal, nameof(storeLocation)));
+                throw new ArgumentException(SR.Format(SR.Arg_EnumIllegalVal, nameof(storeLocation)));
 
             Location = storeLocation;
             Name = storeName;
@@ -154,7 +137,7 @@ namespace System.Security.Cryptography.X509Certificates
             if (_storePal == null)
                 throw new CryptographicException(SR.Cryptography_X509_StoreNotOpen);
 
-            if (certificate.Handle == IntPtr.Zero)
+            if (certificate.Pal == null)
                 throw new CryptographicException(SR.Cryptography_InvalidHandle, "pCertContext");
 
             _storePal.Add(certificate.Pal);
@@ -193,6 +176,9 @@ namespace System.Security.Cryptography.X509Certificates
 
             if (_storePal == null)
                 throw new CryptographicException(SR.Cryptography_X509_StoreNotOpen);
+
+            if (certificate.Pal == null)
+                return;
 
             _storePal.Remove(certificate.Pal);
         }
@@ -240,4 +226,3 @@ namespace System.Security.Cryptography.X509Certificates
         }
     }
 }
-

@@ -9,12 +9,12 @@ using System.Runtime.InteropServices;
 namespace System.Drawing
 {
     /// <summary>
-    /// Retrives the printer graphics during preview.
+    /// Retrieves the printer graphics during preview.
     /// </summary>
     internal class PrintPreviewGraphics
     {
-        private PrintPageEventArgs _printPageEventArgs;
-        private PrintDocument _printDocument;
+        private readonly PrintPageEventArgs _printPageEventArgs;
+        private readonly PrintDocument _printDocument;
 
         public PrintPreviewGraphics(PrintDocument document, PrintPageEventArgs e)
         {

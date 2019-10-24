@@ -4,7 +4,6 @@
 
 using System.IO;
 using System.Reflection;
-using System.Runtime.InteropServices;
 using System.Runtime.Serialization.Formatters.Binary;
 
 using Xunit;
@@ -13,51 +12,43 @@ namespace System.Runtime.Serialization.Formatters.Tests
 {
     public static class BinaryFormatterHelpers
     {
-        internal static T Clone<T>(T obj)
+        internal static T Clone<T>(T obj,
+            ISerializationSurrogate surrogate = null,
+            FormatterAssemblyStyle assemblyFormat = FormatterAssemblyStyle.Full,
+            TypeFilterLevel filterLevel = TypeFilterLevel.Full,
+            FormatterTypeStyle typeFormat = FormatterTypeStyle.TypesAlways)
         {
-            var f = new BinaryFormatter();
+            BinaryFormatter f;
+            if (surrogate == null)
+            {
+                f = new BinaryFormatter();
+            }
+            else
+            {
+                var c = new StreamingContext();
+                var s = new SurrogateSelector();
+                s.AddSurrogate(obj.GetType(), c, surrogate);
+                f = new BinaryFormatter(s, c);
+            }
+            f.AssemblyFormat = assemblyFormat;
+            f.FilterLevel = filterLevel;
+            f.TypeFormat = typeFormat;
+
             using (var s = new MemoryStream())
             {
                 f.Serialize(s, obj);
+                Assert.NotEqual(0, s.Position);
                 s.Position = 0;
                 return (T)f.Deserialize(s);
             }
         }
 
-        public static void AssertRoundtrips<T>(T expected, params Func<T, object>[] additionalGetters)
-            where T : Exception
+        public static void AssertExceptionDeserializationFails<T>() where T : Exception
         {
-            for (int i = 0; i < 2; i++)
-            {
-                if (i > 0) // first time without stack trace, second time with
-                {
-                    try { throw expected; }
-                    catch { }
-                }
-
-                // Serialize/deserialize the exception
-                T actual = Clone(expected);
-
-                // Verify core state
-                if (!PlatformDetection.IsFullFramework) // On full framework, line number may be method body start
-                {
-                    Assert.Equal(expected.StackTrace, actual.StackTrace);
-                    Assert.Equal(expected.ToString(), actual.ToString()); // includes stack trace
-                }
-                Assert.Equal(expected.Data, actual.Data);
-                Assert.Equal(expected.Message, actual.Message);
-                Assert.Equal(expected.Source, actual.Source);
-                Assert.Equal(expected.HResult, actual.HResult);
-
-                // Verify optional additional state
-                foreach (Func<T, object> getter in additionalGetters)
-                {
-                    Assert.Equal(getter(expected), getter(actual));
-                }
-            }
+            AssertExceptionDeserializationFails(typeof(T));
         }
 
-        public static void AssertExceptionDeserializationFails<T>() where T : Exception
+        public static void AssertExceptionDeserializationFails(Type exceptionType)
         {
             // .NET Core and .NET Native throw PlatformNotSupportedExceptions when deserializing many exceptions.
             // The .NET Framework supports full deserialization.
@@ -69,7 +60,7 @@ namespace System.Runtime.Serialization.Formatters.Tests
             // Construct a valid serialization payload. This is necessary as most constructors call
             // the base constructor before throwing a PlatformNotSupportedException, and the base
             // constructor validates the SerializationInfo passed.
-            var info = new SerializationInfo(typeof(T), new FormatterConverter());
+            var info = new SerializationInfo(exceptionType, new FormatterConverter());
             info.AddValue("ClassName", "ClassName");
             info.AddValue("Message", "Message");
             info.AddValue("InnerException", null);
@@ -83,7 +74,7 @@ namespace System.Runtime.Serialization.Formatters.Tests
 
             // Serialization constructors are of the form .ctor(SerializationInfo, StreamingContext).
             ConstructorInfo constructor = null;
-            foreach (ConstructorInfo c in typeof(T).GetTypeInfo().DeclaredConstructors)
+            foreach (ConstructorInfo c in exceptionType.GetTypeInfo().DeclaredConstructors)
             {
                 ParameterInfo[] parameters = c.GetParameters();
                 if (parameters.Length == 2 && parameters[0].ParameterType == typeof(SerializationInfo) && parameters[1].ParameterType == typeof(StreamingContext))
@@ -101,6 +92,43 @@ namespace System.Runtime.Serialization.Formatters.Tests
 
             Exception ex = Assert.Throws<TargetInvocationException>(() => constructor.Invoke(new object[] { info, new StreamingContext() }));
             Assert.IsType<PlatformNotSupportedException>(ex.InnerException);
+        }
+
+        public static byte[] ToByteArray(object obj,
+            FormatterAssemblyStyle assemblyStyle = FormatterAssemblyStyle.Full)
+        {
+            BinaryFormatter bf = new BinaryFormatter();
+            bf.AssemblyFormat = assemblyStyle;
+            using (MemoryStream ms = new MemoryStream())
+            {
+                bf.Serialize(ms, obj);
+                return ms.ToArray();
+            }
+        }
+
+        public static string ToBase64String(object obj,
+            FormatterAssemblyStyle assemblyStyle = FormatterAssemblyStyle.Full)
+        {
+            byte[] raw = ToByteArray(obj, assemblyStyle);
+            return Convert.ToBase64String(raw);
+        }
+
+        public static object FromByteArray(byte[] raw,
+            FormatterAssemblyStyle assemblyStyle = FormatterAssemblyStyle.Full)
+        {
+            var binaryFormatter = new BinaryFormatter();
+            binaryFormatter.AssemblyFormat = assemblyStyle;
+            using (var serializedStream = new MemoryStream(raw))
+            {
+                return binaryFormatter.Deserialize(serializedStream);
+            }
+        }
+
+        public static object FromBase64String(string base64Str,
+            FormatterAssemblyStyle assemblyStyle = FormatterAssemblyStyle.Full)
+        {
+            byte[] raw = Convert.FromBase64String(base64Str);
+            return FromByteArray(raw, assemblyStyle);
         }
     }
 }

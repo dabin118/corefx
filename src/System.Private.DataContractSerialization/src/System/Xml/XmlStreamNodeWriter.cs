@@ -12,13 +12,13 @@ namespace System.Xml
     internal abstract class XmlStreamNodeWriter : XmlNodeWriter
     {
         private Stream _stream;
-        private byte[] _buffer;
+        private readonly byte[] _buffer;
         private int _offset;
         private bool _ownsStream;
         private const int bufferLength = 512;
         private const int maxBytesPerChar = 3;
         private Encoding _encoding;
-        private static UTF8Encoding s_UTF8Encoding = new UTF8Encoding(false, true);
+        private static readonly UTF8Encoding s_UTF8Encoding = new UTF8Encoding(false, true);
 
         protected XmlStreamNodeWriter()
         {
@@ -31,19 +31,6 @@ namespace System.Xml
             _ownsStream = ownsStream;
             _offset = 0;
             _encoding = encoding;
-        }
-
-        // Getting/Setting the Stream exists for fragmenting
-        public Stream Stream
-        {
-            get
-            {
-                return _stream;
-            }
-            set
-            {
-                _stream = value;
-            }
         }
 
         // StreamBuffer/BufferOffset exists only for the BinaryWriter to fix up nodes

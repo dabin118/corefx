@@ -3,6 +3,7 @@
 // See the LICENSE file in the project root for more information.
 
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace System.Net.Sockets
@@ -20,11 +21,13 @@ namespace System.Net.Sockets
             socket.ConnectAsync(address, port);
         public static Task ConnectAsync(this Socket socket, IPAddress[] addresses, int port) =>
             socket.ConnectAsync(addresses, port);
-        public static Task ConnectAsync(this Socket socket, string host, int port) => 
+        public static Task ConnectAsync(this Socket socket, string host, int port) =>
             socket.ConnectAsync(host, port);
 
         public static Task<int> ReceiveAsync(this Socket socket, ArraySegment<byte> buffer, SocketFlags socketFlags) =>
             socket.ReceiveAsync(buffer, socketFlags, fromNetworkStream: false);
+        public static ValueTask<int> ReceiveAsync(this Socket socket, Memory<byte> buffer, SocketFlags socketFlags, CancellationToken cancellationToken = default) =>
+            socket.ReceiveAsync(buffer, socketFlags, fromNetworkStream: false, cancellationToken: cancellationToken);
         public static Task<int> ReceiveAsync(this Socket socket, IList<ArraySegment<byte>> buffers, SocketFlags socketFlags) =>
             socket.ReceiveAsync(buffers, socketFlags);
         public static Task<SocketReceiveFromResult> ReceiveFromAsync(this Socket socket, ArraySegment<byte> buffer, SocketFlags socketFlags, EndPoint remoteEndPoint) =>
@@ -33,7 +36,9 @@ namespace System.Net.Sockets
             socket.ReceiveMessageFromAsync(buffer, socketFlags, remoteEndPoint);
 
         public static Task<int> SendAsync(this Socket socket, ArraySegment<byte> buffer, SocketFlags socketFlags) =>
-            socket.SendAsync(buffer, socketFlags, fromNetworkStream: false);
+            socket.SendAsync(buffer, socketFlags);
+        public static ValueTask<int> SendAsync(this Socket socket, ReadOnlyMemory<byte> buffer, SocketFlags socketFlags, CancellationToken cancellationToken = default) =>
+            socket.SendAsync(buffer, socketFlags, cancellationToken);
         public static Task<int> SendAsync(this Socket socket, IList<ArraySegment<byte>> buffers, SocketFlags socketFlags) =>
             socket.SendAsync(buffers, socketFlags);
         public static Task<int> SendToAsync(this Socket socket, ArraySegment<byte> buffer, SocketFlags socketFlags, EndPoint remoteEP) =>

@@ -3,9 +3,9 @@
 // See the LICENSE file in the project root for more information.
 
 using System.Collections.Generic;
-using System.Common.Tests;
 using System.Globalization;
 using System.Reflection;
+using System.Tests;
 using System.Threading;
 using Xunit;
 
@@ -79,7 +79,6 @@ namespace System.Drawing.Tests
             }
         }
 
-        [ActiveIssue(20884, TestPlatforms.AnyUnix)]
         [Theory]
         [MemberData(nameof(FromOle_TestData))]
         public void FromOle_Color_ReturnsExpected(int oleColor, Color color)
@@ -107,7 +106,6 @@ namespace System.Drawing.Tests
             yield return new object[] { SystemColors.ButtonShadow, unchecked((int)0x80000010) };
         }
 
-        [ActiveIssue(20884, TestPlatforms.AnyUnix)]
         [Theory]
         [MemberData(nameof(ToOle_TestData))]
         public void ToOle_Color_ReturnsExpected(Color color, int oleColor)
@@ -189,33 +187,42 @@ namespace System.Drawing.Tests
             yield return new object[] { "threedlightshadow", SystemColors.ControlLightLight };
         }
 
-        [ActiveIssue(20884, TestPlatforms.AnyUnix)]
         [Theory]
         [MemberData(nameof(FromHtml_TestData))]
         public void FromHtml_String_ReturnsExpected(string htmlColor, Color expected)
         {
-            using (new ThreadCultureChange(CultureInfo.InvariantCulture))
+            using (new ThreadCultureChange(CultureInfo.InvariantCulture, CultureInfo.InvariantCulture))
             {
                 Assert.Equal(expected, ColorTranslator.FromHtml(htmlColor));
             }
         }
 
-        [ActiveIssue(20884, TestPlatforms.AnyUnix)]
         [Theory]
-        [InlineData("'", typeof(Exception))]
-        [InlineData("'\"", typeof(Exception))]
-        [InlineData("\"'", typeof(Exception))]
-        [InlineData("#", typeof(Exception))]
+        [InlineData("'")]
+        [InlineData("'\"")]
+        [InlineData("\"'")]
+        [InlineData("#")]
+        [InlineData("  #G12  ")]
+        [InlineData("  #G12345  ")]
+        [InlineData("#FFFFFFFFF")]
+        [InlineData("0x")]
+        [InlineData("0xFFFFFFFFF")]
+        [InlineData("0xG12")]
+        [InlineData("&h")]
+        [InlineData("&hG12")]
+        public void FromHtml_Invalid_Throws(string htmlColor)
+        {
+            using (new ThreadCultureChange(CultureInfo.InvariantCulture, CultureInfo.InvariantCulture))
+            {
+                Exception exception = AssertExtensions.Throws<ArgumentException, Exception>(() => ColorTranslator.FromHtml(htmlColor));
+                if (exception is ArgumentException argumentException)
+                    Assert.Equal("htmlColor", argumentException.ParamName);
+            }
+        }
+
+        [ConditionalTheory(Helpers.IsDrawingSupported)]
         [InlineData("#G12", typeof(FormatException))]
         [InlineData("#G12345", typeof(FormatException))]
-        [InlineData("  #G12  ", typeof(Exception))]
-        [InlineData("  #G12345  ", typeof(Exception))]
-        [InlineData("#FFFFFFFFF", typeof(Exception))]
-        [InlineData("0x", typeof(Exception))]
-        [InlineData("0xFFFFFFFFF", typeof(Exception))]
-        [InlineData("0xG12", typeof(Exception))]
-        [InlineData("&h", typeof(Exception))]
-        [InlineData("&hG12", typeof(Exception))]
         [InlineData("1,2", typeof(ArgumentException))]
         [InlineData("1,2,3,4,5", typeof(ArgumentException))]
         [InlineData("-1,2,3", typeof(ArgumentException))]
@@ -224,9 +231,9 @@ namespace System.Drawing.Tests
         [InlineData("1,256,3", typeof(ArgumentException))]
         [InlineData("1,2,-1", typeof(ArgumentException))]
         [InlineData("1,2,256", typeof(ArgumentException))]
-        public void FromHtml_Invalid_Throws(string htmlColor, Type exception)
+        public void FromHtml_Invalid_Throw(string htmlColor, Type exception)
         {
-            using (new ThreadCultureChange(CultureInfo.InvariantCulture))
+            using (new ThreadCultureChange(CultureInfo.InvariantCulture, CultureInfo.InvariantCulture))
             {
                 Assert.Throws(exception, () => ColorTranslator.FromHtml(htmlColor));
             }
@@ -251,7 +258,6 @@ namespace System.Drawing.Tests
             yield return new object[] { SystemColors.ButtonShadow, "" };
         }
 
-        [ActiveIssue(20884, TestPlatforms.AnyUnix)]
         [Theory]
         [MemberData(nameof(ToHtml_TestData))]
         public void ToHtml_Color_ReturnsExpected(Color color, string expected)

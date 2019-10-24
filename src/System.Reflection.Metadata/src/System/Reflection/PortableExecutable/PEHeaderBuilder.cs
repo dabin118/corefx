@@ -1,4 +1,4 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
@@ -98,21 +98,21 @@ namespace System.Reflection.PortableExecutable
 
         public static PEHeaderBuilder CreateExecutableHeader()
         {
-            return new PEHeaderBuilder(imageCharacteristics : Characteristics.ExecutableImage);
+            return new PEHeaderBuilder(imageCharacteristics: Characteristics.ExecutableImage);
         }
 
         public static PEHeaderBuilder CreateLibraryHeader()
         {
-            return new PEHeaderBuilder(imageCharacteristics: Characteristics.Dll);
+            return new PEHeaderBuilder(imageCharacteristics: Characteristics.ExecutableImage | Characteristics.Dll);
         }
 
-        internal bool Is32Bit => Machine != Machine.Amd64 && Machine != Machine.IA64;
+        internal bool Is32Bit => Machine != Machine.Amd64 && Machine != Machine.IA64 && Machine != Machine.Arm64;
 
         internal int ComputeSizeOfPEHeaders(int sectionCount) =>
             PEBuilder.DosHeaderSize +
             PEHeaders.PESignatureSize +
-            CoffHeader.Size + 
-            PEHeader.Size(Is32Bit) + 
+            CoffHeader.Size +
+            PEHeader.Size(Is32Bit) +
             SectionHeader.Size * sectionCount;
     }
 }

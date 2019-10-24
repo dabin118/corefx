@@ -2,14 +2,12 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using Microsoft.Win32.SafeHandles;
-using System.Diagnostics.Contracts;
 using System.Security.AccessControl;
-using System;
+using Microsoft.Win32.SafeHandles;
 
 namespace System.IO
 {
-    public static class FileSystemAclExtensions
+    public static partial class FileSystemAclExtensions
     {
         public static DirectorySecurity GetAccessControl(this DirectoryInfo directoryInfo)
         {
@@ -25,9 +23,8 @@ namespace System.IO
         {
             if (directorySecurity == null)
                 throw new ArgumentNullException(nameof(directorySecurity));
-            Contract.EndContractBlock();
 
-            String fullPath = Path.GetFullPath(directoryInfo.FullName);
+            string fullPath = Path.GetFullPath(directoryInfo.FullName);
             directorySecurity.Persist(fullPath);
         }
 
@@ -45,9 +42,8 @@ namespace System.IO
         {
             if (fileSecurity == null)
                 throw new ArgumentNullException(nameof(fileSecurity));
-            Contract.EndContractBlock();
 
-            String fullPath = Path.GetFullPath(fileInfo.FullName);
+            string fullPath = Path.GetFullPath(fileInfo.FullName);
             // Appropriate security check should be done for us by FileSecurity.
             fileSecurity.Persist(fullPath);
         }
@@ -59,17 +55,15 @@ namespace System.IO
             {
                 throw new ObjectDisposedException(null, SR.ObjectDisposed_FileClosed);
             }
-            return new FileSecurity(handle, fileStream.Name, AccessControlSections.Access | AccessControlSections.Owner | AccessControlSections.Group);
+            return new FileSecurity(handle, AccessControlSections.Access | AccessControlSections.Owner | AccessControlSections.Group);
         }
 
-        [System.Security.SecuritySafeCritical]  // auto-generated
         public static void SetAccessControl(this FileStream fileStream, FileSecurity fileSecurity)
         {
             SafeFileHandle handle = fileStream.SafeFileHandle;
 
             if (fileSecurity == null)
                 throw new ArgumentNullException(nameof(fileSecurity));
-            Contract.EndContractBlock();
 
             if (handle.IsClosed)
             {

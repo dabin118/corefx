@@ -32,7 +32,7 @@ namespace System.Xml
         // Nmtoken parsing
         //-----------------------------------------------
         /// <summary>
-        /// Attempts to parse the input string as an Nmtoken (see the XML spec production [7] && XML Namespaces spec).
+        /// Attempts to parse the input string as an Nmtoken (see the XML spec production [7] &amp;&amp; XML Namespaces spec).
         /// Quits parsing when an invalid Nmtoken char is reached or the end of string is reached.
         /// Returns the number of valid Nmtoken chars that were parsed.
         /// </summary>
@@ -66,13 +66,12 @@ namespace System.Xml
         // Nmtoken parsing (no XML namespaces support)
         //-----------------------------------------------
         /// <summary>
-        /// Attempts to parse the input string as an Nmtoken (see the XML spec production [7]) without taking 
-        /// into account the XML Namespaces spec. What it means is that the ':' character is allowed at any 
+        /// Attempts to parse the input string as an Nmtoken (see the XML spec production [7]) without taking
+        /// into account the XML Namespaces spec. What it means is that the ':' character is allowed at any
         /// position and any number of times in the token.
         /// Quits parsing when an invalid Nmtoken char is reached or the end of string is reached.
         /// Returns the number of valid Nmtoken chars that were parsed.
         /// </summary>
-        [System.Security.SecuritySafeCritical]
         internal static unsafe int ParseNmtokenNoNamespaces(string s, int offset)
         {
             Debug.Assert(s != null && offset <= s.Length);
@@ -117,7 +116,6 @@ namespace System.Xml
         /// Quits parsing when an invalid Name char is reached or the end of string is reached.
         /// Returns the number of valid Name chars that were parsed.
         /// </summary>
-        [System.Security.SecuritySafeCritical]
         internal static unsafe int ParseNameNoNamespaces(string s, int offset)
         {
             Debug.Assert(s != null && offset <= s.Length);
@@ -180,7 +178,6 @@ namespace System.Xml
         /// Quits parsing when an invalid NCName char is reached or the end of string is reached.
         /// Returns the number of valid NCName chars that were parsed.
         /// </summary>
-        [System.Security.SecuritySafeCritical]
         internal static unsafe int ParseNCName(string s, int offset)
         {
             Debug.Assert(s != null && offset <= s.Length);

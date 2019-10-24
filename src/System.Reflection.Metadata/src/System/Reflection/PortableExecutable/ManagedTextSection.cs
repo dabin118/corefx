@@ -91,7 +91,7 @@ namespace System.Reflection.PortableExecutable
         /// If set, the module contains instructions that assume a 64 bit instruction set. For example it may depend on an address being 64 bits.
         /// This may be true even if the module contains only IL instructions because of PlatformInvoke and COM interop.
         /// </summary>
-        internal bool Requires64bits => Machine == Machine.Amd64 || Machine == Machine.IA64;
+        internal bool Requires64bits => Machine == Machine.Amd64 || Machine == Machine.IA64 || Machine == Machine.Arm64;
 
         public bool Is32Bit => !Requires64bits;
 
@@ -105,7 +105,7 @@ namespace System.Reflection.PortableExecutable
         // (_is32bit ? 66 : 70);
         private int SizeOfImportTable =>
             sizeof(uint) + // RVA
-            sizeof(uint) + // 0           
+            sizeof(uint) + // 0
             sizeof(uint) + // 0
             sizeof(uint) + // name RVA
             sizeof(uint) + // import address table RVA
@@ -303,7 +303,7 @@ namespace System.Reflection.PortableExecutable
         private void WriteImportAddressTable(BlobBuilder builder, int importTableRva)
         {
             int start = builder.Count;
-            
+
             int ilRva = importTableRva + 40;
             int hintRva = ilRva + (Is32Bit ? 12 : 16);
 
@@ -353,7 +353,7 @@ namespace System.Reflection.PortableExecutable
 
             // Hint table
             builder.WriteUInt16(0); // Hint 54|58
-            
+
             foreach (char ch in CorEntryPointName)
             {
                 builder.WriteByte((byte)ch); // 65|69

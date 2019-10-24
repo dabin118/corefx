@@ -9,7 +9,7 @@ using System.Text;
 
 namespace System.Reflection.Metadata
 {
-    // EditorBrowsable(Never) so that we don't clutter completion list with this type because a user that only has System.Reflection.Metadata 
+    // EditorBrowsable(Never) so that we don't clutter completion list with this type because a user that only has System.Reflection.Metadata
     // imported and has type PE is likely looking to resolve PEReader from the System.Reflection.PortableExecutable and not looking to invoke
     // these extensions as regular statics.
     [EditorBrowsable(EditorBrowsableState.Never)]
@@ -71,7 +71,7 @@ namespace System.Reflection.Metadata
         /// Gets a <see cref="MetadataReader"/> from a <see cref="PEReader"/>.
         /// </summary>
         /// <remarks>
-        /// The caller must keep the <see cref="PEReader"/> alive and undisposed throughout the lifetime of the metadata reader.
+        /// The caller must keep the <see cref="PEReader"/> undisposed throughout the lifetime of the metadata reader.
         /// </remarks>
         /// <exception cref="ArgumentNullException"><paramref name="peReader"/> is null</exception>
         /// <exception cref="ArgumentException">The encoding of <paramref name="utf8Decoder"/> is not <see cref="UTF8Encoding"/>.</exception>
@@ -85,7 +85,7 @@ namespace System.Reflection.Metadata
             }
 
             var metadata = peReader.GetMetadata();
-            return new MetadataReader(metadata.Pointer, metadata.Length, options, utf8Decoder);
+            return new MetadataReader(metadata.Pointer, metadata.Length, options, utf8Decoder, memoryOwner: peReader);
         }
     }
 }

@@ -33,7 +33,7 @@ namespace System.IO.Tests
                 AssertExtensions.Throws<ArgumentOutOfRangeException>("position", () => uma.ReadArray<UmaTestStruct>(capacity, structArr, 0, 1));
             }
         }
-        
+
         [Fact]
         public static void UmaReadWriteStructArray_Closed()
         {
@@ -95,8 +95,8 @@ namespace System.IO.Tests
             using (var buffer = new TestSafeBuffer(capacity))
             using (var uma = new UnmanagedMemoryAccessor(buffer, 0, capacity, FileAccess.ReadWrite))
             {
-                AssertExtensions.Throws<ArgumentException>("type", () => uma.WriteArray<UmaTestStruct_ContainsReferenceType>(0, structArr, 0, 1));
-                AssertExtensions.Throws<ArgumentException>("type", () => uma.ReadArray<UmaTestStruct_ContainsReferenceType>(0, structArr, 0, 1));
+                AssertExtensions.Throws<ArgumentException>(null, "type", () => uma.WriteArray<UmaTestStruct_ContainsReferenceType>(0, structArr, 0, 1));
+                AssertExtensions.Throws<ArgumentException>(null, "type", () => uma.ReadArray<UmaTestStruct_ContainsReferenceType>(0, structArr, 0, 1));
             }
         }
 
@@ -123,8 +123,8 @@ namespace System.IO.Tests
             using (var buffer = new TestSafeBuffer(capacity))
             using (var uma = new UnmanagedMemoryAccessor(buffer, 0, capacity, FileAccess.ReadWrite))
             {
-                AssertExtensions.Throws<ArgumentException>("type", () => uma.WriteArray<UmaTestStruct_Generic<string>>(0, structArr, 0, 1));
-                AssertExtensions.Throws<ArgumentException>("type", () => uma.ReadArray<UmaTestStruct_Generic<string>>(0, structArr, 0, 1));
+                AssertExtensions.Throws<ArgumentException>(null, "type", () => uma.WriteArray<UmaTestStruct_Generic<string>>(0, structArr, 0, 1));
+                AssertExtensions.Throws<ArgumentException>(null, "type", () => uma.ReadArray<UmaTestStruct_Generic<string>>(0, structArr, 0, 1));
             }
         }
 
@@ -167,9 +167,9 @@ namespace System.IO.Tests
                 {
                     Assert.Equal(i, outStructArr[i].int1);
                     Assert.Equal(i+1, outStructArr[i].int2);
-                    Assert.Equal(false, outStructArr[i].bool1);
+                    Assert.False(outStructArr[i].bool1);
                     Assert.Equal((char)i, outStructArr[i].char1);
-                    Assert.Equal(true, outStructArr[i].bool2);
+                    Assert.True(outStructArr[i].bool2);
                 }
             }
         }

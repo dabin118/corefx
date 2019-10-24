@@ -1,4 +1,4 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
+// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
@@ -20,12 +20,12 @@ namespace Microsoft.Test.Data.SqlClient
     /// allows user to manipulate %windir%\system32\drivers\etc\hosts
     /// the hosts file must be reverted if changed even if test application crashes, thus inherit from CriticalFinalizerObject. Make sure the instance is disposed after its use.
     /// The last dispose call on the active instance reverts the hosts file.
-    /// 
+    ///
     /// Usage:
     /// using (var hostsFile = new HostsFileManager())
     /// {
     ///     // use the hostsFile methods to add/remove entries
-    ///     // simultanious usage of HostsFileManager in two app domains or processes on the same machine is not allowed
+    ///     // simultaneous usage of HostsFileManager in two app domains or processes on the same machine is not allowed
     /// }
     /// </summary>
     public sealed class HostsFileManager : IDisposable

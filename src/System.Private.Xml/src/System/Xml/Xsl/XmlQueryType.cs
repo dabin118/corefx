@@ -20,33 +20,7 @@ namespace System.Xml.Xsl
     /// </summary>
     internal abstract class XmlQueryType : ListBase<XmlQueryType>
     {
-        private static readonly BitMatrix s_typeCodeDerivation;
         private int _hashCode;
-
-
-        //-----------------------------------------------
-        // Static Constructor
-        //-----------------------------------------------
-        static XmlQueryType()
-        {
-            s_typeCodeDerivation = new BitMatrix(s_baseTypeCodes.Length);
-
-            // Build derivation matrix
-            for (int i = 0; i < s_baseTypeCodes.Length; i++)
-            {
-                int nextAncestor = i;
-
-                while (true)
-                {
-                    s_typeCodeDerivation[i, nextAncestor] = true;
-                    if ((int)s_baseTypeCodes[nextAncestor] == nextAncestor)
-                        break;
-
-                    nextAncestor = (int)s_baseTypeCodes[nextAncestor];
-                }
-            }
-        }
-
 
         //-----------------------------------------------
         // ItemType, OccurrenceIndicator Properties
@@ -60,7 +34,7 @@ namespace System.Xml.Xsl
         public abstract XmlTypeCode TypeCode { get; }
 
         /// <summary>
-        /// Set of alowed names for element, document{element}, attribute and PI
+        /// Set of allowed names for element, document{element}, attribute and PI
         /// Returns XmlQualifiedName.Wildcard for all other types
         /// </summary>
         public abstract XmlQualifiedNameTest NameTest { get; }
@@ -70,7 +44,7 @@ namespace System.Xml.Xsl
         /// SchemaType will follow these rules:
         ///   1. If TypeCode is an atomic type code, then SchemaType will be the corresponding non-null simple type
         ///   2. If TypeCode is Element or Attribute, then SchemaType will be the non-null content type
-        ///   3. If TypeCode is Item, Node, Comment, PI, Text, Document, Namespacce, None, then SchemaType will be AnyType
+        ///   3. If TypeCode is Item, Node, Comment, PI, Text, Document, Namespace, None, then SchemaType will be AnyType
         /// </summary>
         public abstract XmlSchemaType SchemaType { get; }
 
@@ -111,12 +85,6 @@ namespace System.Xml.Xsl
         /// True if items in the sequence are guaranteed to be nodes in document order with no duplicates.
         /// </summary>
         public abstract bool IsDod { get; }
-
-        /// <summary>
-        /// The XmlValueConverter maps each XmlQueryType to various Clr types which are capable of representing it.
-        /// </summary>
-        public abstract XmlValueConverter ClrMapping { get; }
-
 
         //-----------------------------------------------
         // Type Operations
@@ -464,7 +432,6 @@ namespace System.Xml.Xsl
             {
                 case 0:
                     // This assert depends on the way we are going to represent None
-                    // Debug.Assert(false);
                     sb.Append("none");
                     break;
                 case 1:
@@ -878,6 +845,29 @@ namespace System.Xml.Xsl
             /* YearMonthDuration           */ "xdt:yearMonthDuration",
             /* DayTimeDuration             */ "xdt:dayTimeDuration",
         };
+
+        private static readonly BitMatrix s_typeCodeDerivation = CreateTypeCodeDerivation();
+
+        private static BitMatrix CreateTypeCodeDerivation()
+        {
+            var matrix = new BitMatrix(s_baseTypeCodes.Length);
+
+            for (int i = 0; i < s_baseTypeCodes.Length; i++)
+            {
+                int nextAncestor = i;
+
+                while (true)
+                {
+                    matrix[i, nextAncestor] = true;
+                    if ((int)s_baseTypeCodes[nextAncestor] == nextAncestor)
+                        break;
+
+                    nextAncestor = (int)s_baseTypeCodes[nextAncestor];
+                }
+            }
+
+            return matrix;
+        }
         #endregion
 
         /// <summary>
@@ -885,7 +875,7 @@ namespace System.Xml.Xsl
         /// </summary>
         private sealed class BitMatrix
         {
-            private ulong[] _bits;
+            private readonly ulong[] _bits;
 
             /// <summary>
             /// Create NxN bit matrix, where N = count.

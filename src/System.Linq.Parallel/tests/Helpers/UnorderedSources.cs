@@ -48,7 +48,7 @@ namespace System.Linq.Parallel.Tests
 
         // Get a set of ranges, of each count in `counts`.
         // The start of each range is determined by passing the count into the `start` predicate.
-        private static IEnumerable<object[]> Ranges(Func<int, int> start, IEnumerable<int> counts)
+        public static IEnumerable<object[]> Ranges(Func<int, int> start, IEnumerable<int> counts)
         {
             foreach (int count in counts)
             {
@@ -166,7 +166,7 @@ namespace System.Linq.Parallel.Tests
         /// <returns>Entries for test data.
         /// The first element is the left Labeled{ParallelQuery{int}} range, the second element is the left count,
         /// the third element is the right Labeled{ParallelQuery{int}} range, the fourth element is the right count,
-        /// and the fifth is the right start..</returns>
+        /// and the fifth is the right start.</returns>
         public static IEnumerable<object[]> BinaryRanges(IEnumerable<int> leftCounts, Func<int, int, int> rightStart, IEnumerable<int> rightCounts)
         {
             foreach (object[] left in Ranges(leftCounts))
@@ -229,7 +229,7 @@ namespace System.Linq.Parallel.Tests
             yield return new object[] { Labeled.Label("ThrowOnFirstEnumeration", Enumerables<int>.ThrowOnEnumeration().AsParallel()), 8 };
         }
 
-        private static IEnumerable<Labeled<ParallelQuery<int>>> LabeledRanges(int start, int count)
+        public static IEnumerable<Labeled<ParallelQuery<int>>> LabeledRanges(int start, int count)
         {
             yield return Labeled.Label("ParallelEnumerable.Range", ParallelEnumerable.Range(start, count));
             yield return Labeled.Label("Enumerable.Range", Enumerable.Range(start, count).AsParallel());

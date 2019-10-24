@@ -52,7 +52,7 @@ namespace System.Xml.Schema
     //                      source type to primitive, full-     destination type.
     //                      fidelity Clr type.  Use Xsd rules
     //                      to convert to a string (use
-    //                      XmlConvert where possible).         
+    //                      XmlConvert where possible).
     // -----------------------------------------------------------------------------------------------------------
     //
     //
@@ -65,7 +65,7 @@ namespace System.Xml.Schema
     // Source/Destination   System.String                           Clr List Type
     // -----------------------------------------------------------------------------------------------------------
     // System.String        No-op conversion                        Tokenize the string by whitespace, create a
-    //                                                              String[] from tokens, and follow List => List 
+    //                                                              String[] from tokens, and follow List => List
     //                                                              rules.
     // -----------------------------------------------------------------------------------------------------------
     // Clr List Type        Follow List => String[] rules,          Create destination list having the same length
@@ -223,9 +223,9 @@ namespace System.Xml.Schema
 
     internal abstract class XmlBaseConverter : XmlValueConverter
     {
-        private XmlSchemaType _schemaType;
-        private XmlTypeCode _typeCode;
-        private Type _clrTypeDefault;
+        private readonly XmlSchemaType _schemaType;
+        private readonly XmlTypeCode _typeCode;
+        private readonly Type _clrTypeDefault;
 
         protected XmlBaseConverter(XmlSchemaType schemaType)
         {
@@ -265,7 +265,7 @@ namespace System.Xml.Schema
                     break;
 
                 default:
-                    Debug.Assert(false, "Type code " + typeCode + " is not supported.");
+                    Debug.Fail("Type code " + typeCode + " is not supported.");
                     break;
             }
 
@@ -312,7 +312,7 @@ namespace System.Xml.Schema
         protected static readonly Type DateTimeType = typeof(DateTime);
         protected static readonly Type DateTimeOffsetType = typeof(DateTimeOffset);
         protected static readonly Type BooleanType = typeof(bool);
-        protected static readonly Type ByteArrayType = typeof(Byte[]);
+        protected static readonly Type ByteArrayType = typeof(byte[]);
         protected static readonly Type XmlQualifiedNameType = typeof(XmlQualifiedName);
         protected static readonly Type UriType = typeof(Uri);
         protected static readonly Type TimeSpanType = typeof(TimeSpan);
@@ -490,7 +490,7 @@ namespace System.Xml.Schema
 
         /// <summary>
         /// This method is called when a valid conversion cannot be found.  By default, this method throws an error.  It can
-        /// be overriden in derived classes to support list conversions.
+        /// be overridden in derived classes to support list conversions.
         /// </summary>
         protected virtual object ChangeListType(object value, Type destinationType, IXmlNamespaceResolver nsResolver)
         {
@@ -749,7 +749,7 @@ namespace System.Xml.Schema
 
             prefix = nsResolver.LookupPrefix(qname.Namespace);
             if (prefix == null)
-                throw new InvalidCastException(SR.Format(SR.XmlConvert_TypeNoPrefix, qname.ToString(), qname.Namespace));
+                throw new InvalidCastException(SR.Format(SR.XmlConvert_TypeNoPrefix, qname, qname.Namespace));
 
             return (prefix.Length != 0) ? string.Concat(prefix, ":", qname.Name) : qname.Name;
         }
@@ -781,7 +781,7 @@ namespace System.Xml.Schema
 
         internal static int DecimalToInt32(decimal value)
         {
-            if (value < (decimal)Int32.MinValue || value > (decimal)Int32.MaxValue)
+            if (value < (decimal)int.MinValue || value > (decimal)int.MaxValue)
                 throw new OverflowException(SR.Format(SR.XmlConvert_Overflow, new string[] { XmlConvert.ToString(value), "Int32" }));
 
             return (int)value;
@@ -789,7 +789,7 @@ namespace System.Xml.Schema
 
         protected static long DecimalToInt64(decimal value)
         {
-            if (value < (decimal)Int64.MinValue || value > (decimal)Int64.MaxValue)
+            if (value < (decimal)long.MinValue || value > (decimal)long.MaxValue)
                 throw new OverflowException(SR.Format(SR.XmlConvert_Overflow, new string[] { XmlConvert.ToString(value), "Int64" }));
 
             return (long)value;
@@ -797,7 +797,7 @@ namespace System.Xml.Schema
 
         protected static ulong DecimalToUInt64(decimal value)
         {
-            if (value < (decimal)UInt64.MinValue || value > (decimal)UInt64.MaxValue)
+            if (value < (decimal)ulong.MinValue || value > (decimal)ulong.MaxValue)
                 throw new OverflowException(SR.Format(SR.XmlConvert_Overflow, new string[] { XmlConvert.ToString(value), "UInt64" }));
 
             return (ulong)value;
@@ -805,7 +805,7 @@ namespace System.Xml.Schema
 
         protected static byte Int32ToByte(int value)
         {
-            if (value < (int)Byte.MinValue || value > (int)Byte.MaxValue)
+            if (value < (int)byte.MinValue || value > (int)byte.MaxValue)
                 throw new OverflowException(SR.Format(SR.XmlConvert_Overflow, new string[] { XmlConvert.ToString(value), "Byte" }));
 
             return (byte)value;
@@ -813,7 +813,7 @@ namespace System.Xml.Schema
 
         protected static short Int32ToInt16(int value)
         {
-            if (value < (int)Int16.MinValue || value > (int)Int16.MaxValue)
+            if (value < (int)short.MinValue || value > (int)short.MaxValue)
                 throw new OverflowException(SR.Format(SR.XmlConvert_Overflow, new string[] { XmlConvert.ToString(value), "Int16" }));
 
             return (short)value;
@@ -821,7 +821,7 @@ namespace System.Xml.Schema
 
         protected static sbyte Int32ToSByte(int value)
         {
-            if (value < (int)SByte.MinValue || value > (int)SByte.MaxValue)
+            if (value < (int)sbyte.MinValue || value > (int)sbyte.MaxValue)
                 throw new OverflowException(SR.Format(SR.XmlConvert_Overflow, new string[] { XmlConvert.ToString(value), "SByte" }));
 
             return (sbyte)value;
@@ -829,7 +829,7 @@ namespace System.Xml.Schema
 
         protected static ushort Int32ToUInt16(int value)
         {
-            if (value < (int)UInt16.MinValue || value > (int)UInt16.MaxValue)
+            if (value < (int)ushort.MinValue || value > (int)ushort.MaxValue)
                 throw new OverflowException(SR.Format(SR.XmlConvert_Overflow, new string[] { XmlConvert.ToString(value), "UInt16" }));
 
             return (ushort)value;
@@ -837,7 +837,7 @@ namespace System.Xml.Schema
 
         protected static int Int64ToInt32(long value)
         {
-            if (value < (long)Int32.MinValue || value > (long)Int32.MaxValue)
+            if (value < (long)int.MinValue || value > (long)int.MaxValue)
                 throw new OverflowException(SR.Format(SR.XmlConvert_Overflow, new string[] { XmlConvert.ToString(value), "Int32" }));
 
             return (int)value;
@@ -845,7 +845,7 @@ namespace System.Xml.Schema
 
         protected static uint Int64ToUInt32(long value)
         {
-            if (value < (long)UInt32.MinValue || value > (long)UInt32.MaxValue)
+            if (value < (long)uint.MinValue || value > (long)uint.MaxValue)
                 throw new OverflowException(SR.Format(SR.XmlConvert_Overflow, new string[] { XmlConvert.ToString(value), "UInt32" }));
 
             return (uint)value;
@@ -1321,17 +1321,17 @@ namespace System.Xml.Schema
         {
             if (value == null) throw new ArgumentNullException(nameof(value));
 
-            switch (TypeCode)
+            return TypeCode switch
             {
-                case XmlTypeCode.Date: return StringToDate((string)value);
-                case XmlTypeCode.Time: return StringToTime((string)value);
-                case XmlTypeCode.GDay: return StringToGDay((string)value);
-                case XmlTypeCode.GMonth: return StringToGMonth((string)value);
-                case XmlTypeCode.GMonthDay: return StringToGMonthDay((string)value);
-                case XmlTypeCode.GYear: return StringToGYear((string)value);
-                case XmlTypeCode.GYearMonth: return StringToGYearMonth((string)value);
-            }
-            return StringToDateTime((string)value);
+                XmlTypeCode.Date => StringToDate((string)value),
+                XmlTypeCode.Time => StringToTime((string)value),
+                XmlTypeCode.GDay => StringToGDay((string)value),
+                XmlTypeCode.GMonth => StringToGMonth((string)value),
+                XmlTypeCode.GMonthDay => StringToGMonthDay((string)value),
+                XmlTypeCode.GYear => StringToGYear((string)value),
+                XmlTypeCode.GYearMonth => StringToGYearMonth((string)value),
+                _ => StringToDateTime((string)value),
+            };
         }
         public override DateTime ToDateTime(object value)
         {
@@ -1360,17 +1360,17 @@ namespace System.Xml.Schema
         {
             if (value == null) throw new ArgumentNullException(nameof(value));
 
-            switch (TypeCode)
+            return TypeCode switch
             {
-                case XmlTypeCode.Date: return StringToDateOffset((string)value);
-                case XmlTypeCode.Time: return StringToTimeOffset((string)value);
-                case XmlTypeCode.GDay: return StringToGDayOffset((string)value);
-                case XmlTypeCode.GMonth: return StringToGMonthOffset((string)value);
-                case XmlTypeCode.GMonthDay: return StringToGMonthDayOffset((string)value);
-                case XmlTypeCode.GYear: return StringToGYearOffset((string)value);
-                case XmlTypeCode.GYearMonth: return StringToGYearMonthOffset((string)value);
-            }
-            return StringToDateTimeOffset((string)value);
+                XmlTypeCode.Date => StringToDateOffset((string)value),
+                XmlTypeCode.Time => StringToTimeOffset((string)value),
+                XmlTypeCode.GDay => StringToGDayOffset((string)value),
+                XmlTypeCode.GMonth => StringToGMonthOffset((string)value),
+                XmlTypeCode.GMonthDay => StringToGMonthDayOffset((string)value),
+                XmlTypeCode.GYear => StringToGYearOffset((string)value),
+                XmlTypeCode.GYearMonth => StringToGYearMonthOffset((string)value),
+                _ => StringToDateTimeOffset((string)value),
+            };
         }
 
         public override DateTimeOffset ToDateTimeOffset(object value)
@@ -1426,35 +1426,32 @@ namespace System.Xml.Schema
         // ToString
         //-----------------------------------------------
 
-        public override string ToString(DateTime value)
-        {
-            switch (TypeCode)
+        public override string ToString(DateTime value) =>
+            TypeCode switch
             {
-                case XmlTypeCode.Date: return DateToString((DateTime)value);
-                case XmlTypeCode.Time: return TimeToString((DateTime)value);
-                case XmlTypeCode.GDay: return GDayToString((DateTime)value);
-                case XmlTypeCode.GMonth: return GMonthToString((DateTime)value);
-                case XmlTypeCode.GMonthDay: return GMonthDayToString((DateTime)value);
-                case XmlTypeCode.GYear: return GYearToString((DateTime)value);
-                case XmlTypeCode.GYearMonth: return GYearMonthToString((DateTime)value);
-            }
-            return DateTimeToString((DateTime)value);
-        }
+                XmlTypeCode.Date => DateToString((DateTime)value),
+                XmlTypeCode.Time => TimeToString((DateTime)value),
+                XmlTypeCode.GDay => GDayToString((DateTime)value),
+                XmlTypeCode.GMonth => GMonthToString((DateTime)value),
+                XmlTypeCode.GMonthDay => GMonthDayToString((DateTime)value),
+                XmlTypeCode.GYear => GYearToString((DateTime)value),
+                XmlTypeCode.GYearMonth => GYearMonthToString((DateTime)value),
+                _ => DateTimeToString((DateTime)value),
+            };
 
-        public override string ToString(DateTimeOffset value)
-        {
-            switch (TypeCode)
+        public override string ToString(DateTimeOffset value) =>
+            TypeCode switch
             {
-                case XmlTypeCode.Date: return DateOffsetToString((DateTimeOffset)value);
-                case XmlTypeCode.Time: return TimeOffsetToString((DateTimeOffset)value);
-                case XmlTypeCode.GDay: return GDayOffsetToString((DateTimeOffset)value);
-                case XmlTypeCode.GMonth: return GMonthOffsetToString((DateTimeOffset)value);
-                case XmlTypeCode.GMonthDay: return GMonthDayOffsetToString((DateTimeOffset)value);
-                case XmlTypeCode.GYear: return GYearOffsetToString((DateTimeOffset)value);
-                case XmlTypeCode.GYearMonth: return GYearMonthOffsetToString((DateTimeOffset)value);
-            }
-            return DateTimeOffsetToString((DateTimeOffset)value);
-        }
+                XmlTypeCode.Date => DateOffsetToString((DateTimeOffset)value),
+                XmlTypeCode.Time => TimeOffsetToString((DateTimeOffset)value),
+                XmlTypeCode.GDay => GDayOffsetToString((DateTimeOffset)value),
+                XmlTypeCode.GMonth => GMonthOffsetToString((DateTimeOffset)value),
+                XmlTypeCode.GMonthDay => GMonthDayOffsetToString((DateTimeOffset)value),
+                XmlTypeCode.GYear => GYearOffsetToString((DateTimeOffset)value),
+                XmlTypeCode.GYearMonth => GYearMonthOffsetToString((DateTimeOffset)value),
+                _ => DateTimeOffsetToString((DateTimeOffset)value),
+            };
+
         public override string ToString(object value, IXmlNamespaceResolver nsResolver)
         {
             if (value == null) throw new ArgumentNullException(nameof(value));
@@ -1986,7 +1983,7 @@ namespace System.Xml.Schema
 
     internal class XmlUntypedConverter : XmlListConverter
     {
-        private bool _allowListToList;
+        private readonly bool _allowListToList;
 
         protected XmlUntypedConverter() : base(DatatypeImplementation.UntypedAtomicType)
         {
@@ -2508,98 +2505,6 @@ namespace System.Xml.Schema
 
             return false;
         }
-    }
-
-    internal class XmlNodeConverter : XmlBaseConverter
-    {
-        protected XmlNodeConverter() : base(XmlTypeCode.Node)
-        {
-        }
-
-        public static readonly XmlValueConverter Node = new XmlNodeConverter();
-
-        #region AUTOGENERATED_XMLNODECONVERTER
-
-        //-----------------------------------------------
-        // ToBoolean
-        //-----------------------------------------------
-
-        // This converter does not support conversions to Boolean.
-
-
-        //-----------------------------------------------
-        // ToDateTime
-        //-----------------------------------------------
-
-        // This converter does not support conversions to DateTime.
-
-
-        //-----------------------------------------------
-        // ToDecimal
-        //-----------------------------------------------
-
-        // This converter does not support conversions to Decimal.
-
-
-        //-----------------------------------------------
-        // ToDouble
-        //-----------------------------------------------
-
-        // This converter does not support conversions to Double.
-
-
-        //-----------------------------------------------
-        // ToInt32
-        //-----------------------------------------------
-
-        // This converter does not support conversions to Int32.
-
-
-        //-----------------------------------------------
-        // ToInt64
-        //-----------------------------------------------
-
-        // This converter does not support conversions to Int64.
-
-
-        //-----------------------------------------------
-        // ToSingle
-        //-----------------------------------------------
-
-        // This converter does not support conversions to Single.
-
-
-        //-----------------------------------------------
-        // ToString
-        //-----------------------------------------------
-
-        // This converter does not support conversions to String.
-
-
-        //-----------------------------------------------
-        // ChangeType
-        //-----------------------------------------------
-
-        public override object ChangeType(object value, Type destinationType, IXmlNamespaceResolver nsResolver)
-        {
-            if (value == null) throw new ArgumentNullException(nameof(value));
-            if (destinationType == null) throw new ArgumentNullException(nameof(destinationType));
-
-            Type sourceType = value.GetType();
-
-            if (destinationType == ObjectType) destinationType = DefaultClrType;
-            if (destinationType == XPathNavigatorType)
-            {
-                if (IsDerivedFrom(sourceType, XPathNavigatorType)) return ((XPathNavigator)value);
-            }
-            if (destinationType == XPathItemType)
-            {
-                if (IsDerivedFrom(sourceType, XPathNavigatorType)) return ((XPathItem)value);
-            }
-
-            return ChangeListType(value, destinationType, nsResolver);
-        }
-        #endregion
     }
 
     internal class XmlAnyConverter : XmlBaseConverter
@@ -3209,12 +3114,12 @@ namespace System.Xml.Schema
 
     internal class XmlUnionConverter : XmlBaseConverter
     {
-        private XmlValueConverter[] _converters;
-        private bool _hasAtomicMember, _hasListMember;
+        private readonly XmlValueConverter[] _converters;
+        private readonly bool _hasAtomicMember, _hasListMember;
 
         protected XmlUnionConverter(XmlSchemaType schemaType) : base(schemaType)
         {
-            // Skip restrictions. It is safe to do that because this is a union, so it's not a built-in type 
+            // Skip restrictions. It is safe to do that because this is a union, so it's not a built-in type
             while (schemaType.DerivedBy == XmlSchemaDerivationMethod.Restriction)
                 schemaType = schemaType.BaseXmlSchemaType;
 

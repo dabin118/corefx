@@ -265,7 +265,7 @@ namespace System.Net
             // be used to get the response, and it needs to be passed the IAsyncResult that was returned
             // from WebRequest.BeginGetResponse.
             var awaitable = new BeginEndAwaitableAdapter();
-            IAsyncResult iar = request.BeginGetResponse(BeginEndAwaitableAdapter.Callback, awaitable);
+            request.BeginGetResponse(BeginEndAwaitableAdapter.Callback, awaitable);
             return GetWebResponse(request, await awaitable);
         }
 
@@ -381,7 +381,7 @@ namespace System.Net
 
         public Stream OpenWrite(Uri address, string method)
         {
-            ThrowIfNull(address, nameof(address));            
+            ThrowIfNull(address, nameof(address));
             if (method == null)
             {
                 method = MapToDefaultMethod(address);
@@ -876,6 +876,11 @@ namespace System.Net
                     writeStream.SetLength(copyBuffer.Length);
                 }
 
+                if (contentLength >= 0)
+                {
+                    _progress.TotalBytesToReceive = contentLength;
+                }
+
                 using (writeStream)
                 using (Stream readStream = response.GetResponseStream())
                 {
@@ -883,7 +888,7 @@ namespace System.Net
                     {
                         while (true)
                         {
-                            int bytesRead = await readStream.ReadAsync(copyBuffer, 0, copyBuffer.Length).ConfigureAwait(false);
+                            int bytesRead = await readStream.ReadAsync(new Memory<byte>(copyBuffer)).ConfigureAwait(false);
                             if (bytesRead == 0)
                             {
                                 break;
@@ -895,7 +900,7 @@ namespace System.Net
                                 PostProgressChanged(asyncOp, _progress);
                             }
 
-                            await writeStream.WriteAsync(copyBuffer, 0, bytesRead).ConfigureAwait(false);
+                            await writeStream.WriteAsync(new ReadOnlyMemory<byte>(copyBuffer, 0, bytesRead)).ConfigureAwait(false);
                         }
                     }
 
@@ -1005,7 +1010,7 @@ namespace System.Net
                 {
                     if (header != null)
                     {
-                        await writeStream.WriteAsync(header, 0, header.Length).ConfigureAwait(false);
+                        await writeStream.WriteAsync(new ReadOnlyMemory<byte>(header)).ConfigureAwait(false);
                         _progress.BytesSent += header.Length;
                         PostProgressChanged(asyncOp, _progress);
                     }
@@ -1016,9 +1021,9 @@ namespace System.Net
                         {
                             while (true)
                             {
-                                int bytesRead = await readStream.ReadAsync(buffer, 0, buffer.Length).ConfigureAwait(false);
+                                int bytesRead = await readStream.ReadAsync(new Memory<byte>(buffer)).ConfigureAwait(false);
                                 if (bytesRead <= 0) break;
-                                await writeStream.WriteAsync(buffer, 0, bytesRead).ConfigureAwait(false);
+                                await writeStream.WriteAsync(new ReadOnlyMemory<byte>(buffer, 0, bytesRead)).ConfigureAwait(false);
 
                                 _progress.BytesSent += bytesRead;
                                 PostProgressChanged(asyncOp, _progress);
@@ -1034,7 +1039,7 @@ namespace System.Net
                             {
                                 toWrite = chunkSize;
                             }
-                            await writeStream.WriteAsync(buffer, pos, toWrite).ConfigureAwait(false);
+                            await writeStream.WriteAsync(new ReadOnlyMemory<byte>(buffer, pos, toWrite)).ConfigureAwait(false);
                             pos += toWrite;
                             _progress.BytesSent += toWrite;
                             PostProgressChanged(asyncOp, _progress);
@@ -1043,7 +1048,7 @@ namespace System.Net
 
                     if (footer != null)
                     {
-                        await writeStream.WriteAsync(footer, 0, footer.Length).ConfigureAwait(false);
+                        await writeStream.WriteAsync(new ReadOnlyMemory<byte>(footer)).ConfigureAwait(false);
                         _progress.BytesSent += footer.Length;
                         PostProgressChanged(asyncOp, _progress);
                     }
@@ -1122,7 +1127,7 @@ namespace System.Net
                         }
                         catch (ArgumentException)
                         {
-                            // Eat ArgumentException here.    
+                            // Eat ArgumentException here.
                             // We'll assume that Content-Type encoding might have been garbled and wasn't present at all.
                             break;
                         }
@@ -1177,7 +1182,7 @@ namespace System.Net
                 "STOR" :
                 "POST";
         }
-        
+
         private static string UrlEncode(string str)
         {
             if (str == null)
@@ -1194,7 +1199,7 @@ namespace System.Net
             // Count them first.
             for (int i = 0; i < count; i++)
             {
-                char ch = (char) bytes[offset + i];
+                char ch = (char)bytes[offset + i];
 
                 if (ch == ' ')
                 {
@@ -1216,8 +1221,8 @@ namespace System.Net
 
             for (int i = 0; i < count; i++)
             {
-                byte b = bytes[offset+i];
-                char ch = (char) b;
+                byte b = bytes[offset + i];
+                char ch = (char)b;
 
                 if (IsSafe(ch))
                 {
@@ -1225,29 +1230,29 @@ namespace System.Net
                 }
                 else if (ch == ' ')
                 {
-                    expandedBytes[pos++] = (byte) '+';
+                    expandedBytes[pos++] = (byte)'+';
                 }
                 else
                 {
-                    expandedBytes[pos++] = (byte) '%';
-                    expandedBytes[pos++] = (byte) IntToHex((b >> 4) & 0xf);
-                    expandedBytes[pos++] = (byte) IntToHex(b & 0x0f);
+                    expandedBytes[pos++] = (byte)'%';
+                    expandedBytes[pos++] = (byte)IntToHex((b >> 4) & 0xf);
+                    expandedBytes[pos++] = (byte)IntToHex(b & 0x0f);
                 }
             }
 
             return expandedBytes;
         }
-        
+
         private static char IntToHex(int n)
         {
             Debug.Assert(n < 0x10);
-            
+
             if (n <= 9)
             {
-                return(char)(n + (int)'0');
+                return (char)(n + (int)'0');
             }
-            
-            return(char)(n - 10 + (int)'a');
+
+            return (char)(n - 10 + (int)'a');
         }
 
         private static bool IsSafe(char ch)
@@ -1360,7 +1365,7 @@ namespace System.Net
             }
         }
 
-        private void DownloadStringAsyncCallback(byte[] returnBytes, Exception exception, Object state)
+        private void DownloadStringAsyncCallback(byte[] returnBytes, Exception exception, object state)
         {
             AsyncOperation asyncOp = (AsyncOperation)state;
             string stringData = null;
@@ -1400,7 +1405,7 @@ namespace System.Net
             }
         }
 
-        private void DownloadDataAsyncCallback(byte[] returnBytes, Exception exception, Object state)
+        private void DownloadDataAsyncCallback(byte[] returnBytes, Exception exception, object state)
         {
             AsyncOperation asyncOp = (AsyncOperation)state;
             DownloadDataCompletedEventArgs eventArgs = new DownloadDataCompletedEventArgs(returnBytes, exception, _canceled, asyncOp.UserSuppliedState);
@@ -1426,7 +1431,7 @@ namespace System.Net
             }
         }
 
-        private void DownloadFileAsyncCallback(byte[] returnBytes, Exception exception, Object state)
+        private void DownloadFileAsyncCallback(byte[] returnBytes, Exception exception, object state)
         {
             AsyncOperation asyncOp = (AsyncOperation)state;
             AsyncCompletedEventArgs eventArgs = new AsyncCompletedEventArgs(exception, _canceled, asyncOp.UserSuppliedState);
@@ -1640,7 +1645,7 @@ namespace System.Net
 
         public Task<string> DownloadStringTaskAsync(string address) =>
             DownloadStringTaskAsync(GetUri(address));
-        
+
         public Task<string> DownloadStringTaskAsync(Uri address)
         {
             // Create the task to be returned
@@ -1664,7 +1669,7 @@ namespace System.Net
 
         public Task<Stream> OpenReadTaskAsync(string address) =>
             OpenReadTaskAsync(GetUri(address));
-        
+
         public Task<Stream> OpenReadTaskAsync(Uri address)
         {
             // Create the task to be returned
@@ -1686,16 +1691,16 @@ namespace System.Net
             // Return the task that represents the async operation
             return tcs.Task;
         }
-        
+
         public Task<Stream> OpenWriteTaskAsync(string address) =>
             OpenWriteTaskAsync(GetUri(address), null);
-        
+
         public Task<Stream> OpenWriteTaskAsync(Uri address) =>
             OpenWriteTaskAsync(address, null);
-        
+
         public Task<Stream> OpenWriteTaskAsync(string address, string method) =>
             OpenWriteTaskAsync(GetUri(address), method);
-        
+
         public Task<Stream> OpenWriteTaskAsync(Uri address, string method)
         {
             // Create the task to be returned
@@ -1720,13 +1725,13 @@ namespace System.Net
 
         public Task<string> UploadStringTaskAsync(string address, string data) =>
             UploadStringTaskAsync(address, null, data);
-        
+
         public Task<string> UploadStringTaskAsync(Uri address, string data) =>
             UploadStringTaskAsync(address, null, data);
-        
+
         public Task<string> UploadStringTaskAsync(string address, string method, string data) =>
             UploadStringTaskAsync(GetUri(address), method, data);
-        
+
         public Task<string> UploadStringTaskAsync(Uri address, string method, string data)
         {
             // Create the task to be returned
@@ -1748,10 +1753,10 @@ namespace System.Net
             // Return the task that represents the async operation
             return tcs.Task;
         }
-        
+
         public Task<byte[]> DownloadDataTaskAsync(string address) =>
             DownloadDataTaskAsync(GetUri(address));
-        
+
         public Task<byte[]> DownloadDataTaskAsync(Uri address)
         {
             // Create the task to be returned
@@ -1776,7 +1781,7 @@ namespace System.Net
 
         public Task DownloadFileTaskAsync(string address, string fileName) =>
             DownloadFileTaskAsync(GetUri(address), fileName);
-        
+
         public Task DownloadFileTaskAsync(Uri address, string fileName)
         {
             // Create the task to be returned
@@ -1801,13 +1806,13 @@ namespace System.Net
 
         public Task<byte[]> UploadDataTaskAsync(string address, byte[] data) =>
             UploadDataTaskAsync(GetUri(address), null, data);
-        
+
         public Task<byte[]> UploadDataTaskAsync(Uri address, byte[] data) =>
             UploadDataTaskAsync(address, null, data);
-        
+
         public Task<byte[]> UploadDataTaskAsync(string address, string method, byte[] data) =>
             UploadDataTaskAsync(GetUri(address), method, data);
-        
+
         public Task<byte[]> UploadDataTaskAsync(Uri address, string method, byte[] data)
         {
             // Create the task to be returned
@@ -1829,16 +1834,16 @@ namespace System.Net
             // Return the task that represents the async operation
             return tcs.Task;
         }
-        
+
         public Task<byte[]> UploadFileTaskAsync(string address, string fileName) =>
             UploadFileTaskAsync(GetUri(address), null, fileName);
-        
+
         public Task<byte[]> UploadFileTaskAsync(Uri address, string fileName) =>
             UploadFileTaskAsync(address, null, fileName);
-        
+
         public Task<byte[]> UploadFileTaskAsync(string address, string method, string fileName) =>
             UploadFileTaskAsync(GetUri(address), method, fileName);
-        
+
         public Task<byte[]> UploadFileTaskAsync(Uri address, string method, string fileName)
         {
             // Create the task to be returned
@@ -1860,16 +1865,16 @@ namespace System.Net
             // Return the task that represents the async operation
             return tcs.Task;
         }
-        
+
         public Task<byte[]> UploadValuesTaskAsync(string address, NameValueCollection data) =>
             UploadValuesTaskAsync(GetUri(address), null, data);
-        
+
         public Task<byte[]> UploadValuesTaskAsync(string address, string method, NameValueCollection data) =>
             UploadValuesTaskAsync(GetUri(address), method, data);
-        
+
         public Task<byte[]> UploadValuesTaskAsync(Uri address, NameValueCollection data) =>
             UploadValuesTaskAsync(address, null, data);
-        
+
         public Task<byte[]> UploadValuesTaskAsync(Uri address, string method, NameValueCollection data)
         {
             // Create the task to be returned

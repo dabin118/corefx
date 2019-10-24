@@ -7,11 +7,11 @@ namespace System.Runtime.Serialization
     [AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct, Inherited = false, AllowMultiple = false)]
     public sealed class CollectionDataContractAttribute : Attribute
     {
-        private string _name;
-        private string _ns;
-        private string _itemName;
-        private string _keyName;
-        private string _valueName;
+        private string? _name;
+        private string? _ns;
+        private string? _itemName;
+        private string? _keyName;
+        private string? _valueName;
         private bool _isReference;
         private bool _isNameSetExplicitly;
         private bool _isNamespaceSetExplicitly;
@@ -24,9 +24,9 @@ namespace System.Runtime.Serialization
         {
         }
 
-        public string Namespace
+        public string? Namespace
         {
-            get { return _ns; }
+            get => _ns;
             set
             {
                 _ns = value;
@@ -34,14 +34,11 @@ namespace System.Runtime.Serialization
             }
         }
 
-        public bool IsNamespaceSetExplicitly
-        {
-            get { return _isNamespaceSetExplicitly; }
-        }
+        public bool IsNamespaceSetExplicitly => _isNamespaceSetExplicitly;
 
-        public string Name
+        public string? Name
         {
-            get { return _name; }
+            get => _name;
             set
             {
                 _name = value;
@@ -49,14 +46,11 @@ namespace System.Runtime.Serialization
             }
         }
 
-        public bool IsNameSetExplicitly
-        {
-            get { return _isNameSetExplicitly; }
-        }
+        public bool IsNameSetExplicitly => _isNameSetExplicitly;
 
-        public string ItemName
+        public string? ItemName
         {
-            get { return _itemName; }
+            get => _itemName;
             set
             {
                 _itemName = value;
@@ -64,14 +58,11 @@ namespace System.Runtime.Serialization
             }
         }
 
-        public bool IsItemNameSetExplicitly
-        {
-            get { return _isItemNameSetExplicitly; }
-        }
+        public bool IsItemNameSetExplicitly => _isItemNameSetExplicitly;
 
-        public string KeyName
+        public string? KeyName
         {
-            get { return _keyName; }
+            get => _keyName;
             set
             {
                 _keyName = value;
@@ -79,9 +70,11 @@ namespace System.Runtime.Serialization
             }
         }
 
+        public bool IsKeyNameSetExplicitly => _isKeyNameSetExplicitly;
+
         public bool IsReference
         {
-            get { return _isReference; }
+            get => _isReference;
             set
             {
                 _isReference = value;
@@ -89,19 +82,11 @@ namespace System.Runtime.Serialization
             }
         }
 
-        public bool IsReferenceSetExplicitly
-        {
-            get { return _isReferenceSetExplicitly; }
-        }
+        public bool IsReferenceSetExplicitly => _isReferenceSetExplicitly;
 
-        public bool IsKeyNameSetExplicitly
+        public string? ValueName
         {
-            get { return _isKeyNameSetExplicitly; }
-        }
-
-        public string ValueName
-        {
-            get { return _valueName; }
+            get => _valueName;
             set
             {
                 _valueName = value;
@@ -109,9 +94,6 @@ namespace System.Runtime.Serialization
             }
         }
 
-        public bool IsValueNameSetExplicitly
-        {
-            get { return _isValueNameSetExplicitly; }
-        }
+        public bool IsValueNameSetExplicitly => _isValueNameSetExplicitly;
     }
 }

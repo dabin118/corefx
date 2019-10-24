@@ -9,7 +9,7 @@ namespace System.Configuration
     public sealed class SettingValueElement : ConfigurationElement
     {
         private static volatile ConfigurationPropertyCollection _properties;
-        private static XmlDocument _document = new XmlDocument();
+        private static readonly XmlDocument _document = new XmlDocument();
 
         private XmlNode _valueXml;
         private bool _isModified = false;
@@ -53,7 +53,7 @@ namespace System.Configuration
 
         public override int GetHashCode()
         {
-            return ValueXml.GetHashCode();
+            return ValueXml?.GetHashCode() ?? 0;
         }
 
         protected internal override bool IsModified()

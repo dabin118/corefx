@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using Xunit;
 
 namespace System.Collections.Immutable.Tests
@@ -151,14 +152,14 @@ namespace System.Collections.Immutable.Tests
             Assert.NotSame(collection, newImmutable); // first ToImmutable with changes should be a new instance.
             Assert.Same(newImmutable, builder.ToImmutable()); // second ToImmutable without changes should be the same instance.
 
-            collection = collection.Clear(); // now start with an empty collection 
+            collection = collection.Clear(); // now start with an empty collection
             builder = collection.ToBuilder();
-            Assert.Same(collection, builder.ToImmutable()); // again, no changes at all. 
-            builder.ValueComparer = StringComparer.OrdinalIgnoreCase; // now, force the builder to clear its cache 
+            Assert.Same(collection, builder.ToImmutable()); // again, no changes at all.
+            builder.ValueComparer = StringComparer.OrdinalIgnoreCase; // now, force the builder to clear its cache
 
             newImmutable = builder.ToImmutable();
-            Assert.NotSame(collection, newImmutable); // first ToImmutable with changes should be a new instance. 
-            Assert.Same(newImmutable, builder.ToImmutable()); // second ToImmutable without changes should be the same instance. 
+            Assert.NotSame(collection, newImmutable); // first ToImmutable with changes should be a new instance.
+            Assert.Same(newImmutable, builder.ToImmutable()); // second ToImmutable without changes should be the same instance.
         }
 
         [Fact]
@@ -256,7 +257,6 @@ namespace System.Collections.Immutable.Tests
         }
 
         [Fact]
-        [SkipOnTargetFramework(TargetFrameworkMonikers.UapAot, "Cannot do DebuggerAttribute testing on UapAot: requires internal Reflection on framework types.")]
         public void DebuggerAttributesValid()
         {
             DebuggerAttributes.ValidateDebuggerDisplayReferences(ImmutableSortedDictionary.CreateBuilder<string, int>());
@@ -270,12 +270,67 @@ namespace System.Collections.Immutable.Tests
         }
 
         [Fact]
-        [SkipOnTargetFramework(TargetFrameworkMonikers.UapAot, "Cannot do DebuggerAttribute testing on UapAot: requires internal Reflection on framework types.")]
         public static void TestDebuggerAttributes_Null()
         {
             Type proxyType = DebuggerAttributes.GetProxyType(ImmutableSortedDictionary.CreateBuilder<int, string>());
             TargetInvocationException tie = Assert.Throws<TargetInvocationException>(() => Activator.CreateInstance(proxyType, (object)null));
             Assert.IsType<ArgumentNullException>(tie.InnerException);
+        }
+
+        [Fact]
+        public void ValueRef()
+        {
+            var builder = new Dictionary<string, int>()
+            {
+                { "a", 1 },
+                { "b", 2 }
+            }.ToImmutableSortedDictionary().ToBuilder();
+
+            ref readonly var safeRef = ref builder.ValueRef("a");
+            ref var unsafeRef = ref Unsafe.AsRef(safeRef);
+
+            Assert.Equal(1, builder.ValueRef("a"));
+
+            unsafeRef = 5;
+
+            Assert.Equal(5, builder.ValueRef("a"));
+        }
+
+        [Fact]
+        public void ValueRef_NonExistentKey()
+        {
+            var builder = new Dictionary<string, int>()
+            {
+                { "a", 1 },
+                { "b", 2 }
+            }.ToImmutableSortedDictionary().ToBuilder();
+
+            Assert.Throws<KeyNotFoundException>(() => builder.ValueRef("c"));
+        }
+
+        [Fact]
+        public void ToImmutableSortedDictionary()
+        {
+            ImmutableSortedDictionary<int, int>.Builder builder = ImmutableSortedDictionary.CreateBuilder<int, int>();
+            builder.Add(1, 1);
+            builder.Add(2, 2);
+            builder.Add(3, 3);
+
+            var dictionary = builder.ToImmutableSortedDictionary();
+            Assert.Equal(1, dictionary[1]);
+            Assert.Equal(2, dictionary[2]);
+            Assert.Equal(3, dictionary[3]);
+
+            builder[2] = 5;
+            Assert.Equal(5, builder[2]);
+            Assert.Equal(2, dictionary[2]);
+
+            builder.Clear();
+            Assert.True(builder.ToImmutableSortedDictionary().IsEmpty);
+            Assert.False(dictionary.IsEmpty);
+
+            ImmutableSortedDictionary<int, int>.Builder nullBuilder = null;
+            AssertExtensions.Throws<ArgumentNullException>("builder", () => nullBuilder.ToImmutableSortedDictionary());
         }
 
         protected override IImmutableDictionary<TKey, TValue> GetEmptyImmutableDictionary<TKey, TValue>()

@@ -1,12 +1,14 @@
+// Licensed to the .NET Foundation under one or more agreements.
+// See the LICENSE file in the project root for more information
 //
 // XmlDsigExcC14NTransformTest.cs - Test Cases for XmlDsigExcC14NTransform
 //
 // Author:
 //  original:
-//	Sebastien Pouliot <sebastien@ximian.com>
-//	Aleksey Sanin (aleksey@aleksey.com)
+//  Sebastien Pouliot <sebastien@ximian.com>
+//  Aleksey Sanin (aleksey@aleksey.com)
 //  this file:
-//	Atsushi Enomoto <atsushi@ximian.com>
+//  Atsushi Enomoto <atsushi@ximian.com>
 //
 // (C) 2002, 2003 Motus Technologies Inc. (http://www.motus.com)
 // (C) 2003 Aleksey Sanin (aleksey@aleksey.com)
@@ -314,7 +316,7 @@ namespace System.Security.Cryptography.Xml.Tests
         }
 
         [Fact]
-        //		[Ignore ("This test should be fine, but it does not pass under MS.NET")]
+        //        [Ignore ("This test should be fine, but it does not pass under MS.NET")]
         public void ExcC14NSpecExample4()
         {
             string res = ExecuteXmlDSigExcC14NTransform(ExcC14NSpecExample4Input);
@@ -366,10 +368,10 @@ namespace System.Security.Cryptography.Xml.Tests
         }
 
         //
-        // Example 1 from ExcC14N spec - PIs, Comments, and Outside of Document Element: 
+        // Example 1 from ExcC14N spec - PIs, Comments, and Outside of Document Element:
         // http://www.w3.org/TR/xml-c14n#Example-OutsideDoc
-        // 
-        // Aleksey: 
+        //
+        // Aleksey:
         // removed reference to an empty external DTD
         //
         static string ExcC14NSpecExample1Input =
@@ -392,9 +394,9 @@ namespace System.Security.Cryptography.Xml.Tests
                 "<?pi-without-data?>";
 
         //
-        // Example 2 from ExcC14N spec - Whitespace in Document Content: 
+        // Example 2 from ExcC14N spec - Whitespace in Document Content:
         // http://www.w3.org/TR/xml-c14n#Example-WhitespaceInContent
-        // 
+        //
         static string ExcC14NSpecExample2Input =
                 "<doc>\n" +
                 "  <clean>   </clean>\n" +
@@ -421,7 +423,7 @@ namespace System.Security.Cryptography.Xml.Tests
                 "</doc>";
 
         //
-        // Example 3 from ExcC14N spec - Start and End Tags: 
+        // Example 3 from ExcC14N spec - Start and End Tags:
         // http://www.w3.org/TR/xml-c14n#Example-SETags
         //
         static string ExcC14NSpecExample3Input =
@@ -454,7 +456,7 @@ namespace System.Security.Cryptography.Xml.Tests
                 "       <e7 xmlns=\"http://www.ietf.org\">\n" +
                 "           <e8 xmlns=\"\">\n" +
                 "               <e9 attr=\"default\"></e9>\n" +
-                //	    	        "               <e9 xmlns:a=\"http://www.ietf.org\"></e9>\n" +
+                //                    "               <e9 xmlns:a=\"http://www.ietf.org\"></e9>\n" +
                 "           </e8>\n" +
                 "       </e7>\n" +
                 "   </e6>\n" +
@@ -462,10 +464,10 @@ namespace System.Security.Cryptography.Xml.Tests
 
 
         //
-        // Example 4 from ExcC14N spec - Character Modifications and Character References: 
+        // Example 4 from ExcC14N spec - Character Modifications and Character References:
         // http://www.w3.org/TR/xml-c14n#Example-Chars
         //
-        // Aleksey: 
+        // Aleksey:
         // This test does not include "normId" element
         // because it has an invalid ID attribute "id" which
         // should be normalized by XML parser. Currently Mono
@@ -493,7 +495,7 @@ namespace System.Security.Cryptography.Xml.Tests
                 "</doc>";
 
         //
-        // Example 5 from ExcC14N spec - Entity References: 
+        // Example 5 from ExcC14N spec - Entity References:
         // http://www.w3.org/TR/xml-c14n#Example-Entities
         //
         static string ExcC14NSpecExample5Input =>
@@ -515,9 +517,9 @@ namespace System.Security.Cryptography.Xml.Tests
                 "</doc>";
 
         //
-        // Example 6 from ExcC14N spec - UTF-8 Encoding: 
+        // Example 6 from ExcC14N spec - UTF-8 Encoding:
         // http://www.w3.org/TR/xml-c14n#Example-UTF8
-        // 
+        //
         static string ExcC14NSpecExample6Input =
                     "<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?>\n" +
                     "<doc>&#169;</doc>\n";
@@ -545,4 +547,3 @@ namespace System.Security.Cryptography.Xml.Tests
         }
     }
 }
-

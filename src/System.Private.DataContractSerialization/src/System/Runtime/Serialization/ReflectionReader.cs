@@ -85,7 +85,6 @@ namespace System.Runtime.Serialization
             bool isArray = (collectionContract.Kind == CollectionKind.Array);
 
             int arraySize = context.GetArraySize();
-            string objectId = context.GetObjectId();
             object resultArray = null;
             if (isArray && ReflectionTryReadPrimitiveArray(xmlReader, context, collectionItemName, collectionItemNamespace, collectionContract.UnderlyingType, collectionContract.ItemType, arraySize, out resultArray))
             {
@@ -196,7 +195,6 @@ namespace System.Runtime.Serialization
             DataMember dataMember = members[memberIndex];
 
             Debug.Assert(dataMember != null);
-            Type memberType = dataMember.MemberType;
             if (dataMember.IsGetOnlyCollection)
             {
                 var memberValue = ReflectionGetMemberValue(obj, dataMember);
@@ -205,6 +203,7 @@ namespace System.Runtime.Serialization
             }
             else
             {
+                context.ResetCollectionMemberInfo();
                 var value = ReflectionReadValue(xmlReader, context, dataMember, classContract.StableName.Namespace);
                 MemberInfo memberInfo = dataMember.MemberInfo;
                 Debug.Assert(memberInfo != null);
@@ -313,7 +312,6 @@ namespace System.Runtime.Serialization
             }
 
             PrimitiveDataContract primitiveContract = PrimitiveDataContract.GetPrimitiveDataContract(type);
-            bool hasValidPrimitiveContract = primitiveContract != null && primitiveContract.UnderlyingType != Globals.TypeOfObject;
             if ((primitiveContract != null && primitiveContract.UnderlyingType != Globals.TypeOfObject) || nullables != 0 || type.IsValueType)
             {
                 return (xmlReaderArg, contextArg, collectionContract, typeArg, nameArg, nsArg) =>

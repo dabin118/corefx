@@ -40,33 +40,7 @@ namespace System.IO.Tests
 
         protected Tuple<char[], StreamReader> GetCharArrayStream()
         {
-            var chArr = new char[]{
-                char.MinValue
-                ,char.MaxValue
-                ,'\t'
-                ,' '
-                ,'$'
-                ,'@'
-                ,'#'
-                ,'\0'
-                ,'\v'
-                ,'\''
-                ,'\u3190'
-                ,'\uC3A0'
-                ,'A'
-                ,'5'
-                ,'\r'
-                ,'\uFE70'
-                ,'-'
-                ,';'
-                ,'\r'
-                ,'\n'
-                ,'T'
-                ,'3'
-                ,'\n'
-                ,'K'
-                ,'\u00E6'
-            };
+            var chArr = TestDataProvider.CharData;
             var ms = CreateStream();
             var sw = new StreamWriter(ms);
 
@@ -263,7 +237,7 @@ namespace System.IO.Tests
 
             var read = await sr.ReadAsync(chArr, 4, 3);
 
-            Assert.Equal(read, 3);
+            Assert.Equal(3, read);
             for (int i = 0; i < 3; i++)
             {
                 Assert.Equal(baseInfo.Item1[i], chArr[i + 4]);

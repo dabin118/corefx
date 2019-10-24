@@ -58,6 +58,73 @@ namespace System.Collections.Concurrent.Tests
         }
 
         [Fact]
+        public static void TestAddNullValue_ConcurrentDictionaryOfString_null()
+        {
+            // using ConcurrentDictionary<TKey, TValue> class
+            ConcurrentDictionary<string, string> dict1 = new ConcurrentDictionary<string, string>();
+            dict1["key"] = null;
+        }
+
+        [Fact]
+        public static void TestAddNullValue_IDictionaryOfString_null()
+        {
+            // using IDictionary<TKey, TValue> interface
+            IDictionary<string, string> dict2 = new ConcurrentDictionary<string, string>();
+            dict2["key"] = null;
+            dict2.Add("key2", null);
+        }
+
+        [Fact]
+        public static void TestAddNullValue_IDictionary_ReferenceType_null()
+        {
+            // using IDictionary interface
+            IDictionary dict3 = new ConcurrentDictionary<string, string>();
+            dict3["key"] = null;
+            dict3.Add("key2", null);
+        }
+
+        [Fact]
+        public static void TestAddNullValue_IDictionary_ValueType_null_indexer()
+        {
+            // using IDictionary interface and value type values
+            Action action = () =>
+            {
+                IDictionary dict4 = new ConcurrentDictionary<string, int>();
+                dict4["key"] = null;
+            };
+            Assert.Throws<ArgumentException>(action);
+        }
+
+        [Fact]
+        public static void TestAddNullValue_IDictionary_ValueType_null_add()
+        {
+            Action action = () =>
+            {
+                IDictionary dict5 = new ConcurrentDictionary<string, int>();
+                dict5.Add("key", null);
+            };
+            Assert.Throws<ArgumentException>(action);
+        }
+
+        [Fact]
+        public static void TestAddValueOfDifferentType()
+        {
+            Action action = () =>
+            {
+                IDictionary dict = new ConcurrentDictionary<string, string>();
+                dict["key"] = 1;
+            };
+            Assert.Throws<ArgumentException>(action);
+
+            action = () =>
+            {
+                IDictionary dict = new ConcurrentDictionary<string, string>();
+                dict.Add("key", 1);
+            };
+            Assert.Throws<ArgumentException>(action);
+        }
+
+        [Fact]
         public static void TestAdd1()
         {
             TestAdd1(1, 1, 1, 10000);
@@ -115,7 +182,7 @@ namespace System.Collections.Concurrent.Tests
             for (int i = 0; i < expectKeys.Count; i++)
             {
                 Assert.True(expectKeys[i].Equals(gotKeys[i]),
-                    String.Format("The set of keys in the dictionary is are not the same as the expected" + Environment.NewLine +
+                    string.Format("The set of keys in the dictionary is are not the same as the expected" + Environment.NewLine +
                             "TestAdd1(cLevel={0}, initSize={1}, threads={2}, addsPerThread={3})", cLevel, initSize, threads, addsPerThread)
                    );
             }
@@ -171,7 +238,7 @@ namespace System.Collections.Concurrent.Tests
 
                 Assert.Equal(0, rem);
                 Assert.True(div > 1 && div <= threads + 1,
-                    String.Format("* Invalid value={3}! TestUpdate1(cLevel={0}, threads={1}, updatesPerThread={2})", cLevel, threads, updatesPerThread, div));
+                    string.Format("* Invalid value={3}! TestUpdate1(cLevel={0}, threads={1}, updatesPerThread={2})", cLevel, threads, updatesPerThread, div));
             }
 
             List<int> gotKeys = new List<int>();
@@ -188,7 +255,7 @@ namespace System.Collections.Concurrent.Tests
             for (int i = 0; i < expectKeys.Count; i++)
             {
                 Assert.True(expectKeys[i].Equals(gotKeys[i]),
-                   String.Format("The set of keys in the dictionary is are not the same as the expected." + Environment.NewLine +
+                   string.Format("The set of keys in the dictionary is are not the same as the expected." + Environment.NewLine +
                            "TestUpdate1(cLevel={0}, threads={1}, updatesPerThread={2})", cLevel, threads, updatesPerThread)
                   );
             }
@@ -365,7 +432,7 @@ namespace System.Collections.Concurrent.Tests
             for (int i = 0; i < removesPerThread; i++)
             {
                 Assert.False(seen[0][i] == seen[1][i],
-                    String.Format("> FAILED. Two threads appear to have removed the same element. TestRemove2(removesPerThread={0})", removesPerThread)
+                    string.Format("> FAILED. Two threads appear to have removed the same element. TestRemove2(removesPerThread={0})", removesPerThread)
                     );
             }
         }
@@ -398,6 +465,42 @@ namespace System.Collections.Concurrent.Tests
             // And that the dictionary is empty. We will check the count in a few different ways:
             Assert.Equal(0, dict.Count);
             Assert.Equal(0, dict.ToArray().Length);
+        }
+
+        [Fact]
+        public static void TryRemove_KeyValuePair_ArgumentValidation()
+        {
+            AssertExtensions.Throws<ArgumentNullException>("item", () => new ConcurrentDictionary<string, int>().TryRemove(new KeyValuePair<string, int>(null, 42)));
+            new ConcurrentDictionary<int, int>().TryRemove(new KeyValuePair<int, int>(0, 0)); // no error when using default value type
+            new ConcurrentDictionary<int?, int>().TryRemove(new KeyValuePair<int?, int>(0, 0)); // or nullable
+        }
+
+        [Fact]
+        public static void TryRemove_KeyValuePair_RemovesSuccessfullyAsAppropriate()
+        {
+            var dict = new ConcurrentDictionary<string, int>();
+
+            for (int i = 0; i < 2; i++)
+            {
+                Assert.False(dict.TryRemove(KeyValuePair.Create("key", 42)));
+                Assert.Equal(0, dict.Count);
+                Assert.True(dict.TryAdd("key", 42));
+                Assert.Equal(1, dict.Count);
+                Assert.True(dict.TryRemove(KeyValuePair.Create("key", 42)));
+                Assert.Equal(0, dict.Count);
+            }
+
+            Assert.True(dict.TryAdd("key", 42));
+            Assert.False(dict.TryRemove(KeyValuePair.Create("key", 43))); // value doesn't match
+        }
+
+        [Fact]
+        public static void TryRemove_KeyValuePair_MatchesKeyWithDefaultComparer()
+        {
+            var dict = new ConcurrentDictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            dict.TryAdd("key", "value");
+            Assert.False(dict.TryRemove(KeyValuePair.Create("key", "VALUE")));
+            Assert.True(dict.TryRemove(KeyValuePair.Create("KEY", "value")));
         }
 
         [Fact]
@@ -498,7 +601,7 @@ namespace System.Collections.Concurrent.Tests
             for (int i = 0; i < expectKeys.Count; i++)
             {
                 Assert.True(expectKeys[i].Equals(gotKeys[i]),
-                    String.Format("* Test '{4}': Level={0}, initSize={1}, threads={2}, addsPerThread={3})" + Environment.NewLine +
+                    string.Format("* Test '{4}': Level={0}, initSize={1}, threads={2}, addsPerThread={3})" + Environment.NewLine +
                     "> FAILED.  The set of keys in the dictionary is are not the same as the expected.",
                     cLevel, initSize, threads, addsPerThread, isAdd ? "GetOrAdd" : "GetOrUpdate"));
             }
@@ -541,7 +644,6 @@ namespace System.Collections.Concurrent.Tests
         }
 
         [Fact]
-        [SkipOnTargetFramework(TargetFrameworkMonikers.UapAot, "Cannot do DebuggerAttribute testing on UapAot: requires internal Reflection on framework types.")]
         public static void TestDebuggerAttributes()
         {
             DebuggerAttributes.ValidateDebuggerDisplayReferences(new ConcurrentDictionary<string, int>());
@@ -555,7 +657,6 @@ namespace System.Collections.Concurrent.Tests
         }
 
         [Fact]
-        [SkipOnTargetFramework(TargetFrameworkMonikers.UapAot, "Cannot do DebuggerAttribute testing on UapAot: requires internal Reflection on framework types.")]
         public static void TestDebuggerAttributes_Null()
         {
             Type proxyType = DebuggerAttributes.GetProxyType(new ConcurrentDictionary<string, int>());
@@ -564,7 +665,6 @@ namespace System.Collections.Concurrent.Tests
         }
 
         [Fact]
-        [SkipOnTargetFramework(TargetFrameworkMonikers.NetFramework, ".NET Framework hasn't received the fix for https://github.com/dotnet/corefx/issues/18432 yet.")]
         public static void TestNullComparer()
         {
             AssertDefaultComparerBehavior(new ConcurrentDictionary<EqualityApiSpy, int>((IEqualityComparer<EqualityApiSpy>)null));
@@ -609,27 +709,6 @@ namespace System.Collections.Concurrent.Tests
         }
 
         [Fact]
-        [SkipOnTargetFramework(~TargetFrameworkMonikers.NetFramework, ".NET Framework hasn't received the fix for https://github.com/dotnet/corefx/issues/18432 yet.")]
-        public static void TestNullComparer_netfx()
-        {
-            Assert.Throws<ArgumentNullException>(
-               () => new ConcurrentDictionary<int, int>((IEqualityComparer<int>)null));
-            // "TestConstructor:  FAILED.  Constructor didn't throw ANE when null IEqualityComparer is passed");
-
-            Assert.Throws<ArgumentNullException>(
-               () => new ConcurrentDictionary<int, int>(new[] { new KeyValuePair<int, int>(1, 1) }, null));
-            // "TestConstructor:  FAILED.  Constructor didn't throw ANE when non null collection and null IEqualityComparer passed");
-
-            Assert.Throws<ArgumentNullException>(
-               () => new ConcurrentDictionary<int, int>(1, new[] { new KeyValuePair<int, int>(1, 1) }, null));
-            // "TestConstructor:  FAILED.  Constructor didn't throw ANE when null comparer is passed");
-
-            Assert.Throws<ArgumentNullException>(
-               () => new ConcurrentDictionary<int, int>(1, 1, null));
-            // "TestConstructor:  FAILED.  Constructor didn't throw ANE when null comparer is passed");
-        }
-
-        [Fact]
         public static void TestConstructor_Negative()
         {
             Assert.Throws<ArgumentNullException>(
@@ -646,7 +725,7 @@ namespace System.Collections.Concurrent.Tests
 
             // Duplicate keys.
             AssertExtensions.Throws<ArgumentException>(null, () => new ConcurrentDictionary<int, int>(new[] { new KeyValuePair<int, int>(1, 1), new KeyValuePair<int, int>(1, 2) }));
-            
+
             Assert.Throws<ArgumentNullException>(
                () => new ConcurrentDictionary<int, int>(1, null, EqualityComparer<int>.Default));
             // "TestConstructor:  FAILED.  Constructor didn't throw ANE when null collection is passed");
@@ -760,7 +839,7 @@ namespace System.Collections.Concurrent.Tests
                 int value = (int)entry.Value;
                 int expectedValue = int.Parse(key);
                 Assert.True(value == expectedValue,
-                    String.Format("TestIDictionary:  FAILED.  Unexpected value returned from GetEnumerator, expected {0}, actual {1}", value, expectedValue));
+                    string.Format("TestIDictionary:  FAILED.  Unexpected value returned from GetEnumerator, expected {0}, actual {1}", value, expectedValue));
                 count++;
             }
 
@@ -839,7 +918,7 @@ namespace System.Collections.Concurrent.Tests
             //add one item to the dictionary
             ((ConcurrentDictionary<int, int>)dictionary).TryAdd(key, value);
 
-            var objectArray = new Object[1];
+            var objectArray = new object[1];
             dictionary.CopyTo(objectArray, 0);
 
             Assert.Equal(key, ((KeyValuePair<int, int>)objectArray[0]).Key);
@@ -959,12 +1038,12 @@ namespace System.Collections.Concurrent.Tests
 
             Assert.True(numberSucceeded == tasks.Length, "One or more threads failed!");
             Assert.True(totalKeysUpdated == dictionary.Count,
-               String.Format("TestTryUpdate:  FAILED.  The updated keys count doesn't match the dictionary count, expected {0}, actual {1}", dictionary.Count, totalKeysUpdated));
+               string.Format("TestTryUpdate:  FAILED.  The updated keys count doesn't match the dictionary count, expected {0}, actual {1}", dictionary.Count, totalKeysUpdated));
             foreach (var value in updatedKeys.Values)
             {
                 for (int i = 0; i < value.Keys.Count; i++)
                     Assert.True(dictionary[value.Keys[i]] == value.ThreadIndex,
-                       String.Format("TestTryUpdate:  FAILED.  The updated value doesn't match the thread index, expected {0} actual {1}", value.ThreadIndex, dictionary[value.Keys[i]]));
+                       string.Format("TestTryUpdate:  FAILED.  The updated value doesn't match the thread index, expected {0} actual {1}", value.ThreadIndex, dictionary[value.Keys[i]]));
             }
 
             //test TryUpdate with non atomic values (intPtr > 8)

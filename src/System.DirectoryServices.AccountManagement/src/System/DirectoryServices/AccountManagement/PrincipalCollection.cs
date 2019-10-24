@@ -14,17 +14,16 @@ namespace System.DirectoryServices.AccountManagement
         //
         // ICollection
         //
-        [System.Security.SecurityCritical]
         void ICollection.CopyTo(Array array, int index)
         {
             CheckDisposed();
 
             // Parameter validation
             if (index < 0)
-                throw new ArgumentOutOfRangeException("index");
+                throw new ArgumentOutOfRangeException(nameof(index));
 
             if (array == null)
-                throw new ArgumentNullException("array");
+                throw new ArgumentNullException(nameof(array));
 
             if (array.Rank != 1)
                 throw new ArgumentException(SR.PrincipalCollectionNotOneDimensional);
@@ -61,7 +60,7 @@ namespace System.DirectoryServices.AccountManagement
                         tempArray.Add(containmentEnumerator.Current);
                         checked { tempArraySize++; }
 
-                        // Make sure the array has enough space, allowing for the "index" offset.        
+                        // Make sure the array has enough space, allowing for the "index" offset.
                         // We check inline, rather than doing a PrincipalCollection.Count upfront,
                         // because counting is just as expensive as enumerating over all the results, so we
                         // only want to do it once.
@@ -96,7 +95,6 @@ namespace System.DirectoryServices.AccountManagement
 
         int ICollection.Count
         {
-            [System.Security.SecurityCritical]
             get
             {
                 return Count;
@@ -105,7 +103,6 @@ namespace System.DirectoryServices.AccountManagement
 
         bool ICollection.IsSynchronized
         {
-            [System.Security.SecurityCritical]
             get
             {
                 return IsSynchronized;
@@ -114,7 +111,6 @@ namespace System.DirectoryServices.AccountManagement
 
         object ICollection.SyncRoot
         {
-            [System.Security.SecurityCritical]
             get
             {
                 return SyncRoot;
@@ -140,7 +136,6 @@ namespace System.DirectoryServices.AccountManagement
         //
         // IEnumerable
         //
-        [System.Security.SecurityCritical]
         IEnumerator IEnumerable.GetEnumerator()
         {
             return (IEnumerator)GetEnumerator();
@@ -164,7 +159,6 @@ namespace System.DirectoryServices.AccountManagement
 
         public int Count
         {
-            [System.Security.SecurityCritical]
             get
             {
                 CheckDisposed();
@@ -216,7 +210,6 @@ namespace System.DirectoryServices.AccountManagement
         //
         // IEnumerable<Principal>
         //
-        [System.Security.SecurityCritical]
         public IEnumerator<Principal> GetEnumerator()
         {
             CheckDisposed();
@@ -234,31 +227,27 @@ namespace System.DirectoryServices.AccountManagement
         // Add
         //
 
-        [System.Security.SecurityCritical]
         public void Add(UserPrincipal user)
         {
             Add((Principal)user);
         }
 
-        [System.Security.SecurityCritical]
         public void Add(GroupPrincipal group)
         {
             Add((Principal)group);
         }
 
-        [System.Security.SecurityCritical]
         public void Add(ComputerPrincipal computer)
         {
             Add((Principal)computer);
         }
 
-        [System.Security.SecurityCritical]
         public void Add(Principal principal)
         {
             CheckDisposed();
 
             if (principal == null)
-                throw new ArgumentNullException("principal");
+                throw new ArgumentNullException(nameof(principal));
 
             if (Contains(principal))
                 throw new PrincipalExistsException(SR.PrincipalExistsExceptionText);
@@ -297,16 +286,15 @@ namespace System.DirectoryServices.AccountManagement
             }
         }
 
-        [System.Security.SecurityCritical]
         public void Add(PrincipalContext context, IdentityType identityType, string identityValue)
         {
             CheckDisposed();
 
             if (context == null)
-                throw new ArgumentNullException("context");
+                throw new ArgumentNullException(nameof(context));
 
             if (identityValue == null)
-                throw new ArgumentNullException("identityValue");
+                throw new ArgumentNullException(nameof(identityValue));
 
             Principal principal = Principal.FindByIdentity(context, identityType, identityValue);
 
@@ -316,7 +304,7 @@ namespace System.DirectoryServices.AccountManagement
             }
             else
             {
-                // No Principal matching the IdentityReference could be found in the PrincipalContext      
+                // No Principal matching the IdentityReference could be found in the PrincipalContext
                 GlobalDebug.WriteLineIf(GlobalDebug.Warn, "PrincipalCollection", "Add(urn/urn): no match");
                 throw new NoMatchingPrincipalException(SR.NoMatchingPrincipalExceptionText);
             }
@@ -325,7 +313,6 @@ namespace System.DirectoryServices.AccountManagement
         //
         // Clear
         //
-        [System.Security.SecurityCritical]
         public void Clear()
         {
             GlobalDebug.WriteLineIf(GlobalDebug.Info, "PrincipalCollection", "Clear");
@@ -363,31 +350,27 @@ namespace System.DirectoryServices.AccountManagement
         // Remove
         //
 
-        [System.Security.SecurityCritical]
         public bool Remove(UserPrincipal user)
         {
             return Remove((Principal)user);
         }
 
-        [System.Security.SecurityCritical]
         public bool Remove(GroupPrincipal group)
         {
             return Remove((Principal)group);
         }
 
-        [System.Security.SecurityCritical]
         public bool Remove(ComputerPrincipal computer)
         {
             return Remove((Principal)computer);
         }
 
-        [System.Security.SecurityCritical]
         public bool Remove(Principal principal)
         {
             CheckDisposed();
 
             if (principal == null)
-                throw new ArgumentNullException("principal");
+                throw new ArgumentNullException(nameof(principal));
 
             // Ask the StoreCtx to verify that this member can be removed.  Right now, the only
             // reason it couldn't is if it's actually a member by virtue of its primaryGroupId
@@ -429,7 +412,7 @@ namespace System.DirectoryServices.AccountManagement
             }
             else
             {
-                // They're trying to remove a already-persisted value.  We add it to the
+                // They're trying to remove an already-persisted value.  We add it to the
                 // removedValues list.  Then, if it's already been loaded into insertedValuesCompleted,
                 // we remove it from insertedValuesCompleted.
 
@@ -450,16 +433,15 @@ namespace System.DirectoryServices.AccountManagement
             return removed;
         }
 
-        [System.Security.SecurityCritical]
         public bool Remove(PrincipalContext context, IdentityType identityType, string identityValue)
         {
             CheckDisposed();
 
             if (context == null)
-                throw new ArgumentNullException("context");
+                throw new ArgumentNullException(nameof(context));
 
             if (identityValue == null)
-                throw new ArgumentNullException("identityValue");
+                throw new ArgumentNullException(nameof(identityValue));
 
             Principal principal = Principal.FindByIdentity(context, identityType, identityValue);
 
@@ -476,13 +458,12 @@ namespace System.DirectoryServices.AccountManagement
         // Contains
         //
 
-        [System.Security.SecuritySafeCritical]
         private bool ContainsEnumTest(Principal principal)
         {
             CheckDisposed();
 
             if (principal == null)
-                throw new ArgumentNullException("principal");
+                throw new ArgumentNullException(nameof(principal));
 
             // Yes, this is potentially quite expensive.  Contains is unfortunately
             // an expensive operation to perform.
@@ -526,13 +507,12 @@ namespace System.DirectoryServices.AccountManagement
             return false;
         }
 
-        [System.Security.SecuritySafeCritical]
         private bool ContainsNativeTest(Principal principal)
         {
             CheckDisposed();
 
             if (principal == null)
-                throw new ArgumentNullException("principal");
+                throw new ArgumentNullException(nameof(principal));
 
             // If they explicitly inserted it, then we certainly contain it
             if (_insertedValuesCompleted.Contains(principal) || _insertedValuesPending.Contains(principal))
@@ -565,25 +545,21 @@ namespace System.DirectoryServices.AccountManagement
             return false;
         }
 
-        [System.Security.SecurityCritical]
         public bool Contains(UserPrincipal user)
         {
             return Contains((Principal)user);
         }
 
-        [System.Security.SecurityCritical]
         public bool Contains(GroupPrincipal group)
         {
             return Contains((Principal)group);
         }
 
-        [System.Security.SecurityCritical]
         public bool Contains(ComputerPrincipal computer)
         {
             return Contains((Principal)computer);
         }
 
-        [System.Security.SecurityCritical]
         public bool Contains(Principal principal)
         {
             StoreCtx storeCtxToUse = _owningGroup.GetStoreCtxToUse();
@@ -606,16 +582,15 @@ namespace System.DirectoryServices.AccountManagement
             }
         }
 
-        [System.Security.SecurityCritical]
         public bool Contains(PrincipalContext context, IdentityType identityType, string identityValue)
         {
             CheckDisposed();
 
             if (context == null)
-                throw new ArgumentNullException("context");
+                throw new ArgumentNullException(nameof(context));
 
             if (identityValue == null)
-                throw new ArgumentNullException("identityValue");
+                throw new ArgumentNullException(nameof(identityValue));
 
             bool found = false;
 
@@ -633,7 +608,6 @@ namespace System.DirectoryServices.AccountManagement
 
         // Constructs a fresh PrincipalCollection based on the supplied ResultSet.
         // The ResultSet may not be null (use an EmptySet instead).
-        [System.Security.SecurityCritical]
         internal PrincipalCollection(BookmarkableResultSet results, GroupPrincipal owningGroup)
         {
             GlobalDebug.WriteLineIf(GlobalDebug.Info, "PrincipalCollection", "Ctor");
@@ -674,28 +648,27 @@ namespace System.DirectoryServices.AccountManagement
         // Private implementation
         //
 
-        // The group we're a PrincipalCollection of        
-        [System.Security.SecuritySafeCritical]
-        private GroupPrincipal _owningGroup;
+        // The group we're a PrincipalCollection of
+        private readonly GroupPrincipal _owningGroup;
 
         //
         // SYNCHRONIZATION
         //   Access to:
         //      resultSet
         //   must be synchronized, since multiple enumerators could be iterating over us at once.
-        //   Synchronize by locking on resultSet.        
+        //   Synchronize by locking on resultSet.
 
         // Represents the Principals retrieved from the store for this collection
-        private BookmarkableResultSet _resultSet;
+        private readonly BookmarkableResultSet _resultSet;
 
         // Contains Principals inserted into this collection for which the insertion has not been persisted to the store
-        private List<Principal> _insertedValuesCompleted = new List<Principal>();
-        private List<Principal> _insertedValuesPending = new List<Principal>();
+        private readonly List<Principal> _insertedValuesCompleted = new List<Principal>();
+        private readonly List<Principal> _insertedValuesPending = new List<Principal>();
 
         // Contains Principals removed from this collection for which the removal has not been persisted
         // to the store
-        private List<Principal> _removedValuesCompleted = new List<Principal>();
-        private List<Principal> _removedValuesPending = new List<Principal>();
+        private readonly List<Principal> _removedValuesCompleted = new List<Principal>();
+        private readonly List<Principal> _removedValuesPending = new List<Principal>();
 
         // Has this collection been cleared?
         private bool _clearPending = false;

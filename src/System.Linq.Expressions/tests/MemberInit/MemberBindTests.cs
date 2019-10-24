@@ -258,7 +258,7 @@ namespace System.Linq.Expressions.Tests
         [Fact]
         public void GlobalMethod()
         {
-            ModuleBuilder module = AssemblyBuilder.DefineDynamicAssembly(new AssemblyName("Name"), AssemblyBuilderAccess.Run).DefineDynamicModule("Module");
+            ModuleBuilder module = AssemblyBuilder.DefineDynamicAssembly(new AssemblyName("Name"), AssemblyBuilderAccess.RunAndCollect).DefineDynamicModule("Module");
             MethodBuilder globalMethod = module.DefineGlobalMethod("GlobalMethod", MethodAttributes.Public | MethodAttributes.Static, typeof(int), Type.EmptyTypes);
             globalMethod.GetILGenerator().Emit(OpCodes.Ret);
             module.CreateGlobalFunctions();
@@ -267,18 +267,20 @@ namespace System.Linq.Expressions.Tests
         }
 #endif
 
+        [Fact]
         public void WriteOnlyInnerProperty()
         {
             MemberAssignment bind = Expression.Bind(typeof(Inner).GetProperty(nameof(Inner.Value)), Expression.Constant(0));
             PropertyInfo property = typeof(Outer).GetProperty(nameof(Outer.WriteonlyInnerProperty));
-            AssertExtensions.Throws<ArgumentException>(null, () => Expression.MemberBind(property, bind));
+            AssertExtensions.Throws<ArgumentException>("member", () => Expression.MemberBind(property, bind));
         }
 
+        [Fact]
         public void StaticWriteOnlyInnerProperty()
         {
             MemberAssignment bind = Expression.Bind(typeof(Inner).GetProperty(nameof(Inner.Value)), Expression.Constant(0));
             PropertyInfo property = typeof(Outer).GetProperty(nameof(Outer.StaticWriteonlyInnerProperty));
-            AssertExtensions.Throws<ArgumentException>(null, () => Expression.MemberBind(property, bind));
+            AssertExtensions.Throws<ArgumentException>("member", () => Expression.MemberBind(property, bind));
         }
     }
 }

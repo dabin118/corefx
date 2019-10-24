@@ -8,248 +8,83 @@ namespace Microsoft.CSharp.RuntimeBinder.Semantics
 {
     internal abstract class ExprVisitorBase
     {
-        public Expr Visit(Expr pExpr)
-        {
-            if (pExpr == null)
+        protected Expr Visit(Expr pExpr) => pExpr == null ? null : Dispatch(pExpr);
+
+        protected virtual Expr Dispatch(Expr pExpr) =>
+            pExpr.Kind switch
             {
-                return null;
-            }
-
-            Expr pResult;
-            if (IsCachedExpr(pExpr, out pResult))
-            {
-                return pResult;
-            }
-
-            if (pExpr is ExprStatement statement)
-            {
-                return CacheExprMapping(pExpr, DispatchStatementList(statement));
-            }
-
-            return CacheExprMapping(pExpr, Dispatch(pExpr));
-        }
-
-        /////////////////////////////////////////////////////////////////////////////////
-
-        private ExprStatement DispatchStatementList(ExprStatement expr)
-        {
-            Debug.Assert(expr != null);
-
-            ExprStatement first = expr;
-            ExprStatement pexpr = first;
-
-            while (pexpr != null)
-            {
-                // If the processor replaces the statement -- potentially with
-                // null, another statement, or a list of statements -- then we
-                // make sure that the statement list is hooked together correctly.
-
-                ExprStatement next = pexpr.OptionalNextStatement;
-                ExprStatement old = pexpr;
-
-                // Unhook the next one.
-                pexpr.OptionalNextStatement = null;
-
-                ExprStatement result = Dispatch(pexpr) as ExprStatement;
-
-                if (pexpr == first)
-                {
-                    first = result;
-                }
-                else
-                {
-                    pexpr.OptionalNextStatement = result;
-                }
-
-                // A transformation may return back a list of statements (or
-                // if the statements have been determined to be unnecessary,
-                // perhaps it has simply returned null.)
-                //
-                // Skip visiting the new list, then hook the tail of the old list
-                // up to the end of the new list.
-
-                while (pexpr.OptionalNextStatement != null)
-                {
-                    pexpr = pexpr.OptionalNextStatement;
-                }
-
-                // Re-hook the next pointer.
-                pexpr.OptionalNextStatement = next;
-            }
-            return first;
-        }
-
-        /////////////////////////////////////////////////////////////////////////////////
-
-        private bool IsCachedExpr(Expr pExpr, out Expr pTransformedExpr)
-        {
-            pTransformedExpr = null;
-            return false;
-        }
-
-        /////////////////////////////////////////////////////////////////////////////////
-
-        private Expr CacheExprMapping(Expr pExpr, Expr pTransformedExpr)
-        {
-            return pTransformedExpr;
-        }
-
-        protected virtual Expr Dispatch(Expr pExpr)
-        {
-            switch (pExpr.Kind)
-            {
-                case ExpressionKind.Block:
-                    return VisitBLOCK(pExpr as ExprBlock);
-                case ExpressionKind.Return:
-                    return VisitRETURN(pExpr as ExprReturn);
-                case ExpressionKind.BinaryOp:
-                    return VisitBINOP(pExpr as ExprBinOp);
-                case ExpressionKind.UnaryOp:
-                    return VisitUNARYOP(pExpr as ExprUnaryOp);
-                case ExpressionKind.Assignment:
-                    return VisitASSIGNMENT(pExpr as ExprAssignment);
-                case ExpressionKind.List:
-                    return VisitLIST(pExpr as ExprList);
-                case ExpressionKind.ArrayIndex:
-                    return VisitARRAYINDEX(pExpr as ExprArrayIndex);
-                case ExpressionKind.Call:
-                    return VisitCALL(pExpr as ExprCall);
-                case ExpressionKind.Field:
-                    return VisitFIELD(pExpr as ExprField);
-                case ExpressionKind.Local:
-                    return VisitLOCAL(pExpr as ExprLocal);
-                case ExpressionKind.Constant:
-                    return VisitCONSTANT(pExpr as ExprConstant);
-                case ExpressionKind.Class:
-                    return VisitCLASS(pExpr as ExprClass);
-                case ExpressionKind.FunctionPointer:
-                    return VisitFUNCPTR(pExpr as ExprFuncPtr);
-                case ExpressionKind.Property:
-                    return VisitPROP(pExpr as ExprProperty);
-                case ExpressionKind.Multi:
-                    return VisitMULTI(pExpr as ExprMulti);
-                case ExpressionKind.MultiGet:
-                    return VisitMULTIGET(pExpr as ExprMultiGet);
-                case ExpressionKind.Wrap:
-                    return VisitWRAP(pExpr as ExprWrap);
-                case ExpressionKind.Concat:
-                    return VisitCONCAT(pExpr as ExprConcat);
-                case ExpressionKind.ArrayInit:
-                    return VisitARRINIT(pExpr as ExprArrayInit);
-                case ExpressionKind.Cast:
-                    return VisitCAST(pExpr as ExprCast);
-                case ExpressionKind.UserDefinedConversion:
-                    return VisitUSERDEFINEDCONVERSION(pExpr as ExprUserDefinedConversion);
-                case ExpressionKind.TypeOf:
-                    return VisitTYPEOF(pExpr as ExprTypeOf);
-                case ExpressionKind.ZeroInit:
-                    return VisitZEROINIT(pExpr as ExprZeroInit);
-                case ExpressionKind.UserLogicalOp:
-                    return VisitUSERLOGOP(pExpr as ExprUserLogicalOp);
-                case ExpressionKind.MemberGroup:
-                    return VisitMEMGRP(pExpr as ExprMemberGroup);
-                case ExpressionKind.BoundLambda:
-                    return VisitBOUNDLAMBDA(pExpr as ExprBoundLambda);
-                case ExpressionKind.HoistedLocalExpression:
-                    return VisitHOISTEDLOCALEXPR(pExpr as ExprHoistedLocalExpr);
-                case ExpressionKind.FieldInfo:
-                    return VisitFIELDINFO(pExpr as ExprFieldInfo);
-                case ExpressionKind.MethodInfo:
-                    return VisitMETHODINFO(pExpr as ExprMethodInfo);
+                ExpressionKind.BinaryOp => VisitBINOP(pExpr as ExprBinOp),
+                ExpressionKind.UnaryOp => VisitUNARYOP(pExpr as ExprUnaryOp),
+                ExpressionKind.Assignment => VisitASSIGNMENT(pExpr as ExprAssignment),
+                ExpressionKind.List => VisitLIST(pExpr as ExprList),
+                ExpressionKind.ArrayIndex => VisitARRAYINDEX(pExpr as ExprArrayIndex),
+                ExpressionKind.Call => VisitCALL(pExpr as ExprCall),
+                ExpressionKind.Field => VisitFIELD(pExpr as ExprField),
+                ExpressionKind.Local => VisitLOCAL(pExpr as ExprLocal),
+                ExpressionKind.Constant => VisitCONSTANT(pExpr as ExprConstant),
+                ExpressionKind.Class => pExpr,
+                ExpressionKind.Property => VisitPROP(pExpr as ExprProperty),
+                ExpressionKind.Multi => VisitMULTI(pExpr as ExprMulti),
+                ExpressionKind.MultiGet => VisitMULTIGET(pExpr as ExprMultiGet),
+                ExpressionKind.Wrap => VisitWRAP(pExpr as ExprWrap),
+                ExpressionKind.Concat => VisitCONCAT(pExpr as ExprConcat),
+                ExpressionKind.ArrayInit => VisitARRINIT(pExpr as ExprArrayInit),
+                ExpressionKind.Cast => VisitCAST(pExpr as ExprCast),
+                ExpressionKind.UserDefinedConversion => VisitUSERDEFINEDCONVERSION(pExpr as ExprUserDefinedConversion),
+                ExpressionKind.TypeOf => VisitTYPEOF(pExpr as ExprTypeOf),
+                ExpressionKind.ZeroInit => VisitZEROINIT(pExpr as ExprZeroInit),
+                ExpressionKind.UserLogicalOp => VisitUSERLOGOP(pExpr as ExprUserLogicalOp),
+                ExpressionKind.MemberGroup => VisitMEMGRP(pExpr as ExprMemberGroup),
+                ExpressionKind.FieldInfo => VisitFIELDINFO(pExpr as ExprFieldInfo),
+                ExpressionKind.MethodInfo => VisitMETHODINFO(pExpr as ExprMethodInfo),
 
                 // Binary operators
-                case ExpressionKind.EqualsParam:
-                    return VisitEQUALS(pExpr as ExprBinOp);
-                case ExpressionKind.Compare:
-                    return VisitCOMPARE(pExpr as ExprBinOp);
-                case ExpressionKind.NotEq:
-                    return VisitNE(pExpr as ExprBinOp);
-                case ExpressionKind.LessThan:
-                    return VisitLT(pExpr as ExprBinOp);
-                case ExpressionKind.LessThanOrEqual:
-                    return VisitLE(pExpr as ExprBinOp);
-                case ExpressionKind.GreaterThan:
-                    return VisitGT(pExpr as ExprBinOp);
-                case ExpressionKind.GreaterThanOrEqual:
-                    return VisitGE(pExpr as ExprBinOp);
-                case ExpressionKind.Add:
-                    return VisitADD(pExpr as ExprBinOp);
-                case ExpressionKind.Subtract:
-                    return VisitSUB(pExpr as ExprBinOp);
-                case ExpressionKind.Multiply:
-                    return VisitMUL(pExpr as ExprBinOp);
-                case ExpressionKind.Divide:
-                    return VisitDIV(pExpr as ExprBinOp);
-                case ExpressionKind.Modulo:
-                    return VisitMOD(pExpr as ExprBinOp);
-                case ExpressionKind.BitwiseAnd:
-                    return VisitBITAND(pExpr as ExprBinOp);
-                case ExpressionKind.BitwiseOr:
-                    return VisitBITOR(pExpr as ExprBinOp);
-                case ExpressionKind.BitwiseExclusiveOr:
-                    return VisitBITXOR(pExpr as ExprBinOp);
-                case ExpressionKind.LeftShirt:
-                    return VisitLSHIFT(pExpr as ExprBinOp);
-                case ExpressionKind.RightShift:
-                    return VisitRSHIFT(pExpr as ExprBinOp);
-                case ExpressionKind.LogicalAnd:
-                    return VisitLOGAND(pExpr as ExprBinOp);
-                case ExpressionKind.LogicalOr:
-                    return VisitLOGOR(pExpr as ExprBinOp);
-                case ExpressionKind.Sequence:
-                    return VisitSEQUENCE(pExpr as ExprBinOp);
-                case ExpressionKind.SequenceReverse:
-                    return VisitSEQREV(pExpr as ExprBinOp);
-                case ExpressionKind.Save:
-                    return VisitSAVE(pExpr as ExprBinOp);
-                case ExpressionKind.Swap:
-                    return VisitSWAP(pExpr as ExprBinOp);
-                case ExpressionKind.Indir:
-                    return VisitINDIR(pExpr as ExprBinOp);
-                case ExpressionKind.StringEq:
-                    return VisitSTRINGEQ(pExpr as ExprBinOp);
-                case ExpressionKind.StringNotEq:
-                    return VisitSTRINGNE(pExpr as ExprBinOp);
-                case ExpressionKind.DelegateEq:
-                    return VisitDELEGATEEQ(pExpr as ExprBinOp);
-                case ExpressionKind.DelegateNotEq:
-                    return VisitDELEGATENE(pExpr as ExprBinOp);
-                case ExpressionKind.DelegateAdd:
-                    return VisitDELEGATEADD(pExpr as ExprBinOp);
-                case ExpressionKind.DelegateSubtract:
-                    return VisitDELEGATESUB(pExpr as ExprBinOp);
-                case ExpressionKind.Eq:
-                    return VisitEQ(pExpr as ExprBinOp);
+                ExpressionKind.EqualsParam => VisitEQUALS(pExpr as ExprBinOp),
+                ExpressionKind.Compare => VisitCOMPARE(pExpr as ExprBinOp),
+                ExpressionKind.NotEq => VisitNE(pExpr as ExprBinOp),
+                ExpressionKind.LessThan => VisitLT(pExpr as ExprBinOp),
+                ExpressionKind.LessThanOrEqual => VisitLE(pExpr as ExprBinOp),
+                ExpressionKind.GreaterThan => VisitGT(pExpr as ExprBinOp),
+                ExpressionKind.GreaterThanOrEqual => VisitGE(pExpr as ExprBinOp),
+                ExpressionKind.Add => VisitADD(pExpr as ExprBinOp),
+                ExpressionKind.Subtract => VisitSUB(pExpr as ExprBinOp),
+                ExpressionKind.Multiply => VisitMUL(pExpr as ExprBinOp),
+                ExpressionKind.Divide => VisitDIV(pExpr as ExprBinOp),
+                ExpressionKind.Modulo => VisitMOD(pExpr as ExprBinOp),
+                ExpressionKind.BitwiseAnd => VisitBITAND(pExpr as ExprBinOp),
+                ExpressionKind.BitwiseOr => VisitBITOR(pExpr as ExprBinOp),
+                ExpressionKind.BitwiseExclusiveOr => VisitBITXOR(pExpr as ExprBinOp),
+                ExpressionKind.LeftShirt => VisitLSHIFT(pExpr as ExprBinOp),
+                ExpressionKind.RightShift => VisitRSHIFT(pExpr as ExprBinOp),
+                ExpressionKind.LogicalAnd => VisitLOGAND(pExpr as ExprBinOp),
+                ExpressionKind.LogicalOr => VisitLOGOR(pExpr as ExprBinOp),
+                ExpressionKind.Sequence => VisitSEQUENCE(pExpr as ExprBinOp),
+                ExpressionKind.Save => VisitSAVE(pExpr as ExprBinOp),
+                ExpressionKind.Swap => VisitSWAP(pExpr as ExprBinOp),
+                ExpressionKind.Indir => VisitINDIR(pExpr as ExprBinOp),
+                ExpressionKind.StringEq => VisitSTRINGEQ(pExpr as ExprBinOp),
+                ExpressionKind.StringNotEq => VisitSTRINGNE(pExpr as ExprBinOp),
+                ExpressionKind.DelegateEq => VisitDELEGATEEQ(pExpr as ExprBinOp),
+                ExpressionKind.DelegateNotEq => VisitDELEGATENE(pExpr as ExprBinOp),
+                ExpressionKind.DelegateAdd => VisitDELEGATEADD(pExpr as ExprBinOp),
+                ExpressionKind.DelegateSubtract => VisitDELEGATESUB(pExpr as ExprBinOp),
+                ExpressionKind.Eq => VisitEQ(pExpr as ExprBinOp),
 
                 // Unary operators
-                case ExpressionKind.True:
-                    return VisitTRUE(pExpr as ExprUnaryOp);
-                case ExpressionKind.False:
-                    return VisitFALSE(pExpr as ExprUnaryOp);
-                case ExpressionKind.Inc:
-                    return VisitINC(pExpr as ExprUnaryOp);
-                case ExpressionKind.Dec:
-                    return VisitDEC(pExpr as ExprUnaryOp);
-                case ExpressionKind.LogicalNot:
-                    return VisitLOGNOT(pExpr as ExprUnaryOp);
-                case ExpressionKind.Negate:
-                    return VisitNEG(pExpr as ExprUnaryOp);
-                case ExpressionKind.UnaryPlus:
-                    return VisitUPLUS(pExpr as ExprUnaryOp);
-                case ExpressionKind.BitwiseNot:
-                    return VisitBITNOT(pExpr as ExprUnaryOp);
-                case ExpressionKind.Addr:
-                    return VisitADDR(pExpr as ExprUnaryOp);
-                case ExpressionKind.DecimalNegate:
-                    return VisitDECIMALNEG(pExpr as ExprUnaryOp);
-                case ExpressionKind.DecimalInc:
-                    return VisitDECIMALINC(pExpr as ExprUnaryOp);
-                case ExpressionKind.DecimalDec:
-                    return VisitDECIMALDEC(pExpr as ExprUnaryOp);
-                default:
-                    throw Error.InternalCompilerError();
-            }
-        }
+                ExpressionKind.True => VisitTRUE(pExpr as ExprUnaryOp),
+                ExpressionKind.False => VisitFALSE(pExpr as ExprUnaryOp),
+                ExpressionKind.Inc => VisitINC(pExpr as ExprUnaryOp),
+                ExpressionKind.Dec => VisitDEC(pExpr as ExprUnaryOp),
+                ExpressionKind.LogicalNot => VisitLOGNOT(pExpr as ExprUnaryOp),
+                ExpressionKind.Negate => VisitNEG(pExpr as ExprUnaryOp),
+                ExpressionKind.UnaryPlus => VisitUPLUS(pExpr as ExprUnaryOp),
+                ExpressionKind.BitwiseNot => VisitBITNOT(pExpr as ExprUnaryOp),
+                ExpressionKind.Addr => VisitADDR(pExpr as ExprUnaryOp),
+                ExpressionKind.DecimalNegate => VisitDECIMALNEG(pExpr as ExprUnaryOp),
+                ExpressionKind.DecimalInc => VisitDECIMALINC(pExpr as ExprUnaryOp),
+                ExpressionKind.DecimalDec => VisitDECIMALDEC(pExpr as ExprUnaryOp),
+                _ => throw Error.InternalCompilerError(),
+            };
 
         private void VisitChildren(Expr pExpr)
         {
@@ -331,16 +166,12 @@ namespace Microsoft.CSharp.RuntimeBinder.Semantics
                     break;
 
                 case ExpressionKind.TypeOf:
-                    exprRet = Visit((pExpr as ExprTypeOf).SourceType);
-                    (pExpr as ExprTypeOf).SourceType = exprRet as ExprClass;
                     break;
 
                 case ExpressionKind.Cast:
                     exprRet = Visit((pExpr as ExprCast).Argument);
                     Debug.Assert(exprRet != null);
                     (pExpr as ExprCast).Argument = exprRet;
-                    exprRet = Visit((pExpr as ExprCast).DestinationType);
-                    (pExpr as ExprCast).DestinationType = exprRet as ExprClass;
                     break;
 
                 case ExpressionKind.UserDefinedConversion:
@@ -350,11 +181,6 @@ namespace Microsoft.CSharp.RuntimeBinder.Semantics
                     break;
 
                 case ExpressionKind.ZeroInit:
-                    break;
-
-                case ExpressionKind.Block:
-                    exprRet = Visit((pExpr as ExprBlock).OptionalStatements);
-                    (pExpr as ExprBlock).OptionalStatements = exprRet as ExprStatement;
                     break;
 
                 case ExpressionKind.MemberGroup:
@@ -385,11 +211,6 @@ namespace Microsoft.CSharp.RuntimeBinder.Semantics
                     (pExpr as ExprField).OptionalObject = exprRet;
                     break;
 
-                case ExpressionKind.Return:
-                    exprRet = Visit((pExpr as ExprReturn).OptionalObject);
-                    (pExpr as ExprReturn).OptionalObject = exprRet;
-                    break;
-
                 case ExpressionKind.Constant:
 
                     // Used for when we zeroinit 0 parameter constructors for structs/enums.
@@ -403,10 +224,10 @@ namespace Microsoft.CSharp.RuntimeBinder.Semantics
                   The following exprs are used to represent the results of type binding, and are defined as follows:
 
                   TYPEARGUMENTS - This wraps the type arguments for a class. It contains the TypeArray* which is
-                    associated with the AggregateType for the instantiation of the class. 
+                    associated with the AggregateType for the instantiation of the class.
 
                   TYPEORNAMESPACE - This is the base class for this set of Exprs. When binding a type, the result
-                    must be a type or a namespace. This Expr encapsulates that fact. The lhs member is the Expr 
+                    must be a type or a namespace. This Expr encapsulates that fact. The lhs member is the Expr
                     tree that was bound to resolve the type or namespace.
 
                   TYPEORNAMESPACEERROR - This is the error class for the type or namespace exprs when we don't know
@@ -450,18 +271,11 @@ namespace Microsoft.CSharp.RuntimeBinder.Semantics
                     (pExpr as ExprArrayInit).OptionalArgumentDimensions = exprRet;
                     break;
 
-                case ExpressionKind.BoundLambda:
-                    exprRet = Visit((pExpr as ExprBoundLambda).OptionalBody);
-                    (pExpr as ExprBoundLambda).OptionalBody = exprRet as ExprBlock;
-                    break;
-
                 case ExpressionKind.Local:
                 case ExpressionKind.Class:
-                case ExpressionKind.FunctionPointer:
                 case ExpressionKind.MultiGet:
                 case ExpressionKind.Wrap:
                 case ExpressionKind.NoOp:
-                case ExpressionKind.HoistedLocalExpression:
                 case ExpressionKind.FieldInfo:
                 case ExpressionKind.MethodInfo:
                     break;
@@ -480,22 +294,6 @@ namespace Microsoft.CSharp.RuntimeBinder.Semantics
         {
             VisitChildren(pExpr);
             return pExpr;
-        }
-        protected virtual Expr VisitBLOCK(ExprBlock pExpr)
-        {
-            return VisitSTMT(pExpr);
-        }
-        protected virtual Expr VisitRETURN(ExprReturn pExpr)
-        {
-            return VisitSTMT(pExpr);
-        }
-        protected virtual Expr VisitCLASS(ExprClass pExpr)
-        {
-            return VisitEXPR(pExpr);
-        }
-        protected virtual Expr VisitSTMT(ExprStatement pExpr)
-        {
-            return VisitEXPR(pExpr);
         }
         protected virtual Expr VisitBINOP(ExprBinOp pExpr)
         {
@@ -563,10 +361,6 @@ namespace Microsoft.CSharp.RuntimeBinder.Semantics
         {
             return VisitEXPR(pExpr);
         }
-        protected virtual Expr VisitFUNCPTR(ExprFuncPtr pExpr)
-        {
-            return VisitEXPR(pExpr);
-        }
         protected virtual Expr VisitMULTIGET(ExprMultiGet pExpr)
         {
             return VisitEXPR(pExpr);
@@ -587,15 +381,7 @@ namespace Microsoft.CSharp.RuntimeBinder.Semantics
         {
             return VisitEXPR(pExpr);
         }
-        protected virtual Expr VisitBOUNDLAMBDA(ExprBoundLambda pExpr)
-        {
-            return VisitEXPR(pExpr);
-        }
 
-        protected virtual Expr VisitHOISTEDLOCALEXPR(ExprHoistedLocalExpr pExpr)
-        {
-            return VisitEXPR(pExpr);
-        }
         protected virtual Expr VisitFIELDINFO(ExprFieldInfo pExpr)
         {
             return VisitEXPR(pExpr);
@@ -698,10 +484,6 @@ namespace Microsoft.CSharp.RuntimeBinder.Semantics
             return VisitBINOP(pExpr);
         }
         protected virtual Expr VisitLOGOR(ExprBinOp pExpr)
-        {
-            return VisitBINOP(pExpr);
-        }
-        protected virtual Expr VisitSEQREV(ExprBinOp pExpr)
         {
             return VisitBINOP(pExpr);
         }

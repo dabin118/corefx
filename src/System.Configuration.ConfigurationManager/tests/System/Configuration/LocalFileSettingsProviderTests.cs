@@ -15,6 +15,7 @@ namespace System.ConfigurationTests
             ["SettingsKey"] = "SettingsKeyFoo"
         };
 
+        [ActiveIssue(37364)]
         [Fact]
         public void GetPropertyValues_NotStoredProperty_ValueEqualsNull()
         {
@@ -27,9 +28,10 @@ namespace System.ConfigurationTests
             SettingsPropertyValueCollection propertyValues = localFileSettingsProvider.GetPropertyValues(_testContext, properties);
 
             Assert.Equal(1, propertyValues.Count);
-            Assert.Equal(null, propertyValues["PropertyName"].PropertyValue);
+            Assert.Null(propertyValues["PropertyName"].PropertyValue);
         }
 
+        [ActiveIssue(37364)]
         [Fact]
         public void GetPropertyValues_NotStoredConnectionStringProperty_ValueEqualsEmptyString()
         {

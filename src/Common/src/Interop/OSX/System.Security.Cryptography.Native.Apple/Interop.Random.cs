@@ -12,7 +12,6 @@ internal static partial class Interop
     {
         internal static unsafe void GetRandomBytes(byte* pbBuffer, int count)
         {
-            Debug.Assert(pbBuffer != null);
             Debug.Assert(count >= 0);
 
             int errorCode;

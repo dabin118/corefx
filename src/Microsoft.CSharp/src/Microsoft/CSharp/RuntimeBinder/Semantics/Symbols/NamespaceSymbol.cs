@@ -4,6 +4,7 @@
 
 using System.Collections.Generic;
 using System.Diagnostics;
+using Microsoft.CSharp.RuntimeBinder.Syntax;
 
 namespace Microsoft.CSharp.RuntimeBinder.Semantics
 {
@@ -25,11 +26,24 @@ namespace Microsoft.CSharp.RuntimeBinder.Semantics
     // declaration it is contained in.
     //
     //
-    // NamespaceSymbol - a symbol representing a name space. 
+    // NamespaceSymbol - a symbol representing a name space.
     // parent is the containing namespace.
     // ----------------------------------------------------------------------------
 
     internal sealed class NamespaceSymbol : NamespaceOrAggregateSymbol
     {
+        /// <summary>The "root" (unnamed) namespace.</summary>
+        public static readonly NamespaceSymbol Root = GetRootNamespaceSymbol();
+
+        private static NamespaceSymbol GetRootNamespaceSymbol()
+        {
+            NamespaceSymbol root = new NamespaceSymbol
+            {
+                name = NameManager.GetPredefinedName(PredefinedName.PN_VOID)
+            };
+
+            root.setKind(SYMKIND.SK_NamespaceSymbol);
+            return root;
+        }
     }
 }

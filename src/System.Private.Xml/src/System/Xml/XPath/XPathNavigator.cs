@@ -9,7 +9,6 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Xml.Schema;
 using System.Diagnostics;
-using System.Diagnostics.Contracts;
 using System.Security;
 using System.Text;
 using System.Xml;
@@ -553,7 +552,7 @@ namespace System.Xml.XPath
         //-----------------------------------------------
 
         // Returns an object of type IKeyComparer. Using this the navigators can be hashed
-        // on the basis of actual position it represents rather than the clr reference of 
+        // on the basis of actual position it represents rather than the clr reference of
         // the navigator object.
         public static IEqualityComparer NavigatorComparer
         {
@@ -790,7 +789,7 @@ namespace System.Xml.XPath
                 {
                     case XPathNodeType.Attribute:
                     case XPathNodeType.Namespace:
-                        // Scan until we come to the next content-typed node 
+                        // Scan until we come to the next content-typed node
                         // after the attribute or namespace node
                         end = end.Clone();
                         end.MoveToNonDescendant();
@@ -857,7 +856,7 @@ namespace System.Xml.XPath
                 {
                     case XPathNodeType.Attribute:
                     case XPathNodeType.Namespace:
-                        // Scan until we come to the next content-typed node 
+                        // Scan until we come to the next content-typed node
                         // after the attribute or namespace node
                         end = end.Clone();
                         end.MoveToNonDescendant();
@@ -1120,8 +1119,8 @@ namespace System.Xml.XPath
         private class CheckValidityHelper
         {
             private bool _isValid;
-            private ValidationEventHandler _nextEventHandler;
-            private XPathNavigatorReader _reader;
+            private readonly ValidationEventHandler _nextEventHandler;
+            private readonly XPathNavigatorReader _reader;
 
             internal CheckValidityHelper(ValidationEventHandler nextEventHandler, XPathNavigatorReader reader)
             {
@@ -1183,22 +1182,16 @@ namespace System.Xml.XPath
 
         public virtual XPathNodeIterator Select(string xpath)
         {
-            Contract.Ensures(Contract.Result<XPathNodeIterator>() != null);
-
             return this.Select(XPathExpression.Compile(xpath));
         }
 
         public virtual XPathNodeIterator Select(string xpath, IXmlNamespaceResolver resolver)
         {
-            Contract.Ensures(Contract.Result<XPathNodeIterator>() != null);
-
             return this.Select(XPathExpression.Compile(xpath, resolver));
         }
 
         public virtual XPathNodeIterator Select(XPathExpression expr)
         {
-            Contract.Ensures(Contract.Result<XPathNodeIterator>() != null);
-
             XPathNodeIterator result = Evaluate(expr) as XPathNodeIterator;
             if (result == null)
             {
@@ -1885,7 +1878,7 @@ namespace System.Xml.XPath
             return depth;
         }
 
-        // XPath based comparison for namespaces, attributes and other 
+        // XPath based comparison for namespaces, attributes and other
         // items with the same parent element.
         //
         //                 n2
@@ -2041,7 +2034,7 @@ namespace System.Xml.XPath
             return false;
         }
 
-        // Lax check for potential sibling item. 
+        // Lax check for potential sibling item.
         private bool IsValidSiblingType(XPathNodeType type)
         {
             switch (NodeType)
@@ -2223,7 +2216,7 @@ namespace System.Xml.XPath
         [DebuggerDisplay("{ToString()}")]
         internal struct DebuggerDisplayProxy
         {
-            private XPathNavigator _nav;
+            private readonly XPathNavigator _nav;
             public DebuggerDisplayProxy(XPathNavigator nav)
             {
                 _nav = nav;
@@ -2253,23 +2246,4 @@ namespace System.Xml.XPath
             }
         }
     }
-
-#if CONTRACTS_FULL
-    [ContractClassFor(typeof(XPathNavigator))]
-    internal abstract class XPathNavigatorContract : XPathNavigator
-    {
-        public override XPathNavigator Clone()
-        {
-            Contract.Ensures(Contract.Result<XPathNavigator>() != null);
-            return default(XPathNavigator);
-        }
-
-        public override XmlNameTable NameTable { 
-            get {
-                Contract.Ensures(Contract.Result<XmlNameTable>() != null);
-                return default(XmlNameTable);
-            }
-        }
-    }
-#endif
 }

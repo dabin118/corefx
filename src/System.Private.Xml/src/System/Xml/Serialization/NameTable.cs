@@ -2,11 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-#if XMLSERIALIZERGENERATOR
-namespace Microsoft.XmlSerializer.Generator
-#else
 namespace System.Xml.Serialization
-#endif
 {
     using System.Xml;
     using System;
@@ -15,8 +11,8 @@ namespace System.Xml.Serialization
 
     internal class NameKey
     {
-        private string _ns;
-        private string _name;
+        private readonly string _ns;
+        private readonly string _name;
 
         internal NameKey(string name, string ns)
         {
@@ -106,4 +102,3 @@ namespace System.Xml.Serialization
         }
     }
 }
-

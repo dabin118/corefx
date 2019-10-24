@@ -4,16 +4,17 @@
 
 using System.Diagnostics;
 using System.Diagnostics.Tracing;
+using Microsoft.DotNet.RemoteExecutor;
 using Xunit;
 
 namespace System.Threading.Tasks.Dataflow.Tests
 {
-    public class EtwTests : RemoteExecutorTestBase
+    public class EtwTests
     {
         [Fact]
         public void TestEtw()
         {
-            RemoteInvoke(() =>
+            RemoteExecutor.Invoke(() =>
             {
                 using (var listener = new TestEventListener(new Guid("16F53577-E41D-43D4-B47E-C17025BF4025"), EventLevel.Verbose))
                 {
@@ -87,8 +88,6 @@ namespace System.Threading.Tasks.Dataflow.Tests
                             Assert.Equal(expected: 0, actual: ce.CurrentCount);
                         });
                 }
-
-                return SuccessExitCode;
             }).Dispose();
         }
 

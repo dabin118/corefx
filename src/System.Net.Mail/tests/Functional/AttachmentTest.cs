@@ -29,7 +29,49 @@ namespace System.Net.Mail.Tests
         public void ConstructorNullName()
         {
             Attachment attach = new Attachment(new MemoryStream(), null, "application/octet-stream");
-            Assert.Equal(null, attach.Name);
+            Assert.Null(attach.Name);
+        }
+
+        [Fact]
+        public void ConstructorPathName()
+        {
+            using (var tempFile = TempFile.Create(new byte[0]))
+            {
+                using (Attachment attach = new Attachment(tempFile.Path))
+                {
+                    Assert.Equal(Path.GetFileName(tempFile.Path), attach.Name);
+                }
+            }
+        }
+
+        [Fact]
+        public void ConstructorPathNameMediaType()
+        {
+            using (var tempFile = TempFile.Create(new byte[0]))
+            {
+                const string mediaType = "application/octet-stream";
+                string shortName = Path.GetFileName(tempFile.Path);
+                using (Attachment attach = new Attachment(tempFile.Path, mediaType))
+                {
+                    Assert.Equal(shortName, attach.Name);
+                    Assert.Equal(mediaType, attach.ContentType.MediaType);
+                }
+            }
+        }
+
+        [Fact]
+        public void ConstructorPathNameContentType()
+        {
+            using (var tempFile = TempFile.Create(new byte[0]))
+            {
+                const string mediaType = "application/octet-stream";
+                string shortName = Path.GetFileName(tempFile.Path);
+                using (Attachment attach = new Attachment(tempFile.Path, new Mime.ContentType(mediaType)))
+                {
+                    Assert.Equal(shortName, attach.Name);
+                    Assert.Equal(mediaType, attach.ContentType.MediaType);
+                }
+            }
         }
 
         [Fact]
@@ -84,7 +126,7 @@ namespace System.Net.Mail.Tests
             Attachment attach = Attachment.CreateAttachmentFromString("test", "attachment-name");
             Assert.Equal("attachment-name", attach.Name);
             Attachment a2 = new Attachment(new MemoryStream(), new ContentType("image/jpeg"));
-            Assert.Equal(null, a2.Name);
+            Assert.Null(a2.Name);
             a2.Name = null; // nullable
         }
 

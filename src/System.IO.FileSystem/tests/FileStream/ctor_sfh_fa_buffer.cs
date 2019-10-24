@@ -31,7 +31,6 @@ namespace System.IO.Tests
             }
         }
 
-        [ActiveIssue(20797, TargetFrameworkMonikers.NetFramework)]  // This fails on desktop
         [Fact]
         public void InvalidBufferSize_DoesNotCloseHandle()
         {

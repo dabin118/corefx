@@ -11,11 +11,11 @@ namespace System.Linq
     {
         public static IEnumerable<TSource> Distinct<TSource>(this IEnumerable<TSource> source) => Distinct(source, null);
 
-        public static IEnumerable<TSource> Distinct<TSource>(this IEnumerable<TSource> source, IEqualityComparer<TSource> comparer)
+        public static IEnumerable<TSource> Distinct<TSource>(this IEnumerable<TSource> source, IEqualityComparer<TSource>? comparer)
         {
             if (source == null)
             {
-                throw Error.ArgumentNull(nameof(source));
+                ThrowHelper.ThrowArgumentNullException(ExceptionArgument.source);
             }
 
             return new DistinctIterator<TSource>(source, comparer);
@@ -25,14 +25,14 @@ namespace System.Linq
         /// An iterator that yields the distinct values in an <see cref="IEnumerable{TSource}"/>.
         /// </summary>
         /// <typeparam name="TSource">The type of the source enumerable.</typeparam>
-        private sealed class DistinctIterator<TSource> : Iterator<TSource>, IIListProvider<TSource>
+        private sealed partial class DistinctIterator<TSource> : Iterator<TSource>
         {
             private readonly IEnumerable<TSource> _source;
-            private readonly IEqualityComparer<TSource> _comparer;
-            private Set<TSource> _set;
-            private IEnumerator<TSource> _enumerator;
+            private readonly IEqualityComparer<TSource>? _comparer;
+            private Set<TSource>? _set;
+            private IEnumerator<TSource>? _enumerator;
 
-            public DistinctIterator(IEnumerable<TSource> source, IEqualityComparer<TSource> comparer)
+            public DistinctIterator(IEnumerable<TSource> source, IEqualityComparer<TSource>? comparer)
             {
                 Debug.Assert(source != null);
                 _source = source;
@@ -60,6 +60,8 @@ namespace System.Linq
                         _state = 2;
                         return true;
                     case 2:
+                        Debug.Assert(_enumerator != null);
+                        Debug.Assert(_set != null);
                         while (_enumerator.MoveNext())
                         {
                             element = _enumerator.Current;
@@ -88,19 +90,6 @@ namespace System.Linq
 
                 base.Dispose();
             }
-
-            private Set<TSource> FillSet()
-            {
-                Set<TSource> set = new Set<TSource>(_comparer);
-                set.UnionWith(_source);
-                return set;
-            }
-
-            public TSource[] ToArray() => FillSet().ToArray();
-
-            public List<TSource> ToList() => FillSet().ToList();
-
-            public int GetCount(bool onlyIfCheap) => onlyIfCheap ? -1 : FillSet().Count;
         }
     }
 }

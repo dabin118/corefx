@@ -13,10 +13,10 @@
 // distribute, sublicense, and/or sell copies of the Software, and to
 // permit persons to whom the Software is furnished to do so, subject to
 // the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be
 // included in all copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
 // EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
 // MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
@@ -30,25 +30,13 @@ using System.Globalization;
 using System.IO;
 using System.Xml;
 using System.Xml.Serialization;
-
 using Xunit;
 
 namespace System.Data.Tests.SqlTypes
 {
-    public class SqlDoubleTest : IDisposable
+    public class SqlDoubleTest
     {
         private CultureInfo _originalCulture;
-
-        public SqlDoubleTest()
-        {
-            _originalCulture = CultureInfo.CurrentCulture; ;
-            CultureInfo.CurrentCulture = new CultureInfo("en-US");
-        }
-
-        public void Dispose()
-        {
-            CultureInfo.CurrentCulture = _originalCulture;
-        }
 
         // Test constructor
         [Fact]
@@ -414,14 +402,14 @@ namespace System.Data.Tests.SqlTypes
             }
 
             // ToSqlString ()
-            Assert.Equal("250", Test1.ToSqlString().Value);
-            Assert.Equal("0", Test0.ToSqlString().Value);
-            Assert.Equal("6.4E+65", Test2.ToSqlString().Value);
+            Assert.Equal(250.ToString(), Test1.ToSqlString().Value);
+            Assert.Equal(0.ToString(), Test0.ToSqlString().Value);
+            Assert.Equal(6.4E+65.ToString(), Test2.ToSqlString().Value);
 
             // ToString ()
-            Assert.Equal("250", Test1.ToString());
-            Assert.Equal("0", Test0.ToString());
-            Assert.Equal("6.4E+65", Test2.ToString());
+            Assert.Equal(250.ToString(), Test1.ToString());
+            Assert.Equal(0.ToString(), Test0.ToString());
+            Assert.Equal(6.4E+65.ToString(), Test2.ToString());
         }
 
         // OPERATORS

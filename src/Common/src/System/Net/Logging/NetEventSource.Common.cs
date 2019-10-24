@@ -8,6 +8,7 @@
 //#define DEBUG_NETEVENTSOURCE_MISUSE
 #endif
 
+#nullable enable
 using System.Collections;
 using System.Diagnostics;
 using System.Diagnostics.Tracing;
@@ -16,6 +17,8 @@ using System.Runtime.InteropServices;
 #if NET46
 using System.Security;
 #endif
+
+#pragma warning disable CA1823 // not all IDs are used by all partial providers
 
 namespace System.Net
 {
@@ -45,7 +48,7 @@ namespace System.Net
     //   method that takes an object and optionally provides a string representation of it, in case a particular library wants to customize further.
 
     /// <summary>Provides logging facilities for System.Net libraries.</summary>
-#if NET46    
+#if NET46
     [SecuritySafeCritical]
 #endif
     internal sealed partial class NetEventSource : EventSource
@@ -75,7 +78,19 @@ namespace System.Net
         private const int CriticalFailureEventId = 6;
         private const int DumpArrayEventId = 7;
 
-        private const int NextAvailableEventId = 8; // Update this value whenever new events are added.  Derived types should base all events off of this to avoid conflicts.
+        // These events are implemented in NetEventSource.Security.cs.
+        // Define the ids here so that projects that include NetEventSource.Security.cs will not have conflicts.
+        private const int EnumerateSecurityPackagesId = 8;
+        private const int SspiPackageNotFoundId = 9;
+        private const int AcquireDefaultCredentialId = 10;
+        private const int AcquireCredentialsHandleId = 11;
+        private const int InitializeSecurityContextId = 12;
+        private const int SecurityContextInputBufferId = 13;
+        private const int SecurityContextInputBuffersId = 14;
+        private const int AcceptSecuritContextId = 15;
+        private const int OperationReturnedSomethingId = 16;
+
+        private const int NextAvailableEventId = 17; // Update this value whenever new events are added.  Derived types should base all events off of this to avoid conflicts.
         #endregion
 
         #region Events
@@ -85,7 +100,7 @@ namespace System.Net
         /// <param name="formattableString">A description of the entrance, including any arguments to the call.</param>
         /// <param name="memberName">The calling member.</param>
         [NonEvent]
-        public static void Enter(object thisOrContextObject, FormattableString formattableString = null, [CallerMemberName] string memberName = null)
+        public static void Enter(object thisOrContextObject, FormattableString? formattableString = null, [CallerMemberName] string? memberName = null)
         {
             DebugValidateArg(thisOrContextObject);
             DebugValidateArg(formattableString);
@@ -97,7 +112,7 @@ namespace System.Net
         /// <param name="arg0">The object to log.</param>
         /// <param name="memberName">The calling member.</param>
         [NonEvent]
-        public static void Enter(object thisOrContextObject, object arg0, [CallerMemberName] string memberName = null)
+        public static void Enter(object thisOrContextObject, object arg0, [CallerMemberName] string? memberName = null)
         {
             DebugValidateArg(thisOrContextObject);
             DebugValidateArg(arg0);
@@ -110,7 +125,7 @@ namespace System.Net
         /// <param name="arg1">The second object to log.</param>
         /// <param name="memberName">The calling member.</param>
         [NonEvent]
-        public static void Enter(object thisOrContextObject, object arg0, object arg1, [CallerMemberName] string memberName = null)
+        public static void Enter(object thisOrContextObject, object arg0, object arg1, [CallerMemberName] string? memberName = null)
         {
             DebugValidateArg(thisOrContextObject);
             DebugValidateArg(arg0);
@@ -125,7 +140,7 @@ namespace System.Net
         /// <param name="arg2">The third object to log.</param>
         /// <param name="memberName">The calling member.</param>
         [NonEvent]
-        public static void Enter(object thisOrContextObject, object arg0, object arg1, object arg2, [CallerMemberName] string memberName = null)
+        public static void Enter(object thisOrContextObject, object arg0, object arg1, object arg2, [CallerMemberName] string? memberName = null)
         {
             DebugValidateArg(thisOrContextObject);
             DebugValidateArg(arg0);
@@ -135,7 +150,7 @@ namespace System.Net
         }
 
         [Event(EnterEventId, Level = EventLevel.Informational, Keywords = Keywords.EnterExit)]
-        private void Enter(string thisOrContextObject, string memberName, string parameters) =>
+        private void Enter(string thisOrContextObject, string? memberName, string parameters) =>
             WriteEvent(EnterEventId, thisOrContextObject, memberName ?? MissingMember, parameters);
         #endregion
 
@@ -145,7 +160,7 @@ namespace System.Net
         /// <param name="formattableString">A description of the exit operation, including any return values.</param>
         /// <param name="memberName">The calling member.</param>
         [NonEvent]
-        public static void Exit(object thisOrContextObject, FormattableString formattableString = null, [CallerMemberName] string memberName = null)
+        public static void Exit(object thisOrContextObject, FormattableString? formattableString = null, [CallerMemberName] string? memberName = null)
         {
             DebugValidateArg(thisOrContextObject);
             DebugValidateArg(formattableString);
@@ -157,7 +172,7 @@ namespace System.Net
         /// <param name="arg0">A return value from the member.</param>
         /// <param name="memberName">The calling member.</param>
         [NonEvent]
-        public static void Exit(object thisOrContextObject, object arg0, [CallerMemberName] string memberName = null)
+        public static void Exit(object thisOrContextObject, object arg0, [CallerMemberName] string? memberName = null)
         {
             DebugValidateArg(thisOrContextObject);
             DebugValidateArg(arg0);
@@ -170,7 +185,7 @@ namespace System.Net
         /// <param name="arg1">A second return value from the member.</param>
         /// <param name="memberName">The calling member.</param>
         [NonEvent]
-        public static void Exit(object thisOrContextObject, object arg0, object arg1, [CallerMemberName] string memberName = null)
+        public static void Exit(object thisOrContextObject, object arg0, object arg1, [CallerMemberName] string? memberName = null)
         {
             DebugValidateArg(thisOrContextObject);
             DebugValidateArg(arg0);
@@ -179,7 +194,7 @@ namespace System.Net
         }
 
         [Event(ExitEventId, Level = EventLevel.Informational, Keywords = Keywords.EnterExit)]
-        private void Exit(string thisOrContextObject, string memberName, string result) =>
+        private void Exit(string thisOrContextObject, string? memberName, string? result) =>
             WriteEvent(ExitEventId, thisOrContextObject, memberName ?? MissingMember, result);
         #endregion
 
@@ -189,7 +204,7 @@ namespace System.Net
         /// <param name="formattableString">The message to be logged.</param>
         /// <param name="memberName">The calling member.</param>
         [NonEvent]
-        public static void Info(object thisOrContextObject, FormattableString formattableString = null, [CallerMemberName] string memberName = null)
+        public static void Info(object thisOrContextObject, FormattableString? formattableString = null, [CallerMemberName] string? memberName = null)
         {
             DebugValidateArg(thisOrContextObject);
             DebugValidateArg(formattableString);
@@ -201,7 +216,7 @@ namespace System.Net
         /// <param name="message">The message to be logged.</param>
         /// <param name="memberName">The calling member.</param>
         [NonEvent]
-        public static void Info(object thisOrContextObject, object message, [CallerMemberName] string memberName = null)
+        public static void Info(object thisOrContextObject, object message, [CallerMemberName] string? memberName = null)
         {
             DebugValidateArg(thisOrContextObject);
             DebugValidateArg(message);
@@ -209,7 +224,7 @@ namespace System.Net
         }
 
         [Event(InfoEventId, Level = EventLevel.Informational, Keywords = Keywords.Default)]
-        private void Info(string thisOrContextObject, string memberName, string message) =>
+        private void Info(string thisOrContextObject, string? memberName, string? message) =>
             WriteEvent(InfoEventId, thisOrContextObject, memberName ?? MissingMember, message);
         #endregion
 
@@ -219,7 +234,7 @@ namespace System.Net
         /// <param name="formattableString">The message to be logged.</param>
         /// <param name="memberName">The calling member.</param>
         [NonEvent]
-        public static void Error(object thisOrContextObject, FormattableString formattableString, [CallerMemberName] string memberName = null)
+        public static void Error(object thisOrContextObject, FormattableString formattableString, [CallerMemberName] string? memberName = null)
         {
             DebugValidateArg(thisOrContextObject);
             DebugValidateArg(formattableString);
@@ -231,7 +246,7 @@ namespace System.Net
         /// <param name="message">The message to be logged.</param>
         /// <param name="memberName">The calling member.</param>
         [NonEvent]
-        public static void Error(object thisOrContextObject, object message, [CallerMemberName] string memberName = null)
+        public static void Error(object thisOrContextObject, object message, [CallerMemberName] string? memberName = null)
         {
             DebugValidateArg(thisOrContextObject);
             DebugValidateArg(message);
@@ -239,7 +254,7 @@ namespace System.Net
         }
 
         [Event(ErrorEventId, Level = EventLevel.Warning, Keywords = Keywords.Default)]
-        private void ErrorMessage(string thisOrContextObject, string memberName, string message) =>
+        private void ErrorMessage(string thisOrContextObject, string? memberName, string? message) =>
             WriteEvent(ErrorEventId, thisOrContextObject, memberName ?? MissingMember, message);
         #endregion
 
@@ -249,7 +264,7 @@ namespace System.Net
         /// <param name="formattableString">The message to be logged.</param>
         /// <param name="memberName">The calling member.</param>
         [NonEvent]
-        public static void Fail(object thisOrContextObject, FormattableString formattableString, [CallerMemberName] string memberName = null)
+        public static void Fail(object thisOrContextObject, FormattableString formattableString, [CallerMemberName] string? memberName = null)
         {
             // Don't call DebugValidateArg on args, as we expect Fail to be used in assert/failure situations
             // that should never happen in production, and thus we don't care about extra costs.
@@ -263,7 +278,7 @@ namespace System.Net
         /// <param name="message">The message to be logged.</param>
         /// <param name="memberName">The calling member.</param>
         [NonEvent]
-        public static void Fail(object thisOrContextObject, object message, [CallerMemberName] string memberName = null)
+        public static void Fail(object thisOrContextObject, object message, [CallerMemberName] string? memberName = null)
         {
             // Don't call DebugValidateArg on args, as we expect Fail to be used in assert/failure situations
             // that should never happen in production, and thus we don't care about extra costs.
@@ -273,7 +288,7 @@ namespace System.Net
         }
 
         [Event(CriticalFailureEventId, Level = EventLevel.Critical, Keywords = Keywords.Debug)]
-        private void CriticalFailure(string thisOrContextObject, string memberName, string message) =>
+        private void CriticalFailure(string thisOrContextObject, string? memberName, string? message) =>
             WriteEvent(CriticalFailureEventId, thisOrContextObject, memberName ?? MissingMember, message);
         #endregion
 
@@ -283,7 +298,7 @@ namespace System.Net
         /// <param name="buffer">The buffer to be logged.</param>
         /// <param name="memberName">The calling member.</param>
         [NonEvent]
-        public static void DumpBuffer(object thisOrContextObject, byte[] buffer, [CallerMemberName] string memberName = null)
+        public static void DumpBuffer(object thisOrContextObject, byte[] buffer, [CallerMemberName] string? memberName = null)
         {
             DumpBuffer(thisOrContextObject, buffer, 0, buffer.Length, memberName);
         }
@@ -295,7 +310,7 @@ namespace System.Net
         /// <param name="count">The number of bytes to log.</param>
         /// <param name="memberName">The calling member.</param>
         [NonEvent]
-        public static void DumpBuffer(object thisOrContextObject, byte[] buffer, int offset, int count, [CallerMemberName] string memberName = null)
+        public static void DumpBuffer(object thisOrContextObject, byte[] buffer, int offset, int count, [CallerMemberName] string? memberName = null)
         {
             if (IsEnabled)
             {
@@ -324,7 +339,7 @@ namespace System.Net
         /// <param name="count">The number of bytes to log.</param>
         /// <param name="memberName">The calling member.</param>
         [NonEvent]
-        public static unsafe void DumpBuffer(object thisOrContextObject, IntPtr bufferPtr, int count, [CallerMemberName] string memberName = null)
+        public static unsafe void DumpBuffer(object thisOrContextObject, IntPtr bufferPtr, int count, [CallerMemberName] string? memberName = null)
         {
             Debug.Assert(bufferPtr != IntPtr.Zero);
             Debug.Assert(count >= 0);
@@ -341,7 +356,7 @@ namespace System.Net
         }
 
         [Event(DumpArrayEventId, Level = EventLevel.Verbose, Keywords = Keywords.Debug)]
-        private unsafe void DumpBuffer(string thisOrContextObject, string memberName, byte[] buffer) =>
+        private unsafe void DumpBuffer(string thisOrContextObject, string? memberName, byte[] buffer) =>
             WriteEvent(DumpArrayEventId, thisOrContextObject, memberName ?? MissingMember, buffer);
         #endregion
 
@@ -351,7 +366,7 @@ namespace System.Net
         /// <param name="second">The second object.</param>
         /// <param name="memberName">The calling member.</param>
         [NonEvent]
-        public static void Associate(object first, object second, [CallerMemberName] string memberName = null)
+        public static void Associate(object first, object second, [CallerMemberName] string? memberName = null)
         {
             DebugValidateArg(first);
             DebugValidateArg(second);
@@ -364,7 +379,7 @@ namespace System.Net
         /// <param name="second">The second object.</param>
         /// <param name="memberName">The calling member.</param>
         [NonEvent]
-        public static void Associate(object thisOrContextObject, object first, object second, [CallerMemberName] string memberName = null)
+        public static void Associate(object thisOrContextObject, object first, object second, [CallerMemberName] string? memberName = null)
         {
             DebugValidateArg(thisOrContextObject);
             DebugValidateArg(first);
@@ -373,7 +388,7 @@ namespace System.Net
         }
 
         [Event(AssociateEventId, Level = EventLevel.Informational, Keywords = Keywords.Default, Message = "[{2}]<-->[{3}]")]
-        private void Associate(string thisOrContextObject, string memberName, string first, string second) =>
+        private void Associate(string thisOrContextObject, string? memberName, string first, string second) =>
             WriteEvent(AssociateEventId, thisOrContextObject, memberName ?? MissingMember, first, second);
         #endregion
         #endregion
@@ -390,12 +405,13 @@ namespace System.Net
         }
 
         [Conditional("DEBUG_NETEVENTSOURCE_MISUSE")]
-        private static void DebugValidateArg(FormattableString arg)
+        private static void DebugValidateArg(FormattableString? arg)
         {
             Debug.Assert(IsEnabled || arg == null, $"Should not be formatting FormattableString \"{arg}\" if tracing isn't enabled");
         }
 
-        public static new bool IsEnabled => Log.IsEnabled();
+        public static new bool IsEnabled =>
+            Log.IsEnabled();
 
         [NonEvent]
         public static string IdOf(object value) => value != null ? value.GetType().Name + "#" + GetHashCode(value) : NullInstance;
@@ -404,7 +420,7 @@ namespace System.Net
         public static int GetHashCode(object value) => value?.GetHashCode() ?? 0;
 
         [NonEvent]
-        public static object Format(object value)
+        public static object Format(object? value)
         {
             // If it's null, return a known string for null values
             if (value == null)
@@ -413,7 +429,7 @@ namespace System.Net
             }
 
             // Give another partial implementation a chance to provide its own string representation
-            string result = null;
+            string? result = null;
             AdditionalCustomizedToString(value, ref result);
             if (result != null)
             {
@@ -421,22 +437,19 @@ namespace System.Net
             }
 
             // Format arrays with their element type name and length
-            Array arr = value as Array;
-            if (arr != null)
+            if (value is Array arr)
             {
                 return $"{arr.GetType().GetElementType()}[{((Array)value).Length}]";
             }
 
             // Format ICollections as the name and count
-            ICollection c = value as ICollection;
-            if (c != null)
+            if (value is ICollection c)
             {
                 return $"{c.GetType().Name}({c.Count})";
             }
 
             // Format SafeHandles as their type, hash code, and pointer value
-            SafeHandle handle = value as SafeHandle;
-            if (handle != null)
+            if (value is SafeHandle handle)
             {
                 return $"{handle.GetType().Name}:{handle.GetHashCode()}(0x{handle.DangerousGetHandle():X})";
             }
@@ -449,7 +462,7 @@ namespace System.Net
 
             // If the string representation of the instance would just be its type name,
             // use its id instead.
-            string toString = value.ToString();
+            string? toString = value.ToString();
             if (toString == null || toString == value.GetType().FullName)
             {
                 return IdOf(value);
@@ -469,7 +482,7 @@ namespace System.Net
                 case 2: return string.Format(s.Format, Format(s.GetArgument(0)), Format(s.GetArgument(1)));
                 case 3: return string.Format(s.Format, Format(s.GetArgument(0)), Format(s.GetArgument(1)), Format(s.GetArgument(2)));
                 default:
-                    object[] args = s.GetArguments();
+                    object?[] args = s.GetArguments();
                     object[] formattedArgs = new object[args.Length];
                     for (int i = 0; i < args.Length; i++)
                     {
@@ -479,7 +492,7 @@ namespace System.Net
             }
         }
 
-        static partial void AdditionalCustomizedToString<T>(T value, ref string result);
+        static partial void AdditionalCustomizedToString<T>(T value, ref string? result);
         #endregion
 
         #region Custom WriteEvent overloads
@@ -502,17 +515,26 @@ namespace System.Net
                     const int NumEventDatas = 4;
                     var descrs = stackalloc EventData[NumEventDatas];
 
-                    descrs[0].DataPointer = (IntPtr)string1Bytes;
-                    descrs[0].Size = ((arg1.Length + 1) * 2);
-
-                    descrs[1].DataPointer = (IntPtr)string2Bytes;
-                    descrs[1].Size = ((arg2.Length + 1) * 2);
-
-                    descrs[2].DataPointer = (IntPtr)string3Bytes;
-                    descrs[2].Size = ((arg3.Length + 1) * 2);
-
-                    descrs[3].DataPointer = (IntPtr)string4Bytes;
-                    descrs[3].Size = ((arg4.Length + 1) * 2);
+                    descrs[0] = new EventData
+                    {
+                        DataPointer = (IntPtr)string1Bytes,
+                        Size = ((arg1.Length + 1) * 2)
+                    };
+                    descrs[1] = new EventData
+                    {
+                        DataPointer = (IntPtr)string2Bytes,
+                        Size = ((arg2.Length + 1) * 2)
+                    };
+                    descrs[2] = new EventData
+                    {
+                        DataPointer = (IntPtr)string3Bytes,
+                        Size = ((arg3.Length + 1) * 2)
+                    };
+                    descrs[3] = new EventData
+                    {
+                        DataPointer = (IntPtr)string4Bytes,
+                        Size = ((arg4.Length + 1) * 2)
+                    };
 
                     WriteEventCore(eventId, NumEventDatas, descrs);
                 }
@@ -536,17 +558,26 @@ namespace System.Net
                     const int NumEventDatas = 4;
                     var descrs = stackalloc EventData[NumEventDatas];
 
-                    descrs[0].DataPointer = (IntPtr)arg1Ptr;
-                    descrs[0].Size = (arg1.Length + 1) * sizeof(char);
-
-                    descrs[1].DataPointer = (IntPtr)arg2Ptr;
-                    descrs[1].Size = (arg2.Length + 1) * sizeof(char);
-
-                    descrs[2].DataPointer = (IntPtr)(&bufferLength);
-                    descrs[2].Size = 4;
-
-                    descrs[3].DataPointer = (IntPtr)arg3Ptr;
-                    descrs[3].Size = bufferLength;
+                    descrs[0] = new EventData
+                    {
+                        DataPointer = (IntPtr)arg1Ptr,
+                        Size = (arg1.Length + 1) * sizeof(char)
+                    };
+                    descrs[1] = new EventData
+                    {
+                        DataPointer = (IntPtr)arg2Ptr,
+                        Size = (arg2.Length + 1) * sizeof(char)
+                    };
+                    descrs[2] = new EventData
+                    {
+                        DataPointer = (IntPtr)(&bufferLength),
+                        Size = 4
+                    };
+                    descrs[3] = new EventData
+                    {
+                        DataPointer = (IntPtr)arg3Ptr,
+                        Size = bufferLength
+                    };
 
                     WriteEventCore(eventId, NumEventDatas, descrs);
                 }
@@ -565,17 +596,26 @@ namespace System.Net
                     const int NumEventDatas = 4;
                     var descrs = stackalloc EventData[NumEventDatas];
 
-                    descrs[0].DataPointer = (IntPtr)(arg1Ptr);
-                    descrs[0].Size = (arg1.Length + 1) * sizeof(char);
-
-                    descrs[1].DataPointer = (IntPtr)(&arg2);
-                    descrs[1].Size = sizeof(int);
-
-                    descrs[2].DataPointer = (IntPtr)(&arg3);
-                    descrs[2].Size = sizeof(int);
-
-                    descrs[3].DataPointer = (IntPtr)(&arg4);
-                    descrs[3].Size = sizeof(int);
+                    descrs[0] = new EventData
+                    {
+                        DataPointer = (IntPtr)(arg1Ptr),
+                        Size = (arg1.Length + 1) * sizeof(char)
+                    };
+                    descrs[1] = new EventData
+                    {
+                        DataPointer = (IntPtr)(&arg2),
+                        Size = sizeof(int)
+                    };
+                    descrs[2] = new EventData
+                    {
+                        DataPointer = (IntPtr)(&arg3),
+                        Size = sizeof(int)
+                    };
+                    descrs[3] = new EventData
+                    {
+                        DataPointer = (IntPtr)(&arg4),
+                        Size = sizeof(int)
+                    };
 
                     WriteEventCore(eventId, NumEventDatas, descrs);
                 }
@@ -596,14 +636,21 @@ namespace System.Net
                     const int NumEventDatas = 3;
                     var descrs = stackalloc EventData[NumEventDatas];
 
-                    descrs[0].DataPointer = (IntPtr)(arg1Ptr);
-                    descrs[0].Size = (arg1.Length + 1) * sizeof(char);
-
-                    descrs[1].DataPointer = (IntPtr)(&arg2);
-                    descrs[1].Size = sizeof(int);
-
-                    descrs[2].DataPointer = (IntPtr)(arg3Ptr);
-                    descrs[2].Size = (arg3.Length + 1) * sizeof(char);
+                    descrs[0] = new EventData
+                    {
+                        DataPointer = (IntPtr)(arg1Ptr),
+                        Size = (arg1.Length + 1) * sizeof(char)
+                    };
+                    descrs[1] = new EventData
+                    {
+                        DataPointer = (IntPtr)(&arg2),
+                        Size = sizeof(int)
+                    };
+                    descrs[2] = new EventData
+                    {
+                        DataPointer = (IntPtr)(arg3Ptr),
+                        Size = (arg3.Length + 1) * sizeof(char)
+                    };
 
                     WriteEventCore(eventId, NumEventDatas, descrs);
                 }
@@ -624,14 +671,21 @@ namespace System.Net
                     const int NumEventDatas = 3;
                     var descrs = stackalloc EventData[NumEventDatas];
 
-                    descrs[0].DataPointer = (IntPtr)(arg1Ptr);
-                    descrs[0].Size = (arg1.Length + 1) * sizeof(char);
-
-                    descrs[1].DataPointer = (IntPtr)(arg2Ptr);
-                    descrs[1].Size = (arg2.Length + 1) * sizeof(char);
-
-                    descrs[2].DataPointer = (IntPtr)(&arg3);
-                    descrs[2].Size = sizeof(int);
+                    descrs[0] = new EventData
+                    {
+                        DataPointer = (IntPtr)(arg1Ptr),
+                        Size = (arg1.Length + 1) * sizeof(char)
+                    };
+                    descrs[1] = new EventData
+                    {
+                        DataPointer = (IntPtr)(arg2Ptr),
+                        Size = (arg2.Length + 1) * sizeof(char)
+                    };
+                    descrs[2] = new EventData
+                    {
+                        DataPointer = (IntPtr)(&arg3),
+                        Size = sizeof(int)
+                    };
 
                     WriteEventCore(eventId, NumEventDatas, descrs);
                 }
@@ -654,17 +708,26 @@ namespace System.Net
                     const int NumEventDatas = 4;
                     var descrs = stackalloc EventData[NumEventDatas];
 
-                    descrs[0].DataPointer = (IntPtr)(arg1Ptr);
-                    descrs[0].Size = (arg1.Length + 1) * sizeof(char);
-
-                    descrs[1].DataPointer = (IntPtr)(arg2Ptr);
-                    descrs[1].Size = (arg2.Length + 1) * sizeof(char);
-
-                    descrs[2].DataPointer = (IntPtr)(arg3Ptr);
-                    descrs[2].Size = (arg3.Length + 1) * sizeof(char);
-
-                    descrs[3].DataPointer = (IntPtr)(&arg4);
-                    descrs[3].Size = sizeof(int);
+                    descrs[0] = new EventData
+                    {
+                        DataPointer = (IntPtr)(arg1Ptr),
+                        Size = (arg1.Length + 1) * sizeof(char)
+                    };
+                    descrs[1] = new EventData
+                    {
+                        DataPointer = (IntPtr)(arg2Ptr),
+                        Size = (arg2.Length + 1) * sizeof(char)
+                    };
+                    descrs[2] = new EventData
+                    {
+                        DataPointer = (IntPtr)(arg3Ptr),
+                        Size = (arg3.Length + 1) * sizeof(char)
+                    };
+                    descrs[3] = new EventData
+                    {
+                        DataPointer = (IntPtr)(&arg4),
+                        Size = sizeof(int)
+                    };
 
                     WriteEventCore(eventId, NumEventDatas, descrs);
                 }

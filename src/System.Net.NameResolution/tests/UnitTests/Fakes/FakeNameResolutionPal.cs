@@ -2,14 +2,15 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using System.Diagnostics;
 using System.Net.Sockets;
-using System.Threading;
+using System.Threading.Tasks;
 
 namespace System.Net
 {
     internal static class NameResolutionPal
     {
+        public static bool SupportsGetAddrInfoAsync => false;
+
         internal static int FakesEnsureSocketsAreInitializedCallCount
         {
             get;
@@ -33,7 +34,7 @@ namespace System.Net
             FakesEnsureSocketsAreInitializedCallCount++;
         }
 
-        internal static SocketError TryGetAddrInfo(string hostName, out IPHostEntry ipHostEntry, out int nativeErrorCode)
+        internal static SocketError TryGetAddrInfo(string name, bool justAddresses, out string hostName, out string[] aliases, out IPAddress[] addresses, out int nativeErrorCode)
         {
             throw new NotImplementedException();
         }
@@ -45,6 +46,11 @@ namespace System.Net
         }
 
         internal static string TryGetNameInfo(IPAddress address, out SocketError errorCode, out int nativeErrorCode)
+        {
+            throw new NotImplementedException();
+        }
+
+        internal static Task GetAddrInfoAsync(string hostName, bool justAddresses)
         {
             throw new NotImplementedException();
         }

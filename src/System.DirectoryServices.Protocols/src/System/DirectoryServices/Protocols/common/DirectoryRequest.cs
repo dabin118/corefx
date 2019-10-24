@@ -57,12 +57,12 @@ namespace System.DirectoryServices.Protocols
             {
                 throw new ArgumentNullException(nameof(objectClass));
             }
-            
+
             DistinguishedName = distinguishedName;
 
             var objClassAttr = new DirectoryAttribute()
             {
-                Name = "objectClass"
+                Name = nameof(objectClass)
             };
             objClassAttr.Add(objectClass);
             Attributes.Add(objClassAttr);
@@ -156,7 +156,7 @@ namespace System.DirectoryServices.Protocols
                 throw new ArgumentNullException(nameof(value));
             }
 
-            DistinguishedName = distinguishedName;           
+            DistinguishedName = distinguishedName;
             Assertion.Name = attributeName;
             Assertion.Add(value);
         }
@@ -311,7 +311,7 @@ namespace System.DirectoryServices.Protocols
             {
                 if (value < TimeSpan.Zero)
                 {
-                    throw new ArgumentException(SR.NoNegativeTime, nameof(value));
+                    throw new ArgumentException(SR.NoNegativeTimeLimit, nameof(value));
                 }
 
                 // Prevent integer overflow.

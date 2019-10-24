@@ -10,7 +10,6 @@ namespace System.Net
     {
         public const int IPv6AddressSize = 28;
         public const int IPv4AddressSize = 16;
-        public const int DataOffset = 2;
 
         public static unsafe AddressFamily GetAddressFamily(byte[] buffer)
         {
@@ -19,6 +18,14 @@ namespace System.Net
 
         public static unsafe void SetAddressFamily(byte[] buffer, AddressFamily family)
         {
+            if ((int)(family) > ushort.MaxValue)
+            {
+                // For legacy values family maps directly to Winsock value.
+                // Other values will need mapping if/when supported.
+                // Currently, that is Netlink, Packet and ControllerAreaNetwork, neither of them supported on Windows.
+                throw new PlatformNotSupportedException();
+            }
+
 #if BIGENDIAN
             buffer[0] = unchecked((byte)((int)family >> 8));
             buffer[1] = unchecked((byte)((int)family));
@@ -38,7 +45,7 @@ namespace System.Net
             port.HostToNetworkBytes(buffer, 2);
         }
 
-        public static unsafe uint GetIPv4Address(byte[] buffer)
+        public static unsafe uint GetIPv4Address(ReadOnlySpan<byte> buffer)
         {
             unchecked
             {
@@ -49,7 +56,7 @@ namespace System.Net
             }
         }
 
-        public static unsafe void GetIPv6Address(byte[] buffer, byte[] address, out uint scope)
+        public static unsafe void GetIPv6Address(ReadOnlySpan<byte> buffer, Span<byte> address, out uint scope)
         {
             for (int i = 0; i < address.Length; i++)
             {
@@ -72,7 +79,7 @@ namespace System.Net
             buffer[7] = unchecked((byte)(address >> 24));
         }
 
-        public static unsafe void SetIPv6Address(byte[] buffer, byte[] address, uint scope)
+        public static unsafe void SetIPv6Address(byte[] buffer, Span<byte> address, uint scope)
         {
             // No handling for Flow Information
             buffer[4] = (byte)0;

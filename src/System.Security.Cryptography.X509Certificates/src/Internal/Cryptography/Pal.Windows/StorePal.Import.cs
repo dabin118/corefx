@@ -81,14 +81,14 @@ namespace Internal.Cryptography.Pal
                             {
                                 //
                                 // If the user did not want us to persist private keys, then we should loop through all
-                                // the certificates in the collection and set our custom CERT_DELETE_KEYSET_PROP_ID property
+                                // the certificates in the collection and set our custom CERT_CLR_DELETE_KEY_PROP_ID property
                                 // so the key container will be deleted when the cert contexts will go away.
                                 //
                                 SafeCertContextHandle pCertContext = null;
                                 while (Interop.crypt32.CertEnumCertificatesInStore(certStore, ref pCertContext))
                                 {
                                     CRYPTOAPI_BLOB nullBlob = new CRYPTOAPI_BLOB(0, null);
-                                    if (!Interop.crypt32.CertSetCertificateContextProperty(pCertContext, CertContextPropId.CERT_DELETE_KEYSET_PROP_ID, CertSetPropertyFlags.CERT_SET_PROPERTY_INHIBIT_PERSIST_FLAG, &nullBlob))
+                                    if (!Interop.crypt32.CertSetCertificateContextProperty(pCertContext, CertContextPropId.CERT_CLR_DELETE_KEY_PROP_ID, CertSetPropertyFlags.CERT_SET_PROPERTY_INHIBIT_PERSIST_FLAG, &nullBlob))
                                         throw Marshal.GetLastWin32Error().ToCryptographicException();
                                 }
                             }
@@ -100,7 +100,7 @@ namespace Internal.Cryptography.Pal
             }
         }
 
-        public static IExportPal FromCertificate(ICertificatePal cert)
+        public static IExportPal FromCertificate(ICertificatePalCore cert)
         {
             CertificatePal certificatePal = (CertificatePal)cert;
 
@@ -111,9 +111,9 @@ namespace Internal.Cryptography.Pal
                 CertStoreFlags.CERT_STORE_ENUM_ARCHIVED_FLAG | CertStoreFlags.CERT_STORE_CREATE_NEW_FLAG | CertStoreFlags.CERT_STORE_DEFER_CLOSE_UNTIL_LAST_FREE_FLAG,
                 null);
             if (certStore.IsInvalid)
-                throw Marshal.GetHRForLastWin32Error().ToCryptographicException();;
+                throw Marshal.GetHRForLastWin32Error().ToCryptographicException();
             if (!Interop.crypt32.CertAddCertificateLinkToStore(certStore, certificatePal.CertContext, CertStoreAddDisposition.CERT_STORE_ADD_ALWAYS, IntPtr.Zero))
-                throw Marshal.GetHRForLastWin32Error().ToCryptographicException();;
+                throw Marshal.GetHRForLastWin32Error().ToCryptographicException();
             return new StorePal(certStore);
         }
 
@@ -133,16 +133,16 @@ namespace Internal.Cryptography.Pal
                 CertStoreFlags.CERT_STORE_ENUM_ARCHIVED_FLAG | CertStoreFlags.CERT_STORE_CREATE_NEW_FLAG,
                 null);
             if (certStore.IsInvalid)
-                throw Marshal.GetHRForLastWin32Error().ToCryptographicException();;
+                throw Marshal.GetHRForLastWin32Error().ToCryptographicException();
 
             //
             // We use CertAddCertificateLinkToStore to keep a link to the original store, so any property changes get
             // applied to the original store. This has a limit of 99 links per cert context however.
             //
 
-            foreach (X509Certificate2 certificate in certificates)
+            for (int i = 0; i < certificates.Count; i++)
             {
-                SafeCertContextHandle certContext = ((CertificatePal)certificate.Pal).CertContext;
+                SafeCertContextHandle certContext = ((CertificatePal)certificates[i].Pal).CertContext;
                 if (!Interop.crypt32.CertAddCertificateLinkToStore(certStore, certContext, CertStoreAddDisposition.CERT_STORE_ADD_ALWAYS, IntPtr.Zero))
                     throw Marshal.GetLastWin32Error().ToCryptographicException();
             }
@@ -164,7 +164,7 @@ namespace Internal.Cryptography.Pal
             //
             // For compat with desktop, ignoring any failures from this call. (It is pretty unlikely to fail, in any case.)
             //
-            bool ignore = Interop.crypt32.CertControlStore(certStore, CertControlStoreFlags.None, CertControlStoreType.CERT_STORE_CTRL_AUTO_RESYNC, IntPtr.Zero);
+            _ = Interop.crypt32.CertControlStore(certStore, CertControlStoreFlags.None, CertControlStoreType.CERT_STORE_CTRL_AUTO_RESYNC, IntPtr.Zero);
 
             return new StorePal(certStore);
         }
